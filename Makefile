@@ -11,7 +11,9 @@ chanlun: chanlun-ts chanlun-lean chanlun-conformance ## 缠论's contract
 chanlun-ts: ## the TypeScript form: Biome, tsc, its tests over the vectors
 	cd chanlun/ts && bun install --frozen-lockfile && biome check . && ./node_modules/.bin/tsc --noEmit -p . && ./node_modules/.bin/vitest run
 
-chanlun-lean: ## the Lean form, built with its decode
+chanlun-lean: ## the Lean form, built with its decode, by the shell's Lean once its version is the one chanlun/lean/lean-toolchain names
+	@v=$$(lean --version | sed -n 's/^Lean (version \([^,]*\),.*/\1/p'); t=$$(sed 's|^leanprover/lean4:v||' chanlun/lean/lean-toolchain); \
+	[ -n "$$v" ] && [ "$$t" = "$$v" ] || { echo "chanlun-lean: the shell's Lean is '$$v', chanlun/lean/lean-toolchain names '$$t'"; exit 1; }
 	cd chanlun/lean && lake build
 
 chanlun-conformance: chanlun-lean ## both forms on every vector: each run decoded and written to the same text by both, every reject case refused by both, as a fault of the contract (exit 1, `decode: ` and its message), not a crash

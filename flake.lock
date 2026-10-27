@@ -22,11 +22,11 @@
       },
       "locked": {
         "dir": "qi-v2",
-        "lastModified": 1793131709,
-        "narHash": "sha256-9SilF8ZkJXzX7gwDfPFqobbDgDpzXO3GKmjrj530DWU=",
+        "lastModified": 1793138966,
+        "narHash": "sha256-OABjkwPZfQO4MRGBEW7iIqz3TGt1FF9mWlLuwrZylwM=",
         "owner": "zhifengzhang-sz",
         "repo": "qi-v2-nix",
-        "rev": "a3cb02164428f516a089261ebd6f4ef557d8618d",
+        "rev": "2deb2d472dba1ba3f94566a2e845336bc9b25248",
         "type": "github"
       },
       "original": {

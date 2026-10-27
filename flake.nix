@@ -9,19 +9,21 @@
 
   outputs = { self, nixpkgs, qi-v2 }:
     let
-      systems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
+      # the systems qi-v2's Lean is pinned for
+      systems = [ "x86_64-linux" ];
       forAll = f: nixpkgs.lib.genAttrs systems (system: f nixpkgs.legacyPackages.${system});
     in {
       devShells = forAll (pkgs: {
         default = qi-v2.lib.mkPureShell pkgs {
           name = "contracts";
+          # the Lean forms: Lean and Lake pinned in the store (qi-v2's lean preset); each form's lean-toolchain
+          # names the same version, which make checks
+          uses = [ (qi-v2.lib.lean pkgs) ];
           packages = with pkgs; [
             gnumake git gh openssh
             # the TypeScript forms: Bun runs them, Biome lints and formats them, vitest's runtime is Node; their
             # packages are pinned by each form's bun.lock
             bun biome nodejs
-            # the Lean forms: Lean by elan, at the version each lean-toolchain fixes
-            elan
           ];
           # of the host, Nix itself: make packages builds the flake's packages
           hostTools = [ "nix" "nix-store" ];
