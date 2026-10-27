@@ -1,0 +1,39 @@
+{
+"klines": [
+{"close":10005,"confirmDate":0,"confirmRno":0,"date":1767623400,"high":10010,"low":9990,"open":10000,"rno":0,"stored":1,"up":true,"volume":1000},
+{"close":10025,"confirmDate":1,"confirmRno":1,"date":1767623460,"high":10030,"low":10000,"open":10005,"rno":1,"stored":1,"up":true,"volume":1001},
+{"close":9985,"confirmDate":2,"confirmRno":2,"date":1767623520,"high":10028,"low":9980,"open":10025,"rno":2,"stored":1,"up":false,"volume":1002},
+{"close":9960,"confirmDate":3,"confirmRno":3,"date":1767623580,"high":9990,"low":9950,"open":9985,"rno":3,"stored":1,"up":false,"volume":1003},
+{"close":10035,"confirmDate":4,"confirmRno":4,"date":1767623640,"high":10040,"low":9955,"open":9960,"rno":4,"stored":1,"up":true,"volume":1004},
+{"close":10045,"confirmRno":5,"date":1767623700,"high":10050,"low":10020,"open":10035,"rno":5,"stored":1,"up":true,"volume":1005}
+],
+"merged": [
+{"confirmEndDate":2,"confirmStartDate":0,"endDate":1,"high":10030,"low":9990,"mno":0,"rno":0,"startDate":0,"stored":1,"up":true},
+{"confirmEndDate":4,"confirmStartDate":2,"endDate":3,"high":10028,"low":9950,"mno":1,"rno":1,"startDate":2,"stored":1,"up":false},
+{"confirmStartDate":4,"endDate":5,"high":10050,"low":9955,"mno":2,"rno":2,"startDate":4,"stored":1,"up":true}
+],
+"fractals": [
+{"confirmEndDate":3,"confirmStartDate":2,"date":1,"ding":true,"high":10030,"low":9990,"mno":0,"rno":1,"stored":1,"turningpoint":true},
+{"confirmStartDate":4,"date":3,"ding":false,"high":10028,"low":9950,"mno":1,"rno":3,"stored":0,"turningpoint":true}
+],
+"strokes": [
+{"confirmEndDate":5,"confirmStartDate":1,"endBar":1,"endDate":3,"endRno":3,"high":10030,"isUp":false,"level":-2,"low":9950,"startBar":0,"startDate":1,"startRno":1,"stored":1},
+{"confirmStartDate":3,"endBar":2,"endDate":5,"endRno":5,"high":10050,"isUp":true,"level":-2,"low":9950,"startBar":1,"startDate":3,"startRno":3,"stored":1}
+],
+"segments": [
+{"confirmEndDate":5,"confirmStartDate":1,"endBar":1,"endDate":3,"endRno":3,"high":10030,"isUp":false,"level":-1,"low":9950,"startBar":0,"startDate":1,"startRno":1,"stored":1}
+],
+"trends": [
+[
+{"confirmEndDate":5,"confirmStartDate":1,"endBar":1,"endDate":3,"endRno":3,"high":10030,"isUp":false,"level":0,"low":9950,"startBar":0,"startDate":1,"startRno":1,"stored":1}
+]
+],
+"centres": [
+[
+{"buy":"()","confirmEndDate":5,"confirmStartDate":2,"d":9990,"dd":9950,"ddBar":1,"ddDate":3,"ddRno":3,"endBar":2,"endDate":5,"endRno":5,"entrance":false,"exit":true,"g":10028,"gg":10050,"ggBar":2,"ggDate":5,"ggRno":5,"level":0,"startBar":0,"startDate":1,"startRno":1,"stored":1,"tp0":"()","tp0Rno":"()","tp1":"()","tp1Rno":"()","tp2":"()","tp2Rno":"()","zd":9990,"zg":10028}
+],
+[
+{"buy":"()","confirmEndDate":5,"confirmStartDate":2,"d":9990,"dd":9950,"ddBar":1,"ddDate":3,"ddRno":3,"endBar":2,"endDate":5,"endRno":5,"entrance":false,"exit":true,"g":10028,"gg":10050,"ggBar":2,"ggDate":5,"ggRno":5,"level":1,"startBar":0,"startDate":1,"startRno":1,"stored":1,"tp0":"()","tp0Rno":"()","tp1":"()","tp1Rno":"()","tp2":"()","tp2Rno":"()","zd":9990,"zg":10028}
+]
+]
+}

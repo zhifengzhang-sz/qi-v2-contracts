@@ -1,0 +1,17 @@
+name = "chanlun"
+version = "1.0.0"
+defaultTargets = ["Chanlun", "decode"]
+
+[leanOptions]
+autoImplicit = false
+relaxedAutoImplicit = false
+
+# 缠论's contract (../SPEC.md): the algorithm's records as structures (Chanlun/Contract.lean), and a run's records as
+# JSON, decoded with every rule and encoded as the canonical text (Chanlun/Codec.lean). No Mathlib.
+[[lean_lib]]
+name = "Chanlun"
+
+# A run's JSON decoded and written again as its canonical JSON: the conformance check's Lean side.
+[[lean_exe]]
+name = "decode"
+root = "Main"

@@ -1,0 +1,51 @@
+{
+  "nodes": {
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1793015021,
+        "narHash": "sha256-Ee5BWo8sh3pGt70QUdRajnaginqFmWvrtdBc4gJzhks=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "718f670e845328e9c2cecdd832835712b2cbd065",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-26.05",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "qi-v2": {
+      "inputs": {
+        "nixpkgs": "nixpkgs"
+      },
+      "locked": {
+        "dir": "qi-v2",
+        "lastModified": 1793131709,
+        "narHash": "sha256-9SilF8ZkJXzX7gwDfPFqobbDgDpzXO3GKmjrj530DWU=",
+        "owner": "zhifengzhang-sz",
+        "repo": "qi-v2-nix",
+        "rev": "a3cb02164428f516a089261ebd6f4ef557d8618d",
+        "type": "github"
+      },
+      "original": {
+        "dir": "qi-v2",
+        "owner": "zhifengzhang-sz",
+        "repo": "qi-v2-nix",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "nixpkgs": [
+          "qi-v2",
+          "nixpkgs"
+        ],
+        "qi-v2": "qi-v2"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}

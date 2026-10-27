@@ -1,0 +1,23 @@
+{
+  "name": "@qi/chanlun",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "缠论's contract (../SPEC.md): the algorithm's records as Zod schemas, and a run's records as JSON",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "check": "biome check src test bin package.json tsconfig.json biome.json",
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "4.1.12"
+  },
+  "devDependencies": {
+    "@types/node": "24.3.0",
+    "typescript": "5.9.3",
+    "vitest": "3.2.4"
+  }
+}
