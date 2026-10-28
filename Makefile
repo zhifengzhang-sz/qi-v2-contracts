@@ -1,6 +1,6 @@
 # The contracts' checks (README.md): each form's own, then the conformance of each contract's forms, run on every
 # change. In the shell (nix develop).
-.PHONY: help check chanlun chanlun-ts chanlun-lean chanlun-conformance packages
+.PHONY: help check chanlun chanlun-ts chanlun-proto chanlun-lean chanlun-conformance packages
 help: ## the targets
 	@grep -E '^[a-z-]+:.*## ' Makefile | sed 's/:.*## /: /'
 
@@ -8,8 +8,13 @@ check: chanlun ## every contract: its forms' checks and their conformance
 
 chanlun: chanlun-ts chanlun-lean chanlun-conformance ## 缠论's contract
 
-chanlun-ts: ## the TypeScript form: Biome, tsc, its tests over the vectors
+chanlun-ts: ## the TypeScript form: Biome, tsc, its tests over the vectors; its Protobuf description what its schemas make, and read by protoc
 	cd chanlun/ts && bun install --frozen-lockfile && biome check . && ./node_modules/.bin/tsc --noEmit -p . && ./node_modules/.bin/vitest run
+	cd chanlun/ts && bun bin/proto.ts --check
+	protoc --proto_path=chanlun/proto --descriptor_set_out=/dev/null chanlun.proto
+
+chanlun-proto: ## the Protobuf description, chanlun/proto/chanlun.proto, made again from the Zod schemas and chanlun/proto/fields.json (a new field: its number added there first)
+	cd chanlun/ts && bun bin/proto.ts
 
 chanlun-lean: ## the Lean form, built with its decode, by the shell's Lean once its version is the one chanlun/lean/lean-toolchain names
 	@v=$$(lean --version | sed -n 's/^Lean (version \([^,]*\),.*/\1/p'); t=$$(sed 's|^leanprover/lean4:v||' chanlun/lean/lean-toolchain); \
@@ -30,7 +35,7 @@ chanlun-conformance: chanlun-lean ## both forms on every vector: each run decode
 	done; \
 	[ $$s = 0 ] && echo "chanlun conformance: $$r runs given back alike by both forms, $$n reject cases refused by both: PASS" || { echo "chanlun conformance: FAIL"; exit 1; }
 
-packages: ## the flake's packages built, and each taken as a taker takes it: the TypeScript one imported by Bun, the Lean one built by Lake, each decoding the small run to the same text
+packages: ## the flake's packages built, and each taken as a taker takes it: the TypeScript one imported by Bun, the Lean one built by Lake, each decoding the small run to the same text; the Protobuf one read by protoc
 	@ts=$$(nix build .#chanlun-ts --no-link --print-out-paths) && lean=$$(nix build .#chanlun-lean --no-link --print-out-paths) && \
 	t=$$(mktemp -d) && trap 'rm -rf $$t' EXIT && v=$$PWD/chanlun/vectors/small.json && \
 	ln -s $$ts/node_modules $$t/node_modules && \
@@ -39,4 +44,6 @@ packages: ## the flake's packages built, and each taken as a taker takes it: the
 	  'process.stdout.write(encodeRun(r.run));' > $$t/take.ts && \
 	(cd $$t && bun take.ts $$v) | cmp -s - $$v && echo "packages: $$ts taken by Bun: PASS" && \
 	cp -r $$lean $$t/lean && chmod -R u+w $$t/lean && (cd $$t/lean && lake build -q) && \
-	$$t/lean/.lake/build/bin/decode $$v | cmp -s - $$v && echo "packages: $$lean built by Lake: PASS"
+	$$t/lean/.lake/build/bin/decode $$v | cmp -s - $$v && echo "packages: $$lean built by Lake: PASS" && \
+	proto=$$(nix build .#chanlun-proto --no-link --print-out-paths) && \
+	protoc --proto_path=$$proto --descriptor_set_out=/dev/null chanlun.proto && echo "packages: $$proto read by protoc: PASS"

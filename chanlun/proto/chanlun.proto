@@ -1,0 +1,116 @@
+// 缠论's contract, chanlun 1.1.0 (../SPEC.md): the records' fields and types, made from the Zod schemas of
+// ../ts/src by ../ts/bin/proto.ts with the field numbers of fields.json; not edited by hand. The records' rules are
+// not here (SPEC.md, The records and The run): every reader checks them, and reads the vectors (../vectors/) alike.
+
+syntax = "proto3";
+
+package qi.chanlun.v1;
+
+message KLine {
+  uint64 rno = 1;
+  uint64 date = 2;
+  bool up = 3;
+  int64 open = 4;
+  int64 high = 5;
+  int64 low = 6;
+  int64 close = 7;
+  uint64 volume = 8;
+  uint64 confirm_rno = 9;
+  optional uint64 confirm_date = 10;
+  uint32 stored = 11;
+}
+
+message MergedBar {
+  uint64 rno = 1;
+  uint64 mno = 2;
+  bool up = 3;
+  int64 high = 4;
+  int64 low = 5;
+  uint64 start_date = 6;
+  optional uint64 confirm_start_date = 7;
+  uint64 end_date = 8;
+  optional uint64 confirm_end_date = 9;
+  uint32 stored = 10;
+}
+
+message Fractal {
+  uint64 rno = 1;
+  uint64 date = 2;
+  uint64 mno = 3;
+  bool ding = 4;
+  bool turningpoint = 5;
+  int64 high = 6;
+  int64 low = 7;
+  optional uint64 confirm_start_date = 8;
+  optional uint64 confirm_end_date = 9;
+  optional uint64 confirm_turning_point_date = 10;
+  uint32 stored = 11;
+}
+
+message Line {
+  int64 level = 1;
+  bool is_up = 2;
+  uint64 start_date = 3;
+  optional uint64 confirm_start_date = 4;
+  uint64 end_date = 5;
+  optional uint64 confirm_end_date = 6;
+  int64 high = 7;
+  int64 low = 8;
+  uint64 start_rno = 9;
+  uint64 end_rno = 10;
+  uint32 stored = 11;
+  uint64 start_bar = 12;
+  uint64 end_bar = 13;
+}
+
+message Centre {
+  uint64 level = 1;
+  uint64 start_rno = 2;
+  uint64 start_date = 3;
+  uint64 end_rno = 4;
+  uint64 end_date = 5;
+  bool entrance = 6;
+  bool exit = 7;
+  int64 zg = 8;
+  int64 zd = 9;
+  int64 gg = 10;
+  uint64 gg_rno = 11;
+  uint64 gg_date = 12;
+  int64 dd = 13;
+  uint64 dd_rno = 14;
+  uint64 dd_date = 15;
+  int64 d = 16;
+  int64 g = 17;
+  string buy = 18;
+  string tp0 = 19;
+  string tp0_rno = 20;
+  string tp1 = 21;
+  string tp1_rno = 22;
+  string tp2 = 23;
+  string tp2_rno = 24;
+  optional uint64 confirm_start_date = 25;
+  optional uint64 confirm_end_date = 26;
+  uint32 stored = 27;
+  uint64 start_bar = 28;
+  uint64 end_bar = 29;
+  uint64 gg_bar = 30;
+  uint64 dd_bar = 31;
+}
+
+message Run {
+  repeated KLine klines = 1;
+  repeated MergedBar merged = 2;
+  repeated Fractal fractals = 3;
+  repeated Line strokes = 4;
+  repeated Line segments = 5;
+  repeated LineList trends = 6;
+  repeated CentreList centres = 7;
+}
+
+message LineList {
+  repeated Line items = 1;
+}
+
+message CentreList {
+  repeated Centre items = 1;
+}

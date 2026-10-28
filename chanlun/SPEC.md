@@ -1,8 +1,9 @@
 # 缠论's contract: the algorithm's records
 
-Version 1.0.0. The records the algorithm of 缠论 gives over a run of bars, of whatever implementation gives them, and
-how they cross from one project to another as JSON. Two forms state it: TypeScript (`ts/`, Zod schemas) and Lean
-(`lean/`, structures with a JSON codec). The vectors (`vectors/`) are what both must read alike.
+Version 1.1.0. The records the algorithm of 缠论 gives over a run of bars, of whatever implementation gives them, and
+how they cross from one project to another as JSON. It is written in TypeScript (`ts/`, Zod schemas); Lean (`lean/`,
+structures with a JSON codec) is a second form of it; its Protobuf description (`proto/chanlun.proto`) is made from
+the TypeScript, for every other language. The vectors (`vectors/`) are what every form must read alike.
 
 The algorithm is a chain, and so are its records: each step's output is the next step's input.
 
@@ -156,7 +157,21 @@ The canonical text, which both forms write and the conformance check compares:
 - a record: its fields in the order of their names (ASCII), a field not set left out, no spaces; a number in its
   digits, a boolean `true` or `false`, a text in `"` with `"` and `\` escaped by `\`, nothing else escaped.
 
+## The Protobuf description
+
+`proto/chanlun.proto` (package `qi.chanlun.v1`) is made from the Zod schemas (`make chanlun-proto`, `ts/bin/proto.ts`)
+and checked against them on every change (`make check`): a message a record (`KLine`, `MergedBar`, `Fractal`, `Line`,
+`Centre`, `Run`), and a part by level a list of a message holding one level (`LineList`, `CentreList`). A whole number
+is `uint64`, or `int64` where it may be below 0; `stored` is `uint32`; a date not set is an `optional` field. A
+field's number is kept in `proto/fields.json`, for good: a new field takes a number not used before, and a field
+removed has its number and name reserved there.
+
+It holds the records' fields and their types, not their rules: those are this page's, and a reader of any language
+checks them and reads the vectors alike. Nor is Protobuf's own JSON the JSON above: it writes a 64-bit number as a
+text, leaves out a field at 0 or false unless told not to, and writes a part by level as a list of `{"items": [...]}`.
+A reader that takes its types from the `.proto` reads and writes the JSON above.
+
 ## Versions
 
-A change to the records is a new version of this contract, in both forms and the vectors together; an
-implementation's output changing is not, until the contract does.
+A change to the records is a new version of this contract, in its forms, its Protobuf description and the vectors
+together; an implementation's output changing is not, until the contract does.

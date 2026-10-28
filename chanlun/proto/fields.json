@@ -1,0 +1,118 @@
+{
+  "package": "qi.chanlun.v1",
+  "messages": {
+    "KLine": {
+      "fields": {
+        "rno": 1,
+        "date": 2,
+        "up": 3,
+        "open": 4,
+        "high": 5,
+        "low": 6,
+        "close": 7,
+        "volume": 8,
+        "confirmRno": 9,
+        "confirmDate": 10,
+        "stored": 11
+      },
+      "reserved": {}
+    },
+    "MergedBar": {
+      "fields": {
+        "rno": 1,
+        "mno": 2,
+        "up": 3,
+        "high": 4,
+        "low": 5,
+        "startDate": 6,
+        "confirmStartDate": 7,
+        "endDate": 8,
+        "confirmEndDate": 9,
+        "stored": 10
+      },
+      "reserved": {}
+    },
+    "Fractal": {
+      "fields": {
+        "rno": 1,
+        "date": 2,
+        "mno": 3,
+        "ding": 4,
+        "turningpoint": 5,
+        "high": 6,
+        "low": 7,
+        "confirmStartDate": 8,
+        "confirmEndDate": 9,
+        "confirmTurningPointDate": 10,
+        "stored": 11
+      },
+      "reserved": {}
+    },
+    "Line": {
+      "fields": {
+        "level": 1,
+        "isUp": 2,
+        "startDate": 3,
+        "confirmStartDate": 4,
+        "endDate": 5,
+        "confirmEndDate": 6,
+        "high": 7,
+        "low": 8,
+        "startRno": 9,
+        "endRno": 10,
+        "stored": 11,
+        "startBar": 12,
+        "endBar": 13
+      },
+      "reserved": {}
+    },
+    "Centre": {
+      "fields": {
+        "level": 1,
+        "startRno": 2,
+        "startDate": 3,
+        "endRno": 4,
+        "endDate": 5,
+        "entrance": 6,
+        "exit": 7,
+        "zg": 8,
+        "zd": 9,
+        "gg": 10,
+        "ggRno": 11,
+        "ggDate": 12,
+        "dd": 13,
+        "ddRno": 14,
+        "ddDate": 15,
+        "d": 16,
+        "g": 17,
+        "buy": 18,
+        "tp0": 19,
+        "tp0Rno": 20,
+        "tp1": 21,
+        "tp1Rno": 22,
+        "tp2": 23,
+        "tp2Rno": 24,
+        "confirmStartDate": 25,
+        "confirmEndDate": 26,
+        "stored": 27,
+        "startBar": 28,
+        "endBar": 29,
+        "ggBar": 30,
+        "ddBar": 31
+      },
+      "reserved": {}
+    },
+    "Run": {
+      "fields": {
+        "klines": 1,
+        "merged": 2,
+        "fractals": 3,
+        "strokes": 4,
+        "segments": 5,
+        "trends": 6,
+        "centres": 7
+      },
+      "reserved": {}
+    }
+  }
+}
