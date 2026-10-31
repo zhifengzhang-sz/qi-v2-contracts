@@ -9,7 +9,5 @@ The conformance check's data (`make check`): what both forms must read alike.
 | `edge.json` | `small.json` with a text of every kind of printable ASCII (`"` and `\` among them), a K-line without `confirmDate`, the largest number, parts empty | decode it, and encode it to the same text |
 | `reject/*.json` | `small.json` with one thing wrong, the file named by it: each rule broken, a field unknown, missing, `null` or of another kind, a number written with a fraction or an exponent or past the bound, a text not printable ASCII, not JSON | refuse it, as a fault of the contract |
 
-`run.json`'s records were computed from the bars by the implementation of the algorithm at hand when they were made,
-the C++ calculator clcpp (`clcpp --input in.csv out/`), and its files read into the records as the material's chart
-app reads them (`qi-v2-chanlun-materials`, `dev/ts/app/chart/src/read.ts`). The contract does not depend on how they
-were made.
+`run.json`'s records were computed from the bars by the implementation of the algorithm at hand when they were made.
+The contract does not depend on how they were made.
