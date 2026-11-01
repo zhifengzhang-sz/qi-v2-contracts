@@ -1,12 +1,39 @@
 {
   "nodes": {
+    "kit": {
+      "inputs": {
+        "nixpkgs": [
+          "kit",
+          "qi-v2",
+          "nixpkgs"
+        ],
+        "qi-v2": [
+          "qi-v2"
+        ]
+      },
+      "locked": {
+        "dir": "kit",
+        "lastModified": 1793500243,
+        "narHash": "sha256-MXDRLXkL+QUruGCYg7WDyyotjwPJO68lZMQN6jD8doE=",
+        "owner": "zhifengzhang-sz",
+        "repo": "qi-v2-nix",
+        "rev": "d49a2a8723fd47d617040efb387cce7297f13dcd",
+        "type": "github"
+      },
+      "original": {
+        "dir": "kit",
+        "owner": "zhifengzhang-sz",
+        "repo": "qi-v2-nix",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1793015021,
-        "narHash": "sha256-Ee5BWo8sh3pGt70QUdRajnaginqFmWvrtdBc4gJzhks=",
+        "lastModified": 1793410479,
+        "narHash": "sha256-HzgjxrLY4AEc0044ZuM5CHbLSWLZgDlay1idmzvvpJs=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "718f670e845328e9c2cecdd832835712b2cbd065",
+        "rev": "fa1373130d5a21c040a47c5dbe1913d59ed91808",
         "type": "github"
       },
       "original": {
@@ -22,11 +49,11 @@
       },
       "locked": {
         "dir": "qi-v2",
-        "lastModified": 1793138966,
-        "narHash": "sha256-OABjkwPZfQO4MRGBEW7iIqz3TGt1FF9mWlLuwrZylwM=",
+        "lastModified": 1793500243,
+        "narHash": "sha256-MXDRLXkL+QUruGCYg7WDyyotjwPJO68lZMQN6jD8doE=",
         "owner": "zhifengzhang-sz",
         "repo": "qi-v2-nix",
-        "rev": "2deb2d472dba1ba3f94566a2e845336bc9b25248",
+        "rev": "d49a2a8723fd47d617040efb387cce7297f13dcd",
         "type": "github"
       },
       "original": {
@@ -38,6 +65,7 @@
     },
     "root": {
       "inputs": {
+        "kit": "kit",
         "nixpkgs": [
           "qi-v2",
           "nixpkgs"

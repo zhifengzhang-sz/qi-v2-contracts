@@ -7,8 +7,10 @@
 
   inputs.qi-v2.url = "github:zhifengzhang-sz/qi-v2-nix?dir=qi-v2";
   inputs.nixpkgs.follows = "qi-v2/nixpkgs";
+  inputs.kit.url = "github:zhifengzhang-sz/qi-v2-nix?dir=kit";
+  inputs.kit.inputs.qi-v2.follows = "qi-v2";
 
-  outputs = { self, nixpkgs, qi-v2 }:
+  outputs = { self, nixpkgs, qi-v2, kit }:
     let
       # the systems qi-v2's Lean is pinned for
       systems = [ "x86_64-linux" ];

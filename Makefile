@@ -1,10 +1,12 @@
 # The contracts' checks (README.md): each form's own, then the conformance of each contract's forms, run on every
 # change. In the shell (nix develop).
-.PHONY: help check chanlun chanlun-ts chanlun-proto chanlun-lean chanlun-conformance packages
+.PHONY: help check chanlun chanlun-ts chanlun-proto chanlun-lean chanlun-conformance packages products-check
+KIT = $(shell bun -e 'const n = JSON.parse(await Bun.file("flake.lock").text()).nodes.kit.locked; console.log(n.type + ":" + n.owner + "/" + n.repo + "/" + n.rev + "?dir=" + n.dir)')
+
 help: ## the targets
 	@grep -E '^[a-z-]+:.*## ' Makefile | sed 's/:.*## /: /'
 
-check: chanlun ## every contract: its forms' checks and their conformance
+check: chanlun products-check ## every contract: its forms' checks and their conformance
 
 chanlun: chanlun-ts chanlun-lean chanlun-conformance ## 缠论's contract
 
@@ -47,3 +49,6 @@ packages: ## the flake's packages built, and each taken as a taker takes it: the
 	$$t/lean/.lake/build/bin/decode $$v | cmp -s - $$v && echo "packages: $$lean built by Lake: PASS" && \
 	proto=$$(nix build .#chanlun-proto --no-link --print-out-paths) && \
 	protoc --proto_path=$$proto --descriptor_set_out=/dev/null chanlun.proto && echo "packages: $$proto read by protoc: PASS"
+
+products-check: ## whether PRODUCTS.md states what the project has (the kit's kit products)
+	@kit=$$(nix build "$(KIT)" --no-link --print-out-paths) && $$kit/bin/kit products --root .
