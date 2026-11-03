@@ -1,6 +1,6 @@
 # 缠论's contract: the algorithm's records
 
-Version 1.1.0. The records the algorithm of 缠论 gives over a run of bars, of whatever implementation gives them, and
+Version 2.0.0. The records the algorithm of 缠论 gives over a run of bars, of whatever implementation gives them, and
 how they cross from one project to another as JSON. It is written in TypeScript (`ts/`, Zod schemas); Lean (`lean/`,
 structures with a JSON codec) is a second form of it; its Avro schemas (`avro/`) and Protobuf description
 (`proto/chanlun.proto`) are made from the TypeScript, for every other language and for a schema registry. The vectors (`vectors/`) are what every form must read alike.

@@ -8,7 +8,7 @@ checked on every change (`make chanlun`).
 ## Taking it
 
 By the flake, pinned in the taker's `flake.lock` (`inputs.contracts.url =
-"github:zhifengzhang-sz/qi-v2-contracts?ref=chanlun-1.1.0";`):
+"github:zhifengzhang-sz/qi-v2-contracts?ref=chanlun-2.0.0";`):
 
 - `contracts.packages.${system}.chanlun-ts`: `node_modules/@qi/chanlun` and `zod`, as source; `import { decodeRun,
   klineSchema } from "@qi/chanlun"`.
@@ -19,7 +19,7 @@ By the flake, pinned in the taker's `flake.lock` (`inputs.contracts.url =
   formats, and says why there are two.
 
 Or by the language's own lock: Lake, `[[require]]` with `name = "chanlun"`, `git =
-"https://github.com/zhifengzhang-sz/qi-v2-contracts"`, `rev = "chanlun-1.1.0"`, `subDir = "chanlun/lean"`.
+"https://github.com/zhifengzhang-sz/qi-v2-contracts"`, `rev = "chanlun-2.0.0"`, `subDir = "chanlun/lean"`.
 
 ## Using it
 
@@ -42,6 +42,17 @@ A producer's output is mapped to the records by the producer or by its user, not
 
 ## Changes
 
+- **2.0.0**: the records reworked one at a time. The K-line has 7 fields, its `index`, its begin time and its prices
+  and volume. A data source's K-line is derived from it, with a run that takes it: Massive's adds `vw` and `n`. The
+  ongoing K-line, a bar still going on, is a record of its own, in no run, with `asOf`. The merged bar's number is
+  `mIndex` and its K-lines `start` and `end`, and it gains `index` and `extremes`; 分型 is its `mIndex` alone. A line is `start`, `end` and `confirmEnd`, merged bars; 线段
+  (`Segment`) and 走势 (`Move`, the part `moves` in place of `trends`) are lines with `level`, by level. 中枢 is
+  `Consolidation` (the part `consolidations` in place of `centres`), 8 fields, from a merged bar to a later one. A
+  price and a quantity (a K-line's volume) are decimals, and a time is in milliseconds; the kinds flag and text are
+  gone. The JSON also refuses a name twice in one object and text not UTF-8. The Avro schemas, `avro/`, made from the
+  Zod schemas, and the package `chanlun-avro`. The Protobuf description's field numbers follow SPEC's rule, a changed
+  field's old number reserved. The vectors are in the new records and units, with Massive's runs, the ongoing
+  K-lines and 125 reject cases.
 - **1.1.0**: the Protobuf description, `proto/chanlun.proto`, made from the Zod schemas with the field numbers of
   `proto/fields.json` and checked against them; the package `chanlun-proto`. The records, the JSON and the vectors
   unchanged.
