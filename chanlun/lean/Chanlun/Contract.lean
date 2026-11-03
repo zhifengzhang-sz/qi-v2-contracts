@@ -5,130 +5,124 @@ import Lean.Data.Json
 
 The algorithm's records, of whatever implementation gives them (../SPEC.md, The records), the same as the TypeScript
 form's `contracts.ts`. The algorithm is a chain, and so are its records: the K-line, then 包含's merged bar, 分型 at a
-merged bar, the lines (笔 of level −2, 线段 of level −1, 走势 of level L), and 中枢 of level L. They cross from one
-project to another as JSON (`Chanlun/Codec.lean`).
+merged bar, the lines (笔, 线段, and 走势 of level L), and 中枢 of level L. They cross from one project to another as JSON
+(`Chanlun/Codec.lean`).
 
-A K-line's `date` is its time, seconds since 1970, UTC; every other date is the position of its K-line in the run,
-from 0, `none` where not set. Every configuration after 包含 is on merged bars, by their number (`mno`). A price is
-a whole number, the price times the data's scale. `stored` is 1 for what the algorithm has settled, 0 for what it has
-not yet.
+A K-line's `date` is its begin time, seconds since 1970, UTC. Every configuration after 包含 is on merged bars, by
+their number (a merged bar's `mIndex`). A price is a whole number, the price times the data's scale.
 -/
 namespace Chanlun
 
 open Lean (ToJson FromJson)
 
-/-- A K-line. -/
+/-- A K-line, the base contract, 7 fields. -/
 structure KLine where
-  rno : Nat
-  /-- its time, seconds since 1970, UTC -/
+  /-- its place in the run, from 0 -/
+  index : Nat
+  /-- its begin time, seconds since 1970, UTC -/
   date : Nat
-  up : Bool
   «open» : Int
   high : Int
   low : Int
   close : Int
   volume : Nat
-  confirmRno : Nat
-  confirmDate : Option Nat
-  stored : Nat
   deriving Repr, BEq, Inhabited, ToJson, FromJson
 
-/-- 包含's merged bar `mno`: from `startDate` to `endDate`, its first and last K-lines. -/
+/-- Massive's K-line, 9 fields: the base, and `vw` and `n` of Massive's row. -/
+structure MassiveKLine extends KLine where
+  vw : Int
+  n : Nat
+  deriving Repr, BEq, Inhabited, ToJson, FromJson
+
+/-- What a run needs of its K-lines, of the base contract or of a data source's: the base's fields, and the names of
+its own. -/
+class KLineOf (K : Type) where
+  base : K → KLine
+  fields : List String
+
+instance : KLineOf KLine where
+  base := id
+  fields := ["index", "date", "open", "high", "low", "close", "volume"]
+
+instance : KLineOf MassiveKLine where
+  base := MassiveKLine.toKLine
+  fields := ["index", "date", "open", "high", "low", "close", "volume", "vw", "n"]
+
+/-- 包含's merged bar `mIndex`: from `start` to `end`, its first and last K-lines; `extremes` the K-lines of its extreme,
+of its high when it goes up, of its low when it goes down, at least one, each from `start` to `end`, in ascending order,
+none twice; `index` one of `extremes`: the K-line that represents the merged bar. The contract does not say which one is
+chosen. -/
 structure MergedBar where
-  rno : Nat
-  mno : Nat
+  index : Nat
+  mIndex : Nat
   up : Bool
   high : Int
   low : Int
-  startDate : Nat
-  confirmStartDate : Option Nat
-  endDate : Nat
-  confirmEndDate : Option Nat
-  stored : Nat
+  start : Nat
+  confirmStart : Option Nat
+  «end» : Nat
+  confirmEnd : Option Nat
+  extremes : Array Nat
   deriving Repr, BEq, Inhabited, ToJson, FromJson
 
-/-- 分型: a top (`ding`) or a bottom at the merged bar `mno`, dated by the algorithm at `date`. -/
+/-- 分型: its merged bar, `mIndex`. -/
 structure Fractal where
-  rno : Nat
-  date : Nat
-  mno : Nat
-  ding : Bool
-  turningpoint : Bool
-  high : Int
-  low : Int
-  confirmStartDate : Option Nat
-  confirmEndDate : Option Nat
-  confirmTurningPointDate : Option Nat
-  stored : Nat
+  mIndex : Nat
   deriving Repr, BEq, Inhabited, ToJson, FromJson
 
-/-- A line: its level (−2 a 笔, −1 a 线段, L a 走势 of level L), up or down, from the merged bar `startBar` to the
-merged bar `endBar`, the algorithm's dates `startDate` and `endDate` beside. -/
+/-- A line: from the merged bar `start` to the merged bar `end`, `confirmEnd` the merged bar at which it was confirmed. -/
 structure Line where
-  level : Int
-  isUp : Bool
-  startDate : Nat
-  confirmStartDate : Option Nat
-  endDate : Nat
-  confirmEndDate : Option Nat
-  high : Int
-  low : Int
-  startRno : Nat
-  endRno : Nat
-  stored : Nat
-  startBar : Nat
-  endBar : Nat
+  start : Nat
+  «end» : Nat
+  confirmEnd : Nat
   deriving Repr, BEq, Inhabited, ToJson, FromJson
 
-/-- 中枢 of level L, from the merged bar `startBar` to the merged bar `endBar`, its band ZD to ZG within its range DD
-to GG (at the merged bars `ggBar` and `ddBar`); the algorithm's `buy` to `tp2Rno` kept as their text. -/
-structure Centre where
+/-- 笔: a line. -/
+abbrev Stroke := Line
+
+/-- 线段 of level L: a line's fields, and its level. -/
+structure Segment extends Line where
   level : Nat
-  startRno : Nat
-  startDate : Nat
-  endRno : Nat
-  endDate : Nat
-  entrance : Bool
-  exit : Bool
+  deriving Repr, BEq, Inhabited, ToJson, FromJson
+
+/-- 走势 of level L: a line's fields, and its level. -/
+structure Move extends Line where
+  level : Nat
+  deriving Repr, BEq, Inhabited, ToJson, FromJson
+
+/-- 中枢 of level L, from the merged bar `start` to the merged bar `end`, `confirmEnd` the merged bar at which it was
+confirmed, `none` while it is under construction; its band ZD to ZG within its range DD to GG. -/
+structure Consolidation where
+  level : Nat
+  start : Nat
+  «end» : Nat
+  confirmEnd : Option Nat
   zg : Int
   zd : Int
   gg : Int
-  ggRno : Nat
-  ggDate : Nat
   dd : Int
-  ddRno : Nat
-  ddDate : Nat
-  d : Int
-  g : Int
-  buy : String
-  tp0 : String
-  tp0Rno : String
-  tp1 : String
-  tp1Rno : String
-  tp2 : String
-  tp2Rno : String
-  confirmStartDate : Option Nat
-  confirmEndDate : Option Nat
-  stored : Nat
-  startBar : Nat
-  endBar : Nat
-  ggBar : Nat
-  ddBar : Nat
   deriving Repr, BEq, Inhabited, ToJson, FromJson
 
-/-- A run: its K-lines, merged bars, 分型, 笔 (strokes), 线段 (segments), and by level from 0 its 走势 (trends) and
-中枢 (centres). -/
-structure Run where
-  klines : Array KLine
+/-- A run: its K-lines, of the base contract or of a data source's, merged bars, 分型, 笔 (strokes), and by level from 0
+its 线段 (segments), 走势 (moves) and 中枢 (consolidations). -/
+structure RunOf (K : Type) where
+  klines : Array K
   merged : Array MergedBar
   fractals : Array Fractal
-  strokes : Array Line
-  segments : Array Line
-  trends : Array (Array Line)
-  centres : Array (Array Centre)
+  strokes : Array Stroke
+  segments : Array (Array Segment)
+  moves : Array (Array Move)
+  consolidations : Array (Array Consolidation)
   deriving Repr, BEq, Inhabited, ToJson, FromJson
 
-/-- The time of the K-line at a position: how a date of a record is turned back into a time. -/
-def Run.timeAt (r : Run) (p : Nat) : Option Nat := (r.klines[p]?).map (·.date)
+/-- The run of the base contract's K-lines. -/
+abbrev Run := RunOf KLine
+
+/-- The run of Massive's K-lines. -/
+abbrev MassiveRun := RunOf MassiveKLine
+
+/-- The time of the K-line at a position: how a position is turned back into a time. -/
+def RunOf.timeAt {K : Type} [KLineOf K] (r : RunOf K) (p : Nat) : Option Nat :=
+  (r.klines[p]?).map fun k => (KLineOf.base k).date
 
 end Chanlun

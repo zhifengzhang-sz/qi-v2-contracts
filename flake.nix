@@ -1,7 +1,7 @@
 {
   # The contracts shared by the qi-v2 projects, each defined once (README.md): a folder a contract, its spec and its
-  # forms. Packages: chanlun-ts (缠论's contract for TypeScript), chanlun-lean (for Lean) and chanlun-proto (its
-  # Protobuf description, made from the TypeScript). The common flake, qi-v2,
+  # forms. Packages: chanlun-ts (缠论's contract for TypeScript), chanlun-lean (for Lean), chanlun-avro and chanlun-proto
+  # (its Avro schemas and Protobuf description, made from the TypeScript). The common flake, qi-v2,
   # gives the one nixpkgs of every project and the pure shell.
   description = "qi-v2-contracts: the contracts shared by the qi-v2 projects (chanlun: 缠论's records)";
 
@@ -59,6 +59,14 @@
             mkdir -p $out
             cp -r ${./chanlun/lean}/Chanlun $out/Chanlun
             cp ${./chanlun/lean}/Chanlun.lean ${./chanlun/lean}/Main.lean ${./chanlun/lean}/lakefile.toml ${./chanlun/lean}/lean-toolchain $out/
+            cp ${./chanlun/SPEC.md} $out/SPEC.md
+            cp ${./chanlun/README.md} $out/README.md
+          '';
+          # 缠论's contract as Avro (chanlun/SPEC.md, The Avro schemas): one .avsc file for each record, for a taker's
+          # Avro library or a schema registry
+          chanlun-avro = pkgs.runCommand "chanlun-avro-1.1.0" { } ''
+            mkdir -p $out
+            cp ${./chanlun/avro}/*.avsc $out/
             cp ${./chanlun/SPEC.md} $out/SPEC.md
             cp ${./chanlun/README.md} $out/README.md
           '';

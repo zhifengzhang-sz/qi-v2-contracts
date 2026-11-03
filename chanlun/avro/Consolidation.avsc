@@ -1,0 +1,43 @@
+{
+  "type": "record",
+  "name": "Consolidation",
+  "namespace": "qi.chanlun.v1",
+  "fields": [
+    {
+      "name": "level",
+      "type": "long"
+    },
+    {
+      "name": "start",
+      "type": "long"
+    },
+    {
+      "name": "end",
+      "type": "long"
+    },
+    {
+      "name": "confirmEnd",
+      "type": [
+        "null",
+        "long"
+      ],
+      "default": null
+    },
+    {
+      "name": "zg",
+      "type": "long"
+    },
+    {
+      "name": "zd",
+      "type": "long"
+    },
+    {
+      "name": "gg",
+      "type": "long"
+    },
+    {
+      "name": "dd",
+      "type": "long"
+    }
+  ]
+}

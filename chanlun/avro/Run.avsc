@@ -1,0 +1,263 @@
+{
+  "type": "record",
+  "name": "Run",
+  "namespace": "qi.chanlun.v1",
+  "fields": [
+    {
+      "name": "klines",
+      "type": {
+        "type": "array",
+        "items": {
+          "type": "record",
+          "name": "KLine",
+          "fields": [
+            {
+              "name": "index",
+              "type": "long"
+            },
+            {
+              "name": "date",
+              "type": "long"
+            },
+            {
+              "name": "open",
+              "type": "long"
+            },
+            {
+              "name": "high",
+              "type": "long"
+            },
+            {
+              "name": "low",
+              "type": "long"
+            },
+            {
+              "name": "close",
+              "type": "long"
+            },
+            {
+              "name": "volume",
+              "type": "long"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "merged",
+      "type": {
+        "type": "array",
+        "items": {
+          "type": "record",
+          "name": "MergedBar",
+          "fields": [
+            {
+              "name": "index",
+              "type": "long"
+            },
+            {
+              "name": "mIndex",
+              "type": "long"
+            },
+            {
+              "name": "up",
+              "type": "boolean"
+            },
+            {
+              "name": "high",
+              "type": "long"
+            },
+            {
+              "name": "low",
+              "type": "long"
+            },
+            {
+              "name": "start",
+              "type": "long"
+            },
+            {
+              "name": "confirmStart",
+              "type": [
+                "null",
+                "long"
+              ],
+              "default": null
+            },
+            {
+              "name": "end",
+              "type": "long"
+            },
+            {
+              "name": "confirmEnd",
+              "type": [
+                "null",
+                "long"
+              ],
+              "default": null
+            },
+            {
+              "name": "extremes",
+              "type": {
+                "type": "array",
+                "items": "long"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "fractals",
+      "type": {
+        "type": "array",
+        "items": {
+          "type": "record",
+          "name": "Fractal",
+          "fields": [
+            {
+              "name": "mIndex",
+              "type": "long"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "strokes",
+      "type": {
+        "type": "array",
+        "items": {
+          "type": "record",
+          "name": "Line",
+          "fields": [
+            {
+              "name": "start",
+              "type": "long"
+            },
+            {
+              "name": "end",
+              "type": "long"
+            },
+            {
+              "name": "confirmEnd",
+              "type": "long"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "segments",
+      "type": {
+        "type": "array",
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "record",
+            "name": "Segment",
+            "fields": [
+              {
+                "name": "start",
+                "type": "long"
+              },
+              {
+                "name": "end",
+                "type": "long"
+              },
+              {
+                "name": "confirmEnd",
+                "type": "long"
+              },
+              {
+                "name": "level",
+                "type": "long"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "moves",
+      "type": {
+        "type": "array",
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "record",
+            "name": "Move",
+            "fields": [
+              {
+                "name": "start",
+                "type": "long"
+              },
+              {
+                "name": "end",
+                "type": "long"
+              },
+              {
+                "name": "confirmEnd",
+                "type": "long"
+              },
+              {
+                "name": "level",
+                "type": "long"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "consolidations",
+      "type": {
+        "type": "array",
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "record",
+            "name": "Consolidation",
+            "fields": [
+              {
+                "name": "level",
+                "type": "long"
+              },
+              {
+                "name": "start",
+                "type": "long"
+              },
+              {
+                "name": "end",
+                "type": "long"
+              },
+              {
+                "name": "confirmEnd",
+                "type": [
+                  "null",
+                  "long"
+                ],
+                "default": null
+              },
+              {
+                "name": "zg",
+                "type": "long"
+              },
+              {
+                "name": "zd",
+                "type": "long"
+              },
+              {
+                "name": "gg",
+                "type": "long"
+              },
+              {
+                "name": "dd",
+                "type": "long"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

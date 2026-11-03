@@ -12,7 +12,8 @@ of what a contract describes.
 |---|---|---|---|---|---|
 | `chanlun-ts` | 缠论's contract for TypeScript: a `node_modules` of `@qi/chanlun` and zod | `flake package` | `1.1.0` | tag `chanlun-<version>` | `chanlun/SPEC.md` |
 | `chanlun-lean` | 缠论's contract for Lean: the Lake package `chanlun` | `flake package` | `1.1.0` | tag `chanlun-<version>` | `chanlun/SPEC.md` |
-| `chanlun-proto` | 缠论's contract as Protobuf: `chanlun.proto`, the records' fields and types | `flake package` | `1.1.0` | tag `chanlun-<version>` | `chanlun/SPEC.md` |
+| `chanlun-avro` | 缠论's contract as Avro: one `.avsc` file for each record, with its fields and types | `flake package` | `1.1.0` | tag `chanlun-<version>` | `chanlun/SPEC.md` |
+| `chanlun-proto` | 缠论's contract as Protobuf: `chanlun.proto`, with the records' fields and types | `flake package` | `1.1.0` | tag `chanlun-<version>` | `chanlun/SPEC.md` |
 
 ## Takes
 

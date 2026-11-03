@@ -3,40 +3,60 @@
   "messages": {
     "KLine": {
       "fields": {
-        "rno": 1,
+        "index": 1,
         "date": 2,
+        "open": 4,
+        "high": 5,
+        "low": 6,
+        "close": 7,
+        "volume": 8
+      },
+      "reserved": {
         "up": 3,
+        "confirmRno": 9,
+        "confirmDate": 10,
+        "stored": 11
+      }
+    },
+    "MassiveKLine": {
+      "fields": {
+        "index": 1,
+        "date": 2,
         "open": 4,
         "high": 5,
         "low": 6,
         "close": 7,
         "volume": 8,
-        "confirmRno": 9,
-        "confirmDate": 10,
-        "stored": 11
+        "vw": 12,
+        "n": 13
       },
       "reserved": {}
     },
     "MergedBar": {
       "fields": {
-        "rno": 1,
-        "mno": 2,
+        "index": 12,
+        "mIndex": 2,
         "up": 3,
         "high": 4,
         "low": 5,
-        "startDate": 6,
-        "confirmStartDate": 7,
-        "endDate": 8,
-        "confirmEndDate": 9,
-        "stored": 10
+        "start": 6,
+        "confirmStart": 7,
+        "end": 8,
+        "confirmEnd": 9,
+        "extremes": 11
       },
-      "reserved": {}
+      "reserved": {
+        "rno": 1,
+        "stored": 10
+      }
     },
     "Fractal": {
       "fields": {
+        "mIndex": 3
+      },
+      "reserved": {
         "rno": 1,
         "date": 2,
-        "mno": 3,
         "ding": 4,
         "turningpoint": 5,
         "high": 6,
@@ -45,11 +65,15 @@
         "confirmEndDate": 9,
         "confirmTurningPointDate": 10,
         "stored": 11
-      },
-      "reserved": {}
+      }
     },
     "Line": {
       "fields": {
+        "start": 12,
+        "end": 13,
+        "confirmEnd": 14
+      },
+      "reserved": {
         "level": 1,
         "isUp": 2,
         "startDate": 3,
@@ -60,27 +84,47 @@
         "low": 8,
         "startRno": 9,
         "endRno": 10,
-        "stored": 11,
-        "startBar": 12,
-        "endBar": 13
+        "stored": 11
+      }
+    },
+    "Segment": {
+      "fields": {
+        "start": 12,
+        "end": 13,
+        "confirmEnd": 14,
+        "level": 15
       },
       "reserved": {}
     },
-    "Centre": {
+    "Move": {
+      "fields": {
+        "start": 12,
+        "end": 13,
+        "confirmEnd": 14,
+        "level": 15
+      },
+      "reserved": {}
+    },
+    "Consolidation": {
       "fields": {
         "level": 1,
+        "zg": 8,
+        "zd": 9,
+        "gg": 10,
+        "dd": 13,
+        "start": 28,
+        "end": 29,
+        "confirmEnd": 32
+      },
+      "reserved": {
         "startRno": 2,
         "startDate": 3,
         "endRno": 4,
         "endDate": 5,
         "entrance": 6,
         "exit": 7,
-        "zg": 8,
-        "zd": 9,
-        "gg": 10,
         "ggRno": 11,
         "ggDate": 12,
-        "dd": 13,
         "ddRno": 14,
         "ddDate": 15,
         "d": 16,
@@ -95,12 +139,9 @@
         "confirmStartDate": 25,
         "confirmEndDate": 26,
         "stored": 27,
-        "startBar": 28,
-        "endBar": 29,
         "ggBar": 30,
         "ddBar": 31
-      },
-      "reserved": {}
+      }
     },
     "Run": {
       "fields": {
@@ -108,9 +149,24 @@
         "merged": 2,
         "fractals": 3,
         "strokes": 4,
-        "segments": 5,
-        "trends": 6,
-        "centres": 7
+        "segments": 9,
+        "consolidations": 7,
+        "moves": 8
+      },
+      "reserved": {
+        "trends": 6
+      },
+      "reservedNumbers": [5]
+    },
+    "MassiveRun": {
+      "fields": {
+        "klines": 1,
+        "merged": 2,
+        "fractals": 3,
+        "strokes": 4,
+        "segments": 9,
+        "consolidations": 7,
+        "moves": 8
       },
       "reserved": {}
     }

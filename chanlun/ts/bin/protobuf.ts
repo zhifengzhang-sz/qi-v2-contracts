@@ -21,13 +21,15 @@ export type Schema = {
   readonly required?: readonly string[];
 };
 
-// Each message's field numbers, and the numbers of the fields it no longer has, by their old names
+// Each message's field numbers, the numbers of the fields it no longer has, by their old names, and numbers reserved
+// without a name: the old number of a field whose meaning changed, its name still in use
 export type Numbers = {
   readonly package: string;
   readonly messages: {
     readonly [message: string]: {
       readonly fields: { readonly [field: string]: number };
       readonly reserved: { readonly [field: string]: number };
+      readonly reservedNumbers?: readonly number[];
     };
   };
 };
@@ -84,7 +86,8 @@ const message = (
   const names = new Set(props.map(([f]) => f));
   const missing = props.filter(([f]) => numbers.fields[f] === undefined).map(([f]) => f);
   const stale = Object.keys(numbers.fields).filter((f) => !names.has(f));
-  const all = [...Object.values(numbers.fields), ...Object.values(numbers.reserved)];
+  const alone = numbers.reservedNumbers ?? [];
+  const all = [...Object.values(numbers.fields), ...Object.values(numbers.reserved), ...alone];
   const twice = all.filter((n, i) => all.indexOf(n) !== i);
   const bad = all.filter((n) => !Number.isInteger(n) || n < 1 || (n >= 19000 && n <= 19999) || n > 536870911);
   const unnamed = props
@@ -111,13 +114,11 @@ const message = (
       return `  ${optional}${type} ${snake(f)} = ${n};`;
     });
   const reserved = Object.entries(numbers.reserved).sort((a, b) => a[1] - b[1]);
-  const kept =
-    reserved.length === 0
-      ? []
-      : [
-          `  reserved ${reserved.map(([, n]) => n).join(", ")};`,
-          `  reserved ${reserved.map(([f]) => `"${snake(f)}"`).join(", ")};`,
-        ];
+  const reservedAll = [...reserved.map(([, n]) => n), ...alone].sort((a, b) => a - b);
+  const kept = [
+    ...(reservedAll.length === 0 ? [] : [`  reserved ${reservedAll.join(", ")};`]),
+    ...(reserved.length === 0 ? [] : [`  reserved ${reserved.map(([f]) => `"${snake(f)}"`).join(", ")};`]),
+  ];
   return {
     text: [`message ${name} {`, ...lines, ...kept, "}"].join("\n"),
     lists: fields.flatMap(({ t }) => ("error" in t || t.list === undefined ? [] : [t.list])),

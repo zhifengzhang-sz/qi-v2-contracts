@@ -1,0 +1,23 @@
+{
+  "type": "record",
+  "name": "Segment",
+  "namespace": "qi.chanlun.v1",
+  "fields": [
+    {
+      "name": "start",
+      "type": "long"
+    },
+    {
+      "name": "end",
+      "type": "long"
+    },
+    {
+      "name": "confirmEnd",
+      "type": "long"
+    },
+    {
+      "name": "level",
+      "type": "long"
+    }
+  ]
+}

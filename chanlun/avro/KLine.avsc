@@ -1,0 +1,35 @@
+{
+  "type": "record",
+  "name": "KLine",
+  "namespace": "qi.chanlun.v1",
+  "fields": [
+    {
+      "name": "index",
+      "type": "long"
+    },
+    {
+      "name": "date",
+      "type": "long"
+    },
+    {
+      "name": "open",
+      "type": "long"
+    },
+    {
+      "name": "high",
+      "type": "long"
+    },
+    {
+      "name": "low",
+      "type": "long"
+    },
+    {
+      "name": "close",
+      "type": "long"
+    },
+    {
+      "name": "volume",
+      "type": "long"
+    }
+  ]
+}

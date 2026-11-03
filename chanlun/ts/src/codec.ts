@@ -5,121 +5,144 @@
 
 import { z } from "zod";
 import {
-  type Centre,
-  centreSchema,
+  type Consolidation,
+  consolidationSchema,
   type Fractal,
   fractalSchema,
   type KLine,
   klinesSchema,
+  type Line,
+  type MassiveKLine,
   type MergedBar,
+  type Move,
+  massiveKlinesSchema,
   mergedBarSchema,
+  moveSchema,
+  type Segment,
   type Stroke,
+  segmentSchema,
   strokeSchema,
 } from "./contracts.ts";
 
-// The run: its K-lines, merged bars, 分型, 笔 (strokes), 线段 (segments), and by level from 0 its 走势 (trends) and
-// 中枢 (centres).
-// The run's own rules (SPEC.md, The run): the merged bars numbered by their place; every position a K-line's, every
-// bar a merged bar's; each part's lines and 中枢 of its level.
+// The run: its K-lines, of the base contract or of a data source's, merged bars, 分型, 笔 (strokes), and by level from
+// 0 its 线段 (segments), 走势 (moves) and 中枢 (consolidations).
+// The run's own rules (SPEC.md, The run): the K-lines and merged bars numbered by their place; the 分型 strictly
+// increasing by `mIndex`; the 笔 and each level's 线段, 走势 and 中枢 strictly increasing by `start`; every position a
+// K-line's, every bar a merged bar's; each level's 线段, 走势 and 中枢 of that level.
 const positionsOf = (r: object): readonly number[] =>
-  [
-    "confirmDate",
-    "startDate",
-    "endDate",
-    "confirmStartDate",
-    "confirmEndDate",
-    "confirmTurningPointDate",
-    "ggDate",
-    "ddDate",
-  ].flatMap((k) => {
+  ["index", "start", "end", "confirmStart", "confirmEnd", "extremes"].flatMap((k) => {
     const v = (r as { readonly [k: string]: unknown })[k];
-    return typeof v === "number" ? [v] : [];
-  });
-const barsOf = (r: object): readonly number[] =>
-  ["mno", "startBar", "endBar", "ggBar", "ddBar"].flatMap((k) => {
-    const v = (r as { readonly [k: string]: unknown })[k];
-    return typeof v === "number" ? [v] : [];
+    return typeof v === "number" ? [v] : Array.isArray(v) ? (v as readonly number[]) : [];
   });
 
-export const runSchema = z
-  .object({
-    klines: klinesSchema,
-    merged: z.array(mergedBarSchema).readonly(),
-    fractals: z.array(fractalSchema).readonly(),
-    strokes: z.array(strokeSchema).readonly(),
-    segments: z.array(strokeSchema).readonly(),
-    trends: z.array(z.array(strokeSchema).readonly()).readonly(),
-    centres: z.array(z.array(centreSchema).readonly()).readonly(),
-  })
-  .strict()
-  .readonly()
-  .superRefine((run, ctx) => {
-    const issue = (path: readonly (string | number)[], message: string) =>
-      ctx.addIssue({ code: "custom", path: [...path], message });
-    const parts: readonly (readonly [string, readonly object[]])[] = [
-      ["klines", run.klines],
-      ["merged", run.merged],
-      ["fractals", run.fractals],
-      ["strokes", run.strokes],
-      ["segments", run.segments],
-    ];
-    const levelled: readonly (readonly [string, number, readonly object[]])[] = [
-      ...run.trends.map((l, i) => ["trends", i, l] as const),
-      ...run.centres.map((l, i) => ["centres", i, l] as const),
-    ];
-    run.merged.forEach((m, i) => {
-      if (m.mno !== i) issue(["merged", i, "mno"], "a merged bar's number its place among the merged bars");
-    });
-    const inRun = (path: readonly (string | number)[], r: object) => {
-      if (positionsOf(r).some((p) => p >= run.klines.length))
-        issue(path, "a position past the run's K-lines");
-      if (barsOf(r).some((b) => b >= run.merged.length))
-        issue(path, "a merged bar past the run's merged bars");
-    };
-    parts.forEach(([part, rs]) => {
-      rs.forEach((r, i) => {
-        inRun([part, i], r);
+const runOf = <K extends { readonly index: number }>(klines: z.ZodType<readonly K[]>) =>
+  z
+    .object({
+      klines,
+      merged: z.array(mergedBarSchema).readonly(),
+      fractals: z.array(fractalSchema).readonly(),
+      strokes: z.array(strokeSchema).readonly(),
+      segments: z.array(z.array(segmentSchema).readonly()).readonly(),
+      moves: z.array(z.array(moveSchema).readonly()).readonly(),
+      consolidations: z.array(z.array(consolidationSchema).readonly()).readonly(),
+    })
+    .strict()
+    .readonly()
+    .superRefine((run, ctx) => {
+      const issue = (path: readonly (string | number)[], message: string) =>
+        ctx.addIssue({ code: "custom", path: [...path], message });
+      const parts: readonly (readonly [string, readonly { readonly mIndex: number }[]])[] = [
+        ["merged", run.merged],
+        ["fractals", run.fractals],
+      ];
+      run.klines.forEach((k, i) => {
+        if (k.index !== i) issue(["klines", i, "index"], "a K-line's index its place in the run");
+      });
+      run.merged.forEach((m, i) => {
+        if (m.mIndex !== i)
+          issue(["merged", i, "mIndex"], "a merged bar's number its place among the merged bars");
+      });
+      run.fractals.forEach((f, i) => {
+        if (i > 0 && (run.fractals[i - 1]?.mIndex ?? 0) >= f.mIndex)
+          issue(["fractals", i, "mIndex"], "a run's 分型 strictly increasing by mIndex");
+      });
+      const inRun = (path: readonly (string | number)[], r: { readonly mIndex: number }) => {
+        if (positionsOf(r).some((p) => p >= run.klines.length))
+          issue(path, "a position past the run's K-lines");
+        if (r.mIndex >= run.merged.length) issue(path, "a merged bar past the run's merged bars");
+      };
+      // records strictly increasing by `start`
+      const rising = (
+        path: readonly (string | number)[],
+        name: string,
+        rs: readonly { readonly start: number }[],
+      ) => {
+        rs.forEach((r, i) => {
+          if (i > 0 && (rs[i - 1]?.start ?? 0) >= r.start)
+            issue([...path, i, "start"], `a run's ${name} strictly increasing by start`);
+        });
+      };
+      // A line's `start`, `end` and `confirmEnd` are merged bars, a merged bar's of the same names K-lines
+      const linesIn = (path: readonly (string | number)[], ls: readonly Line[]) => {
+        ls.forEach((l, i) => {
+          if ([l.start, l.end, l.confirmEnd].some((b) => b >= run.merged.length))
+            issue([...path, i], "a merged bar past the run's merged bars");
+        });
+      };
+      linesIn(["strokes"], run.strokes);
+      rising(["strokes"], "笔", run.strokes);
+      run.segments.forEach((l, i) => {
+        linesIn(["segments", i], l);
+        rising(["segments", i], "线段", l);
+        l.forEach((s, k) => {
+          if (s.level !== i) issue(["segments", i, k, "level"], `a 线段 here of level ${i}`);
+        });
+      });
+      run.moves.forEach((l, i) => {
+        linesIn(["moves", i], l);
+        rising(["moves", i], "走势", l);
+        l.forEach((m, k) => {
+          if (m.level !== i) issue(["moves", i, k, "level"], `a 走势 here of level ${i}`);
+        });
+      });
+      parts.forEach(([part, rs]) => {
+        rs.forEach((r, i) => {
+          inRun([part, i], r);
+        });
+      });
+      // A 中枢's `start`, `end` and `confirmEnd` are merged bars, a merged bar's of the same names K-lines
+      run.consolidations.forEach((cs, l) => {
+        rising(["consolidations", l], "中枢", cs);
+        cs.forEach((c, i) => {
+          if ([c.start, c.end, c.confirmEnd].some((b) => b !== undefined && b >= run.merged.length))
+            issue(["consolidations", l, i], "a merged bar past the run's merged bars");
+          if (c.level !== l) issue(["consolidations", l, i, "level"], `a 中枢 here of level ${l}`);
+        });
       });
     });
-    levelled.forEach(([part, l, rs]) => {
-      rs.forEach((r, i) => {
-        inRun([part, l, i], r);
-      });
-    });
-    const level = (
-      path: readonly (string | number)[],
-      rs: readonly { readonly level: number }[],
-      want: number,
-    ) => {
-      rs.forEach((r, i) => {
-        if (r.level !== want) issue([...path, i, "level"], `a line or 中枢 here of level ${want}`);
-      });
-    };
-    level(["strokes"], run.strokes, -2);
-    level(["segments"], run.segments, -1);
-    run.trends.forEach((l, i) => {
-      level(["trends", i], l, i);
-    });
-    run.centres.forEach((l, i) => {
-      level(["centres", i], l, i);
-    });
-  });
 
-export type Run = {
-  readonly klines: readonly KLine[];
+// The run of the base contract's K-lines, and Massive's
+export const runSchema = runOf(klinesSchema);
+export const massiveRunSchema = runOf(massiveKlinesSchema);
+
+export type RunOf<K> = {
+  readonly klines: readonly K[];
   readonly merged: readonly MergedBar[];
   readonly fractals: readonly Fractal[];
   readonly strokes: readonly Stroke[];
-  readonly segments: readonly Stroke[];
-  readonly trends: readonly (readonly Stroke[])[];
-  readonly centres: readonly (readonly Centre[])[];
+  readonly segments: readonly (readonly Segment[])[];
+  readonly moves: readonly (readonly Move[])[];
+  readonly consolidations: readonly (readonly Consolidation[])[];
 };
+export type Run = RunOf<KLine>;
+export type MassiveRun = RunOf<MassiveKLine>;
 
-// The time of the K-line at a position: how a date of a record is turned back into a time.
-export const timeAt = (run: Run, p: number): number | undefined => run.klines[p]?.date;
+// The time of the K-line at a position: how a position is turned back into a time.
+export const timeAt = (run: RunOf<{ readonly date: number }>, p: number): number | undefined =>
+  run.klines[p]?.date;
 
-export type Decoded =
-  | { readonly ok: true; readonly run: Run }
+export type Decoded<R = Run> =
+  | { readonly ok: true; readonly run: R }
   | { readonly ok: false; readonly error: string };
 
 const parsed = (text: string): { readonly ok: true; readonly value: unknown } | { readonly ok: false } => {
@@ -131,27 +154,31 @@ const parsed = (text: string): { readonly ok: true; readonly value: unknown } | 
 };
 
 // Every number of the text written as a whole number, digits only (no fraction, no exponent), of at most 16 digits;
-// the texts in strings skipped. Checked on the text, before it is parsed, as the Lean form checks it.
+// strings skipped. Checked on the text, before it is parsed, as the Lean form checks it.
 const literals = (text: string): string | undefined =>
   [...text.matchAll(/"(?:[^"\\]|\\.)*"|-?[0-9][-+0-9.eE]*/g)]
     .map((m) => m[0])
     .find((t) => !t.startsWith('"') && !/^-?(0|[1-9][0-9]{0,15})$/.test(t));
 
 // A run's JSON as its records; a fault as a value, its path and message.
-export const decodeRun = (text: string): Decoded => {
-  const bad = literals(text);
-  if (bad !== undefined)
-    return { ok: false, error: `${bad}: a number is a whole number, digits only, at most 16` };
-  const j = parsed(text);
-  if (!j.ok) return { ok: false, error: "not JSON" };
-  const r = runSchema.safeParse(j.value);
-  return r.success
-    ? { ok: true, run: r.data }
-    : {
-        ok: false,
-        error: r.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; "),
-      };
-};
+const decoder =
+  <R>(schema: z.ZodType<R>) =>
+  (text: string): Decoded<R> => {
+    const bad = literals(text);
+    if (bad !== undefined)
+      return { ok: false, error: `${bad}: a number is a whole number, digits only, at most 16` };
+    const j = parsed(text);
+    if (!j.ok) return { ok: false, error: "not JSON" };
+    const r = schema.safeParse(j.value);
+    return r.success
+      ? { ok: true, run: r.data }
+      : {
+          ok: false,
+          error: r.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; "),
+        };
+  };
+export const decodeRun = decoder<Run>(runSchema);
+export const decodeMassiveRun = decoder<MassiveRun>(massiveRunSchema);
 
 const record = (r: object): string =>
   `{${Object.entries(r)
@@ -162,14 +189,14 @@ const record = (r: object): string =>
 const list = (lines: readonly string[]): string => (lines.length === 0 ? "[]" : `[\n${lines.join(",\n")}\n]`);
 const records = (rs: readonly object[]): string => list(rs.map(record));
 
-// A run's canonical JSON, of a run the contract allows (decodeRun's, or one runSchema passes).
-export const encodeRun = (run: Run): string =>
+// A run's canonical JSON, of a run the contract allows (a decoder's, or one its run schema passes).
+export const encodeRun = (run: RunOf<object>): string =>
   `{\n${[
     `"klines": ${records(run.klines)}`,
     `"merged": ${records(run.merged)}`,
     `"fractals": ${records(run.fractals)}`,
     `"strokes": ${records(run.strokes)}`,
-    `"segments": ${records(run.segments)}`,
-    `"trends": ${list(run.trends.map(records))}`,
-    `"centres": ${list(run.centres.map(records))}`,
+    `"segments": ${list(run.segments.map(records))}`,
+    `"moves": ${list(run.moves.map(records))}`,
+    `"consolidations": ${list(run.consolidations.map(records))}`,
   ].join(",\n")}\n}\n`;

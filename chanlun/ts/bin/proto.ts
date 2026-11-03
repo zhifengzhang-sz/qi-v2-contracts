@@ -6,12 +6,16 @@ import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { z } from "zod";
 import {
-  centreSchema,
+  consolidationSchema,
   fractalSchema,
   klineSchema,
+  lineSchema,
+  massiveKlineSchema,
+  massiveRunSchema,
   mergedBarSchema,
+  moveSchema,
   runSchema,
-  strokeSchema,
+  segmentSchema,
 } from "../src/index.ts";
 import { type Numbers, protobuf, type Schema } from "./protobuf.ts";
 
@@ -20,11 +24,15 @@ const out = join(dir, "chanlun.proto");
 const records = z
   .registry<{ id: string }>()
   .add(klineSchema, { id: "KLine" })
+  .add(massiveKlineSchema, { id: "MassiveKLine" })
   .add(mergedBarSchema, { id: "MergedBar" })
   .add(fractalSchema, { id: "Fractal" })
-  .add(strokeSchema, { id: "Line" })
-  .add(centreSchema, { id: "Centre" })
-  .add(runSchema, { id: "Run" });
+  .add(lineSchema, { id: "Line" })
+  .add(segmentSchema, { id: "Segment" })
+  .add(moveSchema, { id: "Move" })
+  .add(consolidationSchema, { id: "Consolidation" })
+  .add(runSchema, { id: "Run" })
+  .add(massiveRunSchema, { id: "MassiveRun" });
 const fail = (error: string): never => {
   process.stderr.write(`proto: ${error}\n`);
   return process.exit(1);

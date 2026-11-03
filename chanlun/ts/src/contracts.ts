@@ -1,180 +1,175 @@
 // 缠论's records (../SPEC.md, The records): the algorithm's records, of whatever implementation gives them, each a Zod
 // schema. The algorithm is a chain, and so are its records: each step's output is the next step's input.
 //
-//   the K-line (klineSchema)       the input, the bars as read
+//   the K-line (klineSchema; a data source's, massiveKlineSchema)       the input, the bars as read
 //     → 包含 →  the merged bar (mergedBarSchema)
 //     → 分型 →  the fractal, a top or a bottom at a merged bar (fractalSchema)
-//     → 笔   →  a line of level −2 (strokeSchema)
-//     → 线段 →  a line of level −1 (strokeSchema)
-//     → 走势 →  a line of level L, the 线段 of level L + 1 (strokeSchema); and 中枢 of level L (centreSchema), made of
-//              the 线段 at level 0, of the 走势 of level L − 1 above it
+//     → 笔   →  the lowest level line of level 0 (strokeSchema, which is lineSchema)
+//     → 线段 →  a line of level 0 (segmentSchema)
+//     → 中枢 →  a consolidation of level 0 (consolidationSchema)
+//     → 走势 →  the highest level line of level 0 (moveSchema)
+//   the 走势 of level L (moveSchema)                                    the input of level L + 1
+//     → 线段 →  a line of level L + 1 (segmentSchema)
+//     → 中枢 →  a consolidation of level L + 1 (consolidationSchema)
+//     → 走势 →  the highest level line of level L + 1 (moveSchema)
 //
-// A K-line's date is its time, seconds since 1970, UTC; every other date is the position of its K-line in the run,
-// from 0, absent where not set. Every configuration after 包含 is on merged bars, by their number (`mno`): a 分型 its
-// merged bar, a line its start and end merged bars, a 中枢 its start, end, GG and DD merged bars. A price is a whole
-// number, the price times the data's scale. Whether an implementation's values are right by the lessons is not these
-// contracts' to test: they say what a value is, not whether it is the lessons'.
+// A K-line's date is its begin time, seconds since 1970, UTC. Every configuration after 包含 is on merged bars, by
+// their number (a merged bar's `mIndex`): a 分型 its merged bar, a line its start and end merged bars, a 中枢 its start
+// and end merged bars. A price is a whole number, the price times the data's scale. Whether an implementation's values are
+// right by the lessons is not these contracts' to test: they say what a value is, not whether it is the lessons'.
 
 import { z } from "zod";
 
 // a K-line's position in the series
 const position = z.number().int().nonnegative();
-// a merged bar's number (`mno`)
+// a merged bar's number (its `mIndex`)
 const bar = z.number().int().nonnegative();
 // a price, a whole number: the price times the data's scale
 const price = z.number().int();
-// `stored`: 1 what the algorithm has settled, 0 what it has not yet
-const stored = z.union([z.literal(0), z.literal(1)]);
 
-// a K-line
-export const klineSchema = z
+// A K-line's rule, of the base and of every K-line derived from it
+const withinRange = (k: {
+  readonly open: number;
+  readonly high: number;
+  readonly low: number;
+  readonly close: number;
+}): boolean => k.low <= Math.min(k.open, k.close) && Math.max(k.open, k.close) <= k.high;
+const withinRangeMessage = "a K-line's open and close within its low and high";
+
+// The base contract of a K-line, 7 fields: each data source's contract derives from it by `.extend()` here, with the
+// base's rule; a plain object for that (a schema ending in `.readonly().refine(...)` has no `.extend`).
+const klineBase = z
   .object({
-    rno: z.number().int().nonnegative(),
-    // its time, seconds since 1970, UTC
+    // its place in the run, from 0
+    index: position,
+    // its begin time, seconds since 1970, UTC
     date: z.number().int().nonnegative(),
-    up: z.boolean(),
     open: price,
     high: price,
     low: price,
     close: price,
     volume: z.number().int().nonnegative(),
-    confirmRno: z.number().int().nonnegative(),
-    confirmDate: position.optional(),
-    stored,
   })
-  .strict()
-  .readonly()
-  .refine(
-    (k) => k.low <= Math.min(k.open, k.close) && Math.max(k.open, k.close) <= k.high,
-    "a K-line's open and close within its low and high",
-  );
+  .strict();
 
-// 包含's merged bar, number `mno`: from `startDate` to `endDate`, its first and last K-lines, up or down, its high and
-// low; `rno` the algorithm's position of it.
+// a K-line
+export const klineSchema = klineBase.readonly().refine(withinRange, withinRangeMessage);
+
+// Massive's K-line, 9 fields: the base, and `vw` and `n` of Massive's row
+export const massiveKlineSchema = klineBase
+  .extend({
+    vw: price,
+    n: z.number().int().nonnegative(),
+  })
+  .readonly()
+  .refine(withinRange, withinRangeMessage);
+
+// 包含's merged bar, number `mIndex`: from `start` to `end`, its first and last K-lines, up or down, its high and low;
+// `extremes` the K-lines of its extreme, of its high when it goes up, of its low when it goes down, each from `start`
+// to `end`, in ascending order, none twice; `index` one of `extremes`: the K-line that represents the merged bar. The
+// contract does not say which one is chosen.
 export const mergedBarSchema = z
   .object({
-    rno: z.number().int().nonnegative(),
-    mno: z.number().int().nonnegative(),
+    index: position,
+    mIndex: z.number().int().nonnegative(),
     up: z.boolean(),
     high: price,
     low: price,
-    startDate: position,
-    confirmStartDate: position.optional(),
-    endDate: position,
-    confirmEndDate: position.optional(),
-    stored,
+    start: position,
+    confirmStart: position.optional(),
+    end: position,
+    confirmEnd: position.optional(),
+    extremes: z.array(position).min(1).readonly(),
   })
   .strict()
   .readonly()
   .refine(
-    (m) => m.startDate <= m.endDate && m.low <= m.high,
+    (m) => m.start <= m.end && m.low <= m.high,
     "a merged bar's first K-line not after its last, its low at most its high",
+  )
+  .refine((m) => m.extremes.includes(m.index), "a merged bar's index one of its extremes")
+  .refine(
+    (m) => m.extremes.every((p) => m.start <= p && p <= m.end),
+    "a merged bar's extremes from its start to its end",
+  )
+  .refine(
+    (m) => m.extremes.every((p, i) => i === 0 || (m.extremes[i - 1] ?? 0) < p),
+    "a merged bar's extremes in ascending order, none twice",
   );
 
-// 分型: a top (`ding`) or a bottom at the merged bar `mno`, dated by the algorithm at `date`.
+// 分型: its merged bar, `mIndex`.
 export const fractalSchema = z
   .object({
-    rno: z.number().int().nonnegative(),
-    date: position,
-    mno: z.number().int().nonnegative(),
-    ding: z.boolean(),
-    turningpoint: z.boolean(),
-    high: price,
-    low: price,
-    confirmStartDate: position.optional(),
-    confirmEndDate: position.optional(),
-    confirmTurningPointDate: position.optional(),
-    stored,
+    mIndex: bar,
   })
   .strict()
-  .readonly()
-  .refine((f) => f.low <= f.high, "a 分型's low at most its high");
+  .readonly();
 
-// A line of the structure: its level as the algorithm numbers it (−2 a 笔, −1 a 线段, L a 走势 of level L, which is a
-// 线段 of level L + 1), up (`isUp`) or down, from the merged bar `startBar` to the merged bar `endBar` (the algorithm's
-// dates `startDate` and `endDate` beside), from its low to its high when up, from its high to its low when down.
-export const strokeSchema = z
+// A line: from the merged bar `start` to the merged bar `end`, `confirmEnd` the merged bar at which it was confirmed.
+// A plain object, so that 线段 and 走势 derive from it by `.extend()`, with the line's rule.
+const lineBase = z
   .object({
-    level: z.number().int().min(-2),
-    isUp: z.boolean(),
-    startDate: position,
-    confirmStartDate: position.optional(),
-    endDate: position,
-    confirmEndDate: position.optional(),
-    high: price,
-    low: price,
-    startRno: z.number().int().nonnegative(),
-    endRno: z.number().int().nonnegative(),
-    stored,
-    startBar: bar,
-    endBar: bar,
+    start: bar,
+    end: bar,
+    confirmEnd: bar,
   })
-  .strict()
-  .readonly()
-  .refine(
-    (b) => b.startBar < b.endBar && b.low < b.high,
-    "a line from a merged bar to a later one, its low below its high",
-  );
+  .strict();
+const lineRule = (l: { readonly start: number; readonly end: number }): boolean => l.start < l.end;
+const lineMessage = "a line from a merged bar to a later one";
+export const lineSchema = lineBase.readonly().refine(lineRule, lineMessage);
 
-// 中枢: of level L (made of the 线段 at level 0, of the 走势 of level L − 1 above it), from the merged bar `startBar` to
-// the merged bar `endBar`, its band ZD to ZG within its range DD to GG (at the merged bars `ggBar` and `ddBar`); the
-// algorithm's dates beside (`startDate`, `endDate`, `ggDate`, `ddDate`); the way it was entered and left (`entrance`,
-// `exit`, true upward); the algorithm's `buy` to `tp2Rno` kept as their text.
-// a text: printable ASCII (U+0020 to U+007E), so that both forms read and write it alike
-const text = z.string().regex(/^[\x20-\x7e]*$/, "a text of printable ASCII");
-export const centreSchema = z
+// 笔: a line
+export const strokeSchema = lineSchema;
+
+// 线段 of level L
+export const segmentSchema = lineBase
+  .extend({ level: z.number().int().nonnegative() })
+  .readonly()
+  .refine(lineRule, lineMessage);
+
+// 走势 of level L
+export const moveSchema = lineBase
+  .extend({ level: z.number().int().nonnegative() })
+  .readonly()
+  .refine(lineRule, lineMessage);
+
+// 中枢: of level L, from the merged bar `start` to the merged bar `end`, `confirmEnd` the merged bar at which it was
+// confirmed, not set while it is under construction; its band ZD to ZG within its range DD to GG.
+export const consolidationSchema = z
   .object({
     level: z.number().int().nonnegative(),
-    startRno: z.number().int().nonnegative(),
-    startDate: position,
-    endRno: z.number().int().nonnegative(),
-    endDate: position,
-    entrance: z.boolean(),
-    exit: z.boolean(),
+    start: bar,
+    end: bar,
+    confirmEnd: bar.optional(),
     zg: price,
     zd: price,
     gg: price,
-    ggRno: z.number().int().nonnegative(),
-    ggDate: position,
     dd: price,
-    ddRno: z.number().int().nonnegative(),
-    ddDate: position,
-    d: price,
-    g: price,
-    buy: text,
-    tp0: text,
-    tp0Rno: text,
-    tp1: text,
-    tp1Rno: text,
-    tp2: text,
-    tp2Rno: text,
-    confirmStartDate: position.optional(),
-    confirmEndDate: position.optional(),
-    stored,
-    startBar: bar,
-    endBar: bar,
-    ggBar: bar,
-    ddBar: bar,
   })
   .strict()
   .readonly()
   .refine(
-    (c) => c.startBar <= c.endBar && c.dd <= c.zd && c.zd <= c.zg && c.zg <= c.gg,
+    (c) => c.start <= c.end && c.dd <= c.zd && c.zd <= c.zg && c.zg <= c.gg,
     "a 中枢 from a merged bar to one not before it, its band ZD to ZG within its range DD to GG",
   );
 
 // a run's K-lines: at least one, their times strictly increasing
-export const klinesSchema = z
-  .array(klineSchema)
+const inOrder = (ks: readonly { readonly date: number }[]): boolean =>
+  ks.every((k, i) => i === 0 || (ks[i - 1]?.date ?? 0) < k.date);
+const inOrderMessage = "a run's K-lines in the order of their times, no time twice";
+export const klinesSchema = z.array(klineSchema).min(1).readonly().refine(inOrder, inOrderMessage);
+export const massiveKlinesSchema = z
+  .array(massiveKlineSchema)
   .min(1)
   .readonly()
-  .refine(
-    (ks) => ks.every((k, i) => i === 0 || (ks[i - 1]?.date ?? 0) < k.date),
-    "a run's K-lines in the order of their times, no time twice",
-  );
+  .refine(inOrder, inOrderMessage);
 
 export type KLine = z.output<typeof klineSchema>;
+export type MassiveKLine = z.output<typeof massiveKlineSchema>;
 export type MergedBar = z.output<typeof mergedBarSchema>;
 export type Fractal = z.output<typeof fractalSchema>;
-export type Stroke = z.output<typeof strokeSchema>;
-export type Centre = z.output<typeof centreSchema>;
+export type Line = z.output<typeof lineSchema>;
+export type Stroke = Line;
+export type Segment = z.output<typeof segmentSchema>;
+export type Move = z.output<typeof moveSchema>;
+export type Consolidation = z.output<typeof consolidationSchema>;

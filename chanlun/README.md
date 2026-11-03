@@ -13,19 +13,24 @@ By the flake, pinned in the taker's `flake.lock` (`inputs.contracts.url =
 - `contracts.packages.${system}.chanlun-ts`: `node_modules/@qi/chanlun` and `zod`, as source; `import { decodeRun,
   klineSchema } from "@qi/chanlun"`.
 - `contracts.packages.${system}.chanlun-lean`: the Lake package as source; `import Chanlun`.
-- `contracts.packages.${system}.chanlun-proto`: `chanlun.proto`, the records' fields and types for any other
-  language (`SPEC.md`, The Protobuf description).
+- `contracts.packages.${system}.chanlun-avro`: the Avro schemas, one `.avsc` file for each record, for other languages
+  and for schema registries.
+- `contracts.packages.${system}.chanlun-proto`: `chanlun.proto`, the same records for Protobuf. `SPEC.md` describes both
+  formats, and says why there are two.
 
 Or by the language's own lock: Lake, `[[require]]` with `name = "chanlun"`, `git =
 "https://github.com/zhifengzhang-sz/qi-v2-contracts"`, `rev = "chanlun-1.1.0"`, `subDir = "chanlun/lean"`.
 
 ## Using it
 
-TypeScript: `decodeRun(text)` gives `{ ok: true, run }` or `{ ok: false, error }`; `encodeRun(run)` the canonical
-JSON; `timeAt(run, p)` the time of the K-line at position `p`; each record's schema (`klineSchema`, …) for one record.
+TypeScript: `decodeRun(text)` gives `{ ok: true, run }` or `{ ok: false, error }`, `decodeMassiveRun(text)` the same of
+a run of Massive's K-lines; `encodeRun(run)` the canonical JSON of either; `timeAt(run, p)` the time of the K-line at
+position `p`; each record's schema (`klineSchema`, `massiveKlineSchema`, …) for one record.
 
-Lean: `Chanlun.decodeRun text : Except String Run`, `Chanlun.encodeRun run : String`, `run.timeAt p : Option Nat`;
-the structures `KLine`, `MergedBar`, `Fractal`, `Line`, `Centre`, `Run`, with `ToJson` and `FromJson`.
+Lean: `Chanlun.decodeRun text : Except String Run`, `Chanlun.decodeMassiveRun text : Except String MassiveRun`,
+`Chanlun.encodeRun run : String`, `run.timeAt p : Option Nat`; the structures `KLine`, `MassiveKLine`, `MergedBar`,
+`Fractal`, `Line`, `Stroke`, `Segment`, `Move`, `Consolidation`, and `RunOf K`, of which `Run` and `MassiveRun` are the two runs, with `ToJson` and
+`FromJson`.
 
 A producer's output is mapped to the records by the producer or by its user, not by the contract.
 

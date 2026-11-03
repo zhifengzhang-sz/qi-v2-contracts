@@ -1,0 +1,11 @@
+{
+  "type": "record",
+  "name": "Fractal",
+  "namespace": "qi.chanlun.v1",
+  "fields": [
+    {
+      "name": "mIndex",
+      "type": "long"
+    }
+  ]
+}
