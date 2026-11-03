@@ -11,9 +11,11 @@ import {
   klineSchema,
   lineSchema,
   massiveKlineSchema,
+  massiveOngoingKlineSchema,
   massiveRunSchema,
   mergedBarSchema,
   moveSchema,
+  ongoingKlineSchema,
   runSchema,
   segmentSchema,
 } from "../src/index.ts";
@@ -25,6 +27,8 @@ const records = z
   .registry<{ id: string }>()
   .add(klineSchema, { id: "KLine" })
   .add(massiveKlineSchema, { id: "MassiveKLine" })
+  .add(ongoingKlineSchema, { id: "OngoingKLine" })
+  .add(massiveOngoingKlineSchema, { id: "MassiveOngoingKLine" })
   .add(mergedBarSchema, { id: "MergedBar" })
   .add(fractalSchema, { id: "Fractal" })
   .add(lineSchema, { id: "Line" })

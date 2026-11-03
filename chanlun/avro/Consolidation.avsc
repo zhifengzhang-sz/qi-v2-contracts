@@ -25,19 +25,19 @@
     },
     {
       "name": "zg",
-      "type": "long"
+      "type": "double"
     },
     {
       "name": "zd",
-      "type": "long"
+      "type": "double"
     },
     {
       "name": "gg",
-      "type": "long"
+      "type": "double"
     },
     {
       "name": "dd",
-      "type": "long"
+      "type": "double"
     }
   ]
 }

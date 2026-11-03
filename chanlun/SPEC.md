@@ -27,14 +27,15 @@ Whether an implementation's values are right by the lessons is not the contract'
 
 | Kind | What it is |
 |---|---|
-| time | seconds since 1970-01-01 00:00:00 UTC, a whole number, not negative |
+| time | milliseconds since 1970-01-01 00:00:00 UTC, a whole number, not negative |
 | position | the position of a K-line in the run, from 0: a K-line's `index` and a merged bar's `index`, `start`, `end`, `confirmStart`, `confirmEnd` and each of its `extremes` |
 | bar | the number of a merged bar (its `mIndex`, a 分型's `mIndex`, a line's `start`, `end` and `confirmEnd`, a consolidation's `start`, `end` and `confirmEnd`), from 0 |
-| price | a whole number: the price times the data's scale (a power of ten the data gives, not the contract) |
+| price | a decimal: at most 6 digits after the point, and at most 15 digits from the first that is not 0 |
+| quantity | a decimal as a price is, not negative |
 | count | a whole number, not negative |
 
-Every number is a whole number from −(2⁵³ − 1) to 2⁵³ − 1, the largest every JSON reader holds exactly; a time, a
-position, a bar and a count are not negative.
+A time, a position, a bar and a count are whole numbers from 0 to 2⁵³ − 1, which every JSON reader holds
+exactly; a price and a quantity are decimals as above, which every JSON reader gives back as the same digits.
 
 A field that may be not set (marked ?) is left out when it is not set; it is never `null`. Every position is a
 K-line's of the run, and every bar a merged bar's (The run), so the time of any position is the time of the K-line at
@@ -51,9 +52,11 @@ Each record has exactly its fields: none other, none missing but an optional one
 | `index` | position | its place in the run, from 0 |
 | `date` | time | its begin time |
 | `open`, `high`, `low`, `close` | price | its prices |
-| `volume` | count | its volume |
+| `volume` | quantity | its volume |
 
 Rule: `low ≤ min(open, close)` and `max(open, close) ≤ high`.
+
+A K-line is a complete bar. A bar still going on is an ongoing K-line, a record of its own, in no run.
 
 This is the base contract, 7 fields. Each data source has a contract of its own, derived from the base: the base's
 fields and its rule, and the source's own fields, in every form, with a run that takes it (Massive's run, under The
@@ -68,6 +71,25 @@ row:
 |---|---|---|
 | `vw` | price | its volume-weighted average price |
 | `n` | count | its number of trades |
+
+Its `date` is the row's `t`.
+
+#### The ongoing K-line
+
+The ongoing K-line of a data source has its K-line's fields and rule, `index` the place it will take when complete,
+and:
+
+| Field | Kind | Meaning |
+|---|---|---|
+| `asOf` | time | when its values were last updated |
+
+Rule: `date ≤ asOf`.
+
+It is defined once over any source's K-line, as the run is, so that a source's own fields are defined only in its
+K-line: `OngoingKLine` of the base and `MassiveOngoingKLine` of Massive's. In TypeScript they are `ongoingKlineSchema`
+and `massiveOngoingKlineSchema`; in Lean, `OngoingOf K`. It crosses as one JSON object of its fields, under the rules
+of The JSON, and its canonical text is its record, as there, then a line break. Each form decodes it with
+`decodeOngoingKLine` and `decodeMassiveOngoingKLine`, and writes it with `encodeOngoingKLine`.
 
 ### Merged bar (包含)
 
@@ -127,7 +149,7 @@ A run holds every level.
 | `zg`, `zd` | price | its band, ZD to ZG |
 | `gg`, `dd` | price | its range, DD to GG |
 
-Rule: `start ≤ end` and `dd ≤ zd ≤ zg ≤ gg`.
+Rule: `start < end` and `dd ≤ zd ≤ zg ≤ gg`.
 
 ### The run
 
@@ -150,11 +172,12 @@ Massive's run is a run whose `klines` are Massive's K-lines, under the same rule
 ## The JSON
 
 A run crosses as one JSON object, its seven parts its names, each record an object of its fields. A number is written
-as a whole number, digits only: an optional `-`, then `0` or a digit not `0` and at most 15 more; no fraction, no
-exponent, so that both forms read the same number from the same text. Decoding refuses anything the records do not
-allow: a number written otherwise or past the bound, a name that is no field or part, a field missing that is not
-optional, `null`, a value of another kind (a negative number where a time, a position, a bar or a count is, a
-number where a boolean is), and a broken rule.
+in digits: an optional `-`, then `0` or a digit not `0` and more digits, then, for a price or a quantity,
+optionally `.` and digits, the last not `0`; no exponent, so that both forms read the same number from the same text.
+Decoding refuses anything the records do not allow: a number written otherwise or past the bound, a name that is no
+field or part, a name twice in one object, text not UTF-8, a field missing that is not optional, `null`, a value of
+another kind (a negative number where a time, a position, a bar, a count or a quantity is, a fraction where a time, a
+position, a bar or a count is, a number where a boolean is), and a broken rule.
 
 The canonical text, which both forms write and the conformance check compares:
 
@@ -168,7 +191,7 @@ The canonical text, which both forms write and the conformance check compares:
 ## The Avro schemas
 
 The records are also published as Avro schemas, for other languages and for messages on Kafka and Redpanda topics.
-`avro/` has one file for each record: `KLine.avsc`, `MassiveKLine.avsc`, `MergedBar.avsc`, `Fractal.avsc`, `Line.avsc`,
+`avro/` has one file for each record: `KLine.avsc`, `MassiveKLine.avsc`, `OngoingKLine.avsc`, `MassiveOngoingKLine.avsc`, `MergedBar.avsc`, `Fractal.avsc`, `Line.avsc`,
 `Segment.avsc`, `Move.avsc`, `Consolidation.avsc`, `Run.avsc` and `MassiveRun.avsc`, all in the namespace `qi.chanlun.v1`. 笔 is `Line`. Each file
 is complete, with every record it uses written out inside it.
 
@@ -178,6 +201,7 @@ schemas or an Avro implementation cannot read them, and it runs every run vector
 | In the contract | In Avro |
 |---|---|
 | a whole number | `long` |
+| a price, a quantity | `double` |
 | a boolean | `boolean` |
 | a record | `record` |
 | an array | `array` |
@@ -186,8 +210,8 @@ schemas or an Avro implementation cannot read them, and it runs every run vector
 
 Fields keep the names they have in the records.
 
-Avro's `long` holds every number in the contract, but a library's default may not. In JavaScript, `avsc`'s default long
-refuses the contract's largest number and reads large negative numbers back wrong, with no error, so a reader there
+Avro's `long` holds every whole number in the contract, but a library's default may not. In JavaScript, `avsc`'s default long
+refuses the contract's largest number, so a reader there
 needs a long type of its own, as `ts/test/avro.test.ts` shows.
 
 The schemas give the records' fields and types, not their rules. The rules are on this page: a reader in any language
@@ -198,13 +222,14 @@ types alone, and read and write the JSON above.
 ## The Protobuf description
 
 `proto/chanlun.proto` (package `qi.chanlun.v1`) describes the same records as Protobuf messages: `KLine`, `MassiveKLine`,
-`MergedBar`, `Fractal`, `Line`, `Segment`, `Move`, `Consolidation`, `Run` and `MassiveRun`, with `SegmentList`, `MoveList` and `ConsolidationList` for a part by level. It is
+`OngoingKLine`, `MassiveOngoingKLine`, `MergedBar`, `Fractal`, `Line`, `Segment`, `Move`, `Consolidation`, `Run` and `MassiveRun`, with `SegmentList`, `MoveList` and `ConsolidationList` for a part by level. It is
 generated from the Zod schemas and the field numbers in `proto/fields.json` by `make chanlun-proto`. `make check` fails if
 it no longer matches them or `protoc` cannot read it.
 
 | In the contract | In Protobuf |
 |---|---|
 | a whole number | `uint64`, or `int64` where it may be below 0 |
+| a price, a quantity | `double` |
 | a boolean | `bool` |
 | a record | its `message` |
 | an array | `repeated` |

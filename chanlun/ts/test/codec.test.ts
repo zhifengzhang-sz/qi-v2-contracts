@@ -1,12 +1,46 @@
-// The contract's vectors (../../vectors/): the runs decoded and encoded again to the same text, every reject case
-// refused; the conformance check (make check) compares the Lean form's text with the same files.
+// The contract's vectors (../../vectors/), each read as bin/decode.ts reads it: the runs decoded and encoded again to
+// the same text, every reject case refused; the conformance check (make check) compares the Lean form's text with the
+// same files.
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { decodeMassiveRun, decodeRun, encodeRun } from "../src/codec.ts";
+import {
+  decodeMassiveOngoingKLine,
+  decodeMassiveRun,
+  decodeOngoingKLine,
+  decodeRun,
+  encodeOngoingKLine,
+  encodeRun,
+} from "../src/codec.ts";
 
 const V = join(import.meta.dirname, "..", "..", "vectors");
-const text = (n: string) => readFileSync(join(V, n), "utf8");
+// A vector as bin/decode.ts reads it: its bytes as UTF-8, a byte that is not UTF-8 refused, not replaced
+const read = (
+  n: string,
+): { readonly ok: true; readonly text: string } | { readonly ok: false; readonly error: string } => {
+  try {
+    return {
+      ok: true,
+      text: new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(readFileSync(join(V, n))),
+    };
+  } catch {
+    return { ok: false, error: "text not UTF-8" };
+  }
+};
+const text = (n: string): string => {
+  const t = read(n);
+  if (!t.ok) expect.fail(`${n}: ${t.error}`);
+  return t.text;
+};
+// A reject case's fault, by `decode`, or text not UTF-8 before anything is decoded; "" if it is not refused
+const fault = (
+  n: string,
+  decode: (text: string) => { readonly ok: true } | { readonly ok: false; readonly error: string },
+): string => {
+  const t = read(n);
+  const r = t.ok ? decode(t.text) : t;
+  return r.ok ? "" : r.error;
+};
 
 describe("the vectors", () => {
   it.each(["run.json", "small.json", "edge.json"])("%s decodes, and encodes to the same text", (n) => {
@@ -24,8 +58,7 @@ describe("the vectors", () => {
     expect(consolidations.flat().some((c) => c.confirmEnd === undefined)).toBe(true);
   });
   it.each(readdirSync(join(V, "reject")))("reject/%s is refused", (n) => {
-    const r = decodeRun(text(join("reject", n)));
-    expect(r.ok ? "" : r.error).not.toBe("");
+    expect(fault(join("reject", n), decodeRun)).not.toBe("");
   });
 });
 
@@ -36,7 +69,20 @@ describe("Massive's vectors", () => {
     expect(encodeRun(r.run)).toBe(text(n));
   });
   it.each(readdirSync(join(V, "massive", "reject")))("massive/reject/%s is refused", (n) => {
-    const r = decodeMassiveRun(text(join("massive", "reject", n)));
-    expect(r.ok ? "" : r.error).not.toBe("");
+    expect(fault(join("massive", "reject", n), decodeMassiveRun)).not.toBe("");
+  });
+});
+
+describe("the ongoing K-lines", () => {
+  it.each([
+    ["ongoing/kline.json", decodeOngoingKLine],
+    ["ongoing/massive.json", decodeMassiveOngoingKLine],
+  ] as const)("%s decodes, and encodes to the same text", (n, decode) => {
+    const r = decode(text(n));
+    if (!r.ok) expect.fail(r.error);
+    expect(encodeOngoingKLine(r.kline)).toBe(text(n));
+  });
+  it.each(readdirSync(join(V, "ongoing", "reject")))("ongoing/reject/%s is refused", (n) => {
+    expect(fault(join("ongoing", "reject", n), decodeOngoingKLine)).not.toBe("");
   });
 });

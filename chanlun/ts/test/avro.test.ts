@@ -62,7 +62,7 @@ describe("the Avro mapping", () => {
     expect(made(row)).toMatchObject({ ok: false, error: expect.stringContaining("Row.a-b") });
   });
   it("refuses a type with no Avro form", () => {
-    expect(made(withField({ type: "number" }))).toMatchObject({
+    expect(made(withField({ type: "null" }))).toMatchObject({
       ok: false,
       error: expect.stringContaining("Row.when: a type with no Avro form"),
     });
@@ -89,7 +89,7 @@ const dir = join(import.meta.dirname, "..", "..", "avro");
 const vectors = join(import.meta.dirname, "..", "..", "vectors");
 const files = readdirSync(dir).filter((f) => f.endsWith(".avsc"));
 const schema = (file: string) => JSON.parse(readFileSync(join(dir, file), "utf8"));
-// avsc's default long refuses the contract's largest number and reads large negative numbers back wrong, though Avro's
+// avsc's default long refuses the contract's largest number, though Avro's
 // long is 64 bits. This is avsc's documented way to replace it: a JavaScript number, over the contract's whole range.
 const long = avsc.types.LongType.__with({
   fromBuffer: (b: Buffer) => {
@@ -129,9 +129,11 @@ describe("the Avro schemas, read by an Avro implementation", () => {
         "KLine",
         "Line",
         "MassiveKLine",
+        "MassiveOngoingKLine",
         "MassiveRun",
         "MergedBar",
         "Move",
+        "OngoingKLine",
         "Run",
         "Segment",
       ].map((r) => `${r}.avsc`),
@@ -161,7 +163,7 @@ describe("the Avro schemas, read by an Avro implementation", () => {
     const massive = schema("MassiveKLine.avsc").fields;
     expect(massive.slice(0, base.length)).toEqual(base);
     expect(massive.slice(base.length)).toEqual([
-      { name: "vw", type: "long" },
+      { name: "vw", type: "double" },
       { name: "n", type: "long" },
     ]);
   });

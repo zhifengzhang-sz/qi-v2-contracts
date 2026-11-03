@@ -5,7 +5,7 @@
 // is specific to one contract.
 //
 // The mapping:
-// - a whole number is a `long`, and a union of whole constants an `int`;
+// - a whole number is a `long`, a number that may have a fraction a `double`, and a union of whole constants an `int`;
 // - `boolean` and `string` stay as they are;
 // - a record is a `record`, written out where it first appears in a schema and named after that;
 // - an array is an `array`;
@@ -49,6 +49,7 @@ const schemaOf = (
       return "null";
     }
     if (s.type === "integer") return "long";
+    if (s.type === "number") return "double";
     if (s.type === "boolean" || s.type === "string") return s.type;
     if (s.type === "array" && s.items !== undefined) return { type: "array", items: type(at, s.items) };
     const consts = s.anyOf?.map((a) => a.const);

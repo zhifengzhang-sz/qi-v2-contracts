@@ -27,9 +27,9 @@ chanlun-lean: ## the Lean form, built with its decode, by the shell's Lean once 
 	[ -n "$$v" ] && [ "$$t" = "$$v" ] || { echo "chanlun-lean: the shell's Lean is '$$v', chanlun/lean/lean-toolchain names '$$t'"; exit 1; }
 	cd chanlun/lean && lake build
 
-chanlun-conformance: chanlun-lean ## both forms on every vector: each run decoded and written to the same text by both, every reject case refused by both, as a fault of the contract (exit 1, `decode: ` and its message), not a crash; Massive's by each form's --massive
-	@cd chanlun && s=0; r=0; n=0; \
-	give() { r=$$((r+1)); \
+chanlun-conformance: chanlun-lean ## both forms on every vector: each run decoded and written to the same text by both, every reject case refused by both, as a fault of the contract (exit 1, `decode: ` and its message), not a crash; Massive's by each form's --massive, an ongoing K-line by --ongoing
+	@cd chanlun && s=0; r=0; o=0; n=0; \
+	give() { case "$$1" in *--ongoing*) o=$$((o+1));; *) r=$$((r+1));; esac; \
 	  (cd ts && bun bin/decode.ts $$1 ../$$2) | cmp -s - $$2 || { echo "conformance: ts does not give $$2 back"; s=1; }; \
 	  lean/.lake/build/bin/decode $$1 $$2 | cmp -s - $$2 || { echo "conformance: lean does not give $$2 back"; s=1; }; }; \
 	refuse() { n=$$((n+1)); \
@@ -39,9 +39,11 @@ chanlun-conformance: chanlun-lean ## both forms on every vector: each run decode
 	  [ $$c = 1 ] && case "$$e" in "decode: "*) true;; *) false;; esac || { echo "conformance: lean on $$2: exit $$c, $$e"; s=1; }; }; \
 	for v in vectors/run.json vectors/small.json vectors/edge.json; do give "" $$v; done; \
 	for v in vectors/massive/small.json vectors/massive/edge.json; do give --massive $$v; done; \
+	give --ongoing vectors/ongoing/kline.json; give "--massive --ongoing" vectors/ongoing/massive.json; \
 	for v in vectors/reject/*.json; do refuse "" $$v; done; \
 	for v in vectors/massive/reject/*.json; do refuse --massive $$v; done; \
-	[ $$s = 0 ] && echo "chanlun conformance: $$r runs given back alike by both forms, $$n reject cases refused by both: PASS" || { echo "chanlun conformance: FAIL"; exit 1; }
+	for v in vectors/ongoing/reject/*.json; do refuse --ongoing $$v; done; \
+	[ $$s = 0 ] && echo "chanlun conformance: $$r runs and $$o ongoing K-lines given back alike by both forms, $$n reject cases refused by both: PASS" || { echo "chanlun conformance: FAIL"; exit 1; }
 
 packages: ## the flake's packages built, and each taken as a taker takes it: the TypeScript one imported by Bun, the Lean one built by Lake, each decoding the small run, and Massive's, to the same text; the Avro one what the schemas make, read by an Avro implementation; the Protobuf one read by protoc
 	@ts=$$(nix build .#chanlun-ts --no-link --print-out-paths) && lean=$$(nix build .#chanlun-lean --no-link --print-out-paths) && \

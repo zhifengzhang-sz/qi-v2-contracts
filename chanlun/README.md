@@ -25,11 +25,17 @@ Or by the language's own lock: Lake, `[[require]]` with `name = "chanlun"`, `git
 
 TypeScript: `decodeRun(text)` gives `{ ok: true, run }` or `{ ok: false, error }`, `decodeMassiveRun(text)` the same of
 a run of Massive's K-lines; `encodeRun(run)` the canonical JSON of either; `timeAt(run, p)` the time of the K-line at
-position `p`; each record's schema (`klineSchema`, `massiveKlineSchema`, …) for one record.
+position `p`; `decodeOngoingKLine(text)` gives `{ ok: true, kline }` (an `OngoingKLine`) or `{ ok: false, error }`,
+`decodeMassiveOngoingKLine(text)` the same of Massive's ongoing K-line (a `MassiveOngoingKLine`);
+`encodeOngoingKLine(kline)` the canonical JSON of either; each record's schema (`klineSchema`, `massiveKlineSchema`,
+`ongoingKlineSchema`, `massiveOngoingKlineSchema`, …) for one record.
 
 Lean: `Chanlun.decodeRun text : Except String Run`, `Chanlun.decodeMassiveRun text : Except String MassiveRun`,
-`Chanlun.encodeRun run : String`, `run.timeAt p : Option Nat`; the structures `KLine`, `MassiveKLine`, `MergedBar`,
-`Fractal`, `Line`, `Stroke`, `Segment`, `Move`, `Consolidation`, and `RunOf K`, of which `Run` and `MassiveRun` are the two runs, with `ToJson` and
+`Chanlun.encodeRun run : String`, `run.timeAt p : Option Nat`; `Chanlun.decodeOngoingKLine text : Except String
+OngoingKLine`, `Chanlun.decodeMassiveOngoingKLine text : Except String MassiveOngoingKLine`,
+`Chanlun.encodeOngoingKLine k : String`; the structures `KLine`, `MassiveKLine`, `MergedBar`,
+`Fractal`, `Line`, `Stroke`, `Segment`, `Move`, `Consolidation`, `RunOf K`, of which `Run` and `MassiveRun` are the two runs,
+and `OngoingOf K`, of which `OngoingKLine` and `MassiveOngoingKLine` are the two ongoing K-lines, with `ToJson` and
 `FromJson`.
 
 A producer's output is mapped to the records by the producer or by its user, not by the contract.

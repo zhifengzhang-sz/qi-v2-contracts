@@ -13,27 +13,27 @@
     },
     {
       "name": "open",
-      "type": "long"
+      "type": "double"
     },
     {
       "name": "high",
-      "type": "long"
+      "type": "double"
     },
     {
       "name": "low",
-      "type": "long"
+      "type": "double"
     },
     {
       "name": "close",
-      "type": "long"
+      "type": "double"
     },
     {
       "name": "volume",
-      "type": "long"
+      "type": "double"
     },
     {
       "name": "vw",
-      "type": "long"
+      "type": "double"
     },
     {
       "name": "n",

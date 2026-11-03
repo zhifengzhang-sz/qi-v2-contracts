@@ -86,7 +86,7 @@ describe("the Protobuf description", () => {
     });
   });
   it("refuses a type with no Protobuf form", () => {
-    const row = { ...record, properties: { ...record.properties, when: { type: "number" } } };
+    const row = { ...record, properties: { ...record.properties, when: { type: "null" } } };
     expect(made(numbers({ ...all, when: 7 }), row)).toMatchObject({
       ok: false,
       error: expect.stringContaining("when"),
@@ -99,6 +99,8 @@ describe("the field numbers", () => {
   const { messages } = JSON.parse(readFileSync(file, "utf8")) as Numbers;
   it.each([
     ["MassiveKLine", "KLine"],
+    ["OngoingKLine", "KLine"],
+    ["MassiveOngoingKLine", "MassiveKLine"],
     ["MassiveRun", "Run"],
     ["Segment", "Line"],
     ["Move", "Line"],

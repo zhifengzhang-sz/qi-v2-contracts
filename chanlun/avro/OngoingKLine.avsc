@@ -1,0 +1,39 @@
+{
+  "type": "record",
+  "name": "OngoingKLine",
+  "namespace": "qi.chanlun.v1",
+  "fields": [
+    {
+      "name": "index",
+      "type": "long"
+    },
+    {
+      "name": "date",
+      "type": "long"
+    },
+    {
+      "name": "open",
+      "type": "double"
+    },
+    {
+      "name": "high",
+      "type": "double"
+    },
+    {
+      "name": "low",
+      "type": "double"
+    },
+    {
+      "name": "close",
+      "type": "double"
+    },
+    {
+      "name": "volume",
+      "type": "double"
+    },
+    {
+      "name": "asOf",
+      "type": "long"
+    }
+  ]
+}

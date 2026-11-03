@@ -17,11 +17,11 @@
     },
     {
       "name": "high",
-      "type": "long"
+      "type": "double"
     },
     {
       "name": "low",
-      "type": "long"
+      "type": "double"
     },
     {
       "name": "start",

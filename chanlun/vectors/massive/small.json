@@ -1,16 +1,16 @@
 {
 "klines": [
-{"close":10005,"date":1767623400,"high":10010,"index":0,"low":9990,"n":120,"open":10000,"volume":1000,"vw":10002},
-{"close":10025,"date":1767623460,"high":10030,"index":1,"low":10000,"n":131,"open":10005,"volume":1001,"vw":10016},
-{"close":9985,"date":1767623520,"high":10028,"index":2,"low":9980,"n":142,"open":10025,"volume":1002,"vw":10004},
-{"close":9960,"date":1767623580,"high":9990,"index":3,"low":9950,"n":97,"open":9985,"volume":1003,"vw":9970},
-{"close":10035,"date":1767623640,"high":10040,"index":4,"low":9955,"n":205,"open":9960,"volume":1004,"vw":9998},
-{"close":10045,"date":1767623700,"high":10050,"index":5,"low":10020,"n":88,"open":10035,"volume":1005,"vw":10036}
+{"close":100.05,"date":1767623400000,"high":100.1,"index":0,"low":99.9,"n":120,"open":100,"volume":1,"vw":100.02},
+{"close":100.25,"date":1767623460000,"high":100.3,"index":1,"low":100,"n":131,"open":100.05,"volume":1.001,"vw":100.16},
+{"close":99.85,"date":1767623520000,"high":100.28,"index":2,"low":99.8,"n":142,"open":100.25,"volume":1.002,"vw":100.04},
+{"close":99.6,"date":1767623580000,"high":99.9,"index":3,"low":99.5,"n":97,"open":99.85,"volume":1.003,"vw":99.7},
+{"close":100.35,"date":1767623640000,"high":100.4,"index":4,"low":99.55,"n":205,"open":99.6,"volume":1.004,"vw":99.98},
+{"close":100.45,"date":1767623700000,"high":100.5,"index":5,"low":100.2,"n":88,"open":100.35,"volume":1.005,"vw":100.36}
 ],
 "merged": [
-{"confirmEnd":2,"confirmStart":0,"end":1,"extremes":[1],"high":10030,"index":1,"low":9990,"mIndex":0,"start":0,"up":true},
-{"confirmEnd":4,"confirmStart":2,"end":3,"extremes":[3],"high":10028,"index":3,"low":9950,"mIndex":1,"start":2,"up":false},
-{"confirmStart":4,"end":5,"extremes":[5],"high":10050,"index":5,"low":9955,"mIndex":2,"start":4,"up":true}
+{"confirmEnd":2,"confirmStart":0,"end":1,"extremes":[1],"high":100.3,"index":1,"low":99.9,"mIndex":0,"start":0,"up":true},
+{"confirmEnd":4,"confirmStart":2,"end":3,"extremes":[3],"high":100.28,"index":3,"low":99.5,"mIndex":1,"start":2,"up":false},
+{"confirmStart":4,"end":5,"extremes":[5],"high":100.5,"index":5,"low":99.55,"mIndex":2,"start":4,"up":true}
 ],
 "fractals": [
 {"mIndex":0},
@@ -31,10 +31,10 @@
 ],
 "consolidations": [
 [
-{"confirmEnd":2,"dd":9950,"end":2,"gg":10050,"level":0,"start":0,"zd":9990,"zg":10028}
+{"confirmEnd":2,"dd":99.5,"end":2,"gg":100.5,"level":0,"start":0,"zd":99.9,"zg":100.28}
 ],
 [
-{"confirmEnd":2,"dd":9950,"end":2,"gg":10050,"level":1,"start":0,"zd":9990,"zg":10028}
+{"confirmEnd":2,"dd":99.5,"end":2,"gg":100.5,"level":1,"start":0,"zd":99.9,"zg":100.28}
 ]
 ]
 }

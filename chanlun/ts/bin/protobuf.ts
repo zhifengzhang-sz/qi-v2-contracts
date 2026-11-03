@@ -4,7 +4,8 @@
 // rules (a refine is a function, which Zod's JSON Schema leaves out). Nothing here is the contract's own: it serves
 // every contract.
 //
-// The mapping: a whole number not below 0 `uint64`, else `int64`; a union of whole constants `uint32`, or `int32` when
+// The mapping: a whole number not below 0 `uint64`, else `int64`; a number that may have a fraction `double`; a union
+// of whole constants `uint32`, or `int32` when
 // one is below 0; `bool`; `string`; a record its message; an array `repeated`; an array of arrays `repeated` of a
 // message `<Item>List` holding `repeated <Item> items = 1`; a field not required `optional`. A field's name in
 // snake_case, a letter first, whose JSON name by Protobuf's rule is the record's own. Anything else is refused.
@@ -46,6 +47,7 @@ const jsonName = (name: string): string => name.replace(/_([a-z0-9])/g, (_, c: s
 
 const scalar = (s: Schema): string | undefined => {
   if (s.type === "integer") return (s.minimum ?? -1) >= 0 ? "uint64" : "int64";
+  if (s.type === "number") return "double";
   if (s.type === "boolean") return "bool";
   if (s.type === "string") return "string";
   const consts = s.anyOf?.map((a) => a.const);

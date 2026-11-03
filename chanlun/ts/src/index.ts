@@ -1,9 +1,14 @@
-// @qi/chanlun: 缠论's contract (../SPEC.md): the algorithm's records as Zod schemas, and a run's records as JSON.
+// @qi/chanlun: 缠论's contract (../SPEC.md): the algorithm's records as Zod schemas, and a run's records as JSON, and an
+// ongoing K-line's.
 
 export {
   type Decoded,
+  type DecodedOngoing,
+  decodeMassiveOngoingKLine,
   decodeMassiveRun,
+  decodeOngoingKLine,
   decodeRun,
+  encodeOngoingKLine,
   encodeRun,
   type MassiveRun,
   massiveRunSchema,
@@ -23,12 +28,16 @@ export {
   type Line,
   lineSchema,
   type MassiveKLine,
+  type MassiveOngoingKLine,
   type MergedBar,
   type Move,
   massiveKlineSchema,
   massiveKlinesSchema,
+  massiveOngoingKlineSchema,
   mergedBarSchema,
   moveSchema,
+  type OngoingKLine,
+  ongoingKlineSchema,
   type Segment,
   type Stroke,
   segmentSchema,

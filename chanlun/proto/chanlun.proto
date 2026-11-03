@@ -8,40 +8,65 @@ package qi.chanlun.v1;
 
 message KLine {
   uint64 index = 1;
-  uint64 date = 2;
-  int64 open = 4;
-  int64 high = 5;
-  int64 low = 6;
-  int64 close = 7;
-  uint64 volume = 8;
-  reserved 3, 9, 10, 11;
+  uint64 date = 14;
+  double open = 15;
+  double high = 16;
+  double low = 17;
+  double close = 18;
+  double volume = 19;
+  reserved 2, 3, 4, 5, 6, 7, 8, 9, 10, 11;
   reserved "up", "confirm_rno", "confirm_date", "stored";
 }
 
 message MassiveKLine {
   uint64 index = 1;
-  uint64 date = 2;
-  int64 open = 4;
-  int64 high = 5;
-  int64 low = 6;
-  int64 close = 7;
-  uint64 volume = 8;
-  int64 vw = 12;
   uint64 n = 13;
+  uint64 date = 14;
+  double open = 15;
+  double high = 16;
+  double low = 17;
+  double close = 18;
+  double volume = 19;
+  double vw = 20;
+  reserved 2, 4, 5, 6, 7, 8, 12;
+}
+
+message OngoingKLine {
+  uint64 index = 1;
+  uint64 date = 14;
+  double open = 15;
+  double high = 16;
+  double low = 17;
+  double close = 18;
+  double volume = 19;
+  uint64 as_of = 21;
+}
+
+message MassiveOngoingKLine {
+  uint64 index = 1;
+  uint64 n = 13;
+  uint64 date = 14;
+  double open = 15;
+  double high = 16;
+  double low = 17;
+  double close = 18;
+  double volume = 19;
+  double vw = 20;
+  uint64 as_of = 21;
 }
 
 message MergedBar {
   uint64 m_index = 2;
   bool up = 3;
-  int64 high = 4;
-  int64 low = 5;
   uint64 start = 6;
   optional uint64 confirm_start = 7;
   uint64 end = 8;
   optional uint64 confirm_end = 9;
   repeated uint64 extremes = 11;
   uint64 index = 12;
-  reserved 1, 10;
+  double high = 13;
+  double low = 14;
+  reserved 1, 4, 5, 10;
   reserved "rno", "stored";
 }
 
@@ -75,14 +100,14 @@ message Move {
 
 message Consolidation {
   uint64 level = 1;
-  int64 zg = 8;
-  int64 zd = 9;
-  int64 gg = 10;
-  int64 dd = 13;
   uint64 start = 28;
   uint64 end = 29;
   optional uint64 confirm_end = 32;
-  reserved 2, 3, 4, 5, 6, 7, 11, 12, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 30, 31;
+  double zg = 33;
+  double zd = 34;
+  double gg = 35;
+  double dd = 36;
+  reserved 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 30, 31;
   reserved "start_rno", "start_date", "end_rno", "end_date", "entrance", "exit", "gg_rno", "gg_date", "dd_rno", "dd_date", "d", "g", "buy", "tp0", "tp0_rno", "tp1", "tp1_rno", "tp2", "tp2_rno", "confirm_start_date", "confirm_end_date", "stored", "gg_bar", "dd_bar";
 }
 

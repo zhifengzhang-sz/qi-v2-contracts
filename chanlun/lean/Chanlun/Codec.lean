@@ -1,7 +1,7 @@
 import Chanlun.Contract
 
 /-!
-# A run's records as JSON
+# A run's records as JSON, and an ongoing K-line's
 
 How records cross from one project to another (../SPEC.md, The JSON), the same as the TypeScript form's `codec.ts`.
 Decoding takes a run's JSON: every object only the fields of its record (a field not there that may be not set is
@@ -92,8 +92,8 @@ def startsRise (at_ name : String) (starts : Array Nat) : Except String Unit :=
       .error s!"{at_}.{i}: a run's {name} strictly increasing by start"
 
 def Consolidation.rule (c : Consolidation) : Option String :=
-  if !(c.start ≤ c.end && c.dd ≤ c.zd && c.zd ≤ c.zg && c.zg ≤ c.gg) then
-    some "a 中枢 from a merged bar to one not before it, its band ZD to ZG within its range DD to GG"
+  if !(c.start < c.end && c.dd ≤ c.zd && c.zd ≤ c.zg && c.zg ≤ c.gg) then
+    some "a 中枢 from a merged bar to a later one, its band ZD to ZG within its range DD to GG"
   else none
 
 /-- Every record's rules, and the run's K-lines at least one, in the order of their times, no time twice. -/
@@ -170,11 +170,27 @@ def RunOf.check {K : Type} [KLineOf K] (r : RunOf K) : Except String Unit := do
     everyOf s!"consolidations.{l}" r.consolidations[l] fun c =>
       if c.level = l then none else some s!"a 中枢 here of level {l}"
 
+/-- An ongoing K-line's rules: its K-line's, and `asOf` not before its `date`. -/
+def OngoingOf.check {K : Type} [KLineOf K] (o : OngoingOf K) : Except String Unit := do
+  let k := KLineOf.base o.kline
+  if let some e := k.rule then throw s!"the ongoing K-line: {e}"
+  if o.asOf < k.date then throw "the ongoing K-line: its asOf not before its date"
+
 private def numeric (c : Char) : Bool := c.isDigit || c == '-' || c == '+' || c == '.' || c == 'e' || c == 'E'
 
-private def whole (tok : List Char) : Bool :=
+/-- A number written in digits, no exponent: a whole number of at most 16 digits, or a decimal of at most 6 digits after
+the point and 15 from the first that is not 0, the last not 0 (a fraction is a price's or a quantity's only, and they
+have no more). -/
+private def wellWritten (tok : List Char) : Bool :=
   let ds := match tok with | '-' :: rest => rest | _ => tok
-  !ds.isEmpty && ds.length ≤ 16 && ds.all Char.isDigit && (ds.length == 1 || ds.head! != '0')
+  let whole := ds.takeWhile Char.isDigit
+  let wholeOk := !whole.isEmpty && (whole.length == 1 || whole.head! != '0')
+  match ds.drop whole.length with
+  | [] => wholeOk && whole.length ≤ 16
+  | '.' :: fraction =>
+    wholeOk && !fraction.isEmpty && fraction.all Char.isDigit && fraction.getLast! != '0' && fraction.length ≤ 6 &&
+      ((whole ++ fraction).dropWhile (· == '0')).length ≤ 15
+  | _ => false
 
 /-- The scan of `literals`: `inStr` within a string, `esc` after its backslash. -/
 private partial def scan : List Char → Bool → Bool → Option String
@@ -185,36 +201,85 @@ private partial def scan : List Char → Bool → Bool → Option String
     if c == '"' then scan rest true false
     else if c.isDigit || c == '-' then
       let tok := c :: rest.takeWhile numeric
-      if whole tok then scan (rest.dropWhile numeric) false false else some (String.ofList tok)
+      if wellWritten tok then scan (rest.dropWhile numeric) false false else some (String.ofList tok)
     else scan rest false false
 
-/-- Every number of the text written as a whole number, digits only (no fraction, no exponent), of at most 16 digits;
-strings skipped. Checked on the text, before it is parsed, as the TypeScript form checks it (and so a
-number such as `1e999999999` is never parsed). The first number that is not, if any. -/
+/-- Every number of the text written in digits, as `wellWritten` has it; strings skipped. Checked on the text, before it
+is parsed, as the TypeScript form checks it (and so a number such as `1e999999999` is never parsed). The first number
+that is not, if any. -/
 def literals (text : String) : Option String := scan text.toList false false
+
+/-- A string's characters after its opening `"`, up to its closing one, and what follows it. -/
+private partial def stringBody : List Char → List Char → List Char × List Char
+  | [], acc => (acc.reverse, [])
+  | '\\' :: c :: rest, acc => stringBody rest (c :: '\\' :: acc)
+  | '"' :: rest, acc => (acc.reverse, rest)
+  | c :: rest, acc => stringBody rest (c :: acc)
+
+/-- The scan of `twice`: for each object or array open around the place, the names of the object so far, or `none`. -/
+private partial def twiceScan : List Char → List (Option (List String)) → Option String
+  | [], _ => none
+  | '{' :: rest, open_ => twiceScan rest (some [] :: open_)
+  | '[' :: rest, open_ => twiceScan rest (none :: open_)
+  | '}' :: rest, open_ => twiceScan rest open_.tail
+  | ']' :: rest, open_ => twiceScan rest open_.tail
+  | '"' :: rest, open_ =>
+    let (body, after) := stringBody rest []
+    match after.dropWhile Char.isWhitespace, open_ with
+    | ':' :: _, some names :: up =>
+      let raw := String.ofList body
+      let name := match Json.parse s!"\"{raw}\"" with
+        | .ok (.str s) => s
+        | _ => raw
+      if names.contains name then some name else twiceScan after (some (name :: names) :: up)
+    | _, _ => twiceScan after open_
+  | _ :: rest, open_ => twiceScan rest open_
+
+/-- The first name given twice in one object of the text, if any; the text JSON. `Json.parse` keeps one of the two. -/
+def twice (text : String) : Option String := twiceScan text.toList []
 
 /-- The largest whole number the contract takes, either way: 2^53 − 1, the largest JSON number every reader holds
 exactly. -/
 def bound : Int := 9007199254740991
 
-/-- Every number of the JSON within the bound. -/
+/-- Every whole number of the JSON within the bound (a decimal is bounded by its digits, by `literals`). -/
 partial def bounded : Json → Bool
-  | .num n => n.exponent == 0 && n.mantissa.natAbs ≤ bound.toNat
+  | .num n => n.exponent > 0 || n.mantissa.natAbs ≤ bound.toNat
   | .arr xs => xs.all bounded
   | .obj kvs => kvs.foldl (fun acc _ v => acc && bounded v) true
   | _ => true
 
+/-- A JSON text as JSON, its numbers well written and within the bound, no name twice in one object. -/
+def parsed (text : String) : Except String Json := do
+  if let some bad := literals text then
+    throw s!"{bad}: a number in digits, a whole number of at most 16, a decimal of at most 6 after the point and 15 in all"
+  let j ← (Json.parse text).mapError (fun _ => "not JSON")
+  if let some name := twice text then throw s!"{name}: a name twice in one object"
+  if !bounded j then throw s!"a number past {bound} either way"
+  return j
+
 /-- A run's JSON as its records, K-lines of `K`; a fault as a value, its place and message. -/
 def decodeOf (K : Type) [KLineOf K] [FromJson K] (text : String) : Except String (RunOf K) := do
-  if let some bad := literals text then
-    throw s!"{bad}: a number is a whole number, digits only, at most 16"
-  let j ← (Json.parse text).mapError (fun _ => "not JSON")
-  if !bounded j then throw s!"a number past {bound} either way"
+  let j ← parsed text
   strict "the run" parts j
   for p in parts do strictPart (fieldsOf (KLineOf.fields K)) j p
   let r : RunOf K ← fromJson? j
   r.check
   return r
+
+/-- An ongoing K-line's JSON as its record, a K-line of `K`; a fault as a value, its place and message. -/
+def decodeOngoingOf (K : Type) [KLineOf K] [FromJson K] (text : String) : Except String (OngoingOf K) := do
+  let j ← parsed text
+  strict "the ongoing K-line" (KLineOf.fields K ++ ["asOf"]) j
+  let o : OngoingOf K ← fromJson? j
+  o.check
+  return o
+
+/-- An ongoing K-line of the base contract as its record. -/
+def decodeOngoingKLine (text : String) : Except String OngoingKLine := decodeOngoingOf KLine text
+
+/-- Massive's ongoing K-line as its record. -/
+def decodeMassiveOngoingKLine (text : String) : Except String MassiveOngoingKLine := decodeOngoingOf MassiveKLine text
 
 /-- A run of the base contract's K-lines as its records. -/
 def decodeRun (text : String) : Except String Run := decodeOf KLine text
@@ -246,5 +311,8 @@ def encodeRun {K : Type} [ToJson K] (r : RunOf K) : String :=
     s!"\"segments\": {levels r.segments}",
     s!"\"moves\": {levels r.moves}",
     s!"\"consolidations\": {levels r.consolidations}"] ++ "\n}\n"
+
+/-- An ongoing K-line's canonical JSON, of one the contract allows: its record, and a line break. -/
+def encodeOngoingKLine {K : Type} [ToJson K] (o : OngoingOf K) : String := record o ++ "\n"
 
 end Chanlun

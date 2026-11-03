@@ -1,0 +1,47 @@
+{
+  "type": "record",
+  "name": "MassiveOngoingKLine",
+  "namespace": "qi.chanlun.v1",
+  "fields": [
+    {
+      "name": "index",
+      "type": "long"
+    },
+    {
+      "name": "date",
+      "type": "long"
+    },
+    {
+      "name": "open",
+      "type": "double"
+    },
+    {
+      "name": "high",
+      "type": "double"
+    },
+    {
+      "name": "low",
+      "type": "double"
+    },
+    {
+      "name": "close",
+      "type": "double"
+    },
+    {
+      "name": "volume",
+      "type": "double"
+    },
+    {
+      "name": "vw",
+      "type": "double"
+    },
+    {
+      "name": "n",
+      "type": "long"
+    },
+    {
+      "name": "asOf",
+      "type": "long"
+    }
+  ]
+}

@@ -21,23 +21,23 @@
             },
             {
               "name": "open",
-              "type": "long"
+              "type": "double"
             },
             {
               "name": "high",
-              "type": "long"
+              "type": "double"
             },
             {
               "name": "low",
-              "type": "long"
+              "type": "double"
             },
             {
               "name": "close",
-              "type": "long"
+              "type": "double"
             },
             {
               "name": "volume",
-              "type": "long"
+              "type": "double"
             }
           ]
         }
@@ -65,11 +65,11 @@
             },
             {
               "name": "high",
-              "type": "long"
+              "type": "double"
             },
             {
               "name": "low",
-              "type": "long"
+              "type": "double"
             },
             {
               "name": "start",
@@ -240,19 +240,19 @@
               },
               {
                 "name": "zg",
-                "type": "long"
+                "type": "double"
               },
               {
                 "name": "zd",
-                "type": "long"
+                "type": "double"
               },
               {
                 "name": "gg",
-                "type": "long"
+                "type": "double"
               },
               {
                 "name": "dd",
-                "type": "long"
+                "type": "double"
               }
             ]
           }

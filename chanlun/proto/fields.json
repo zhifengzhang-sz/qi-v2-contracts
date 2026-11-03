@@ -4,31 +4,61 @@
     "KLine": {
       "fields": {
         "index": 1,
-        "date": 2,
-        "open": 4,
-        "high": 5,
-        "low": 6,
-        "close": 7,
-        "volume": 8
+        "date": 14,
+        "open": 15,
+        "high": 16,
+        "low": 17,
+        "close": 18,
+        "volume": 19
       },
       "reserved": {
         "up": 3,
         "confirmRno": 9,
         "confirmDate": 10,
         "stored": 11
-      }
+      },
+      "reservedNumbers": [2, 4, 5, 6, 7, 8]
     },
     "MassiveKLine": {
       "fields": {
         "index": 1,
-        "date": 2,
-        "open": 4,
-        "high": 5,
-        "low": 6,
-        "close": 7,
-        "volume": 8,
-        "vw": 12,
+        "date": 14,
+        "open": 15,
+        "high": 16,
+        "low": 17,
+        "close": 18,
+        "volume": 19,
+        "vw": 20,
         "n": 13
+      },
+      "reserved": {},
+      "reservedNumbers": [2, 4, 5, 6, 7, 8, 12]
+    },
+    "OngoingKLine": {
+      "fields": {
+        "index": 1,
+        "date": 14,
+        "open": 15,
+        "high": 16,
+        "low": 17,
+        "close": 18,
+        "volume": 19,
+        "asOf": 21
+      },
+      "reserved": {}
+    },
+    "MassiveOngoingKLine": {
+      "fields": {
+        "index": 1,
+        "date": 14,
+        "open": 15,
+        "high": 16,
+        "low": 17,
+        "close": 18,
+        "volume": 19,
+        "vw": 20,
+        "n": 13,
+        "asOf": 21
       },
       "reserved": {}
     },
@@ -37,8 +67,8 @@
         "index": 12,
         "mIndex": 2,
         "up": 3,
-        "high": 4,
-        "low": 5,
+        "high": 13,
+        "low": 14,
         "start": 6,
         "confirmStart": 7,
         "end": 8,
@@ -48,7 +78,8 @@
       "reserved": {
         "rno": 1,
         "stored": 10
-      }
+      },
+      "reservedNumbers": [4, 5]
     },
     "Fractal": {
       "fields": {
@@ -108,10 +139,10 @@
     "Consolidation": {
       "fields": {
         "level": 1,
-        "zg": 8,
-        "zd": 9,
-        "gg": 10,
-        "dd": 13,
+        "zg": 33,
+        "zd": 34,
+        "gg": 35,
+        "dd": 36,
         "start": 28,
         "end": 29,
         "confirmEnd": 32
@@ -141,7 +172,8 @@
         "stored": 27,
         "ggBar": 30,
         "ddBar": 31
-      }
+      },
+      "reservedNumbers": [8, 9, 10, 13]
     },
     "Run": {
       "fields": {
