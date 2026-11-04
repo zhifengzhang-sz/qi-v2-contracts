@@ -16,8 +16,10 @@
 //
 // A K-line's date is its begin time, milliseconds since 1970, UTC. Every configuration after 包含 is on merged bars, by
 // their number (a merged bar's `mIndex`): a 分型 its merged bar, a line its start and end merged bars, a 中枢 its start
-// and end merged bars. A price and a quantity are decimals. Whether an implementation's values are right by the lessons
-// is not these contracts' to test: they say what a value is, not whether it is the lessons'.
+// and end merged bars. A price and a quantity are decimals. A configuration still going on, a merged bar still merging,
+// a line not yet ended, a 中枢 under construction, has no `confirmEnd`: one rule for the three, and in a run at most one
+// record of a part, or of a level, is going on, the last (codec.ts). Whether an implementation's values are right by the
+// lessons is not these contracts' to test: they say what a value is, not whether it is the lessons'.
 
 import { z } from "zod";
 
@@ -97,7 +99,8 @@ export const massiveOngoingKlineSchema = ongoingOf(massiveKlineBase);
 // 包含's merged bar, number `mIndex`: from `start` to `end`, its first and last K-lines, up or down, its high and low;
 // `extremes` the K-lines of its extreme, of its high when it goes up, of its low when it goes down, each from `start`
 // to `end`, in ascending order, none twice; `index` one of `extremes`: the K-line that represents the merged bar. The
-// contract does not say which one is chosen.
+// contract does not say which one is chosen. `confirmEnd` the K-line that confirmed its end, not set while it is still
+// merging.
 export const mergedBarSchema = z
   .object({
     index: position,
@@ -106,7 +109,6 @@ export const mergedBarSchema = z
     high: price,
     low: price,
     start: position,
-    confirmStart: position.optional(),
     end: position,
     confirmEnd: position.optional(),
     extremes: z.array(position).min(1).readonly(),
@@ -135,13 +137,14 @@ export const fractalSchema = z
   .strict()
   .readonly();
 
-// A line: from the merged bar `start` to the merged bar `end`, `confirmEnd` the merged bar at which it was confirmed.
-// A plain object, so that 线段 and 走势 derive from it by `.extend()`, with the line's rule.
+// A line: from the merged bar `start` to the merged bar `end`, `confirmEnd` the merged bar at which it was confirmed,
+// not set while it is still going on. A plain object, so that 线段 and 走势 derive from it by `.extend()`, with the
+// line's rule.
 const lineBase = z
   .object({
     start: bar,
     end: bar,
-    confirmEnd: bar,
+    confirmEnd: bar.optional(),
   })
   .strict();
 const lineRule = (l: { readonly start: number; readonly end: number }): boolean => l.start < l.end;

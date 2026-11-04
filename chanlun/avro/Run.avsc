@@ -76,14 +76,6 @@
               "type": "long"
             },
             {
-              "name": "confirmStart",
-              "type": [
-                "null",
-                "long"
-              ],
-              "default": null
-            },
-            {
               "name": "end",
               "type": "long"
             },
@@ -140,7 +132,11 @@
             },
             {
               "name": "confirmEnd",
-              "type": "long"
+              "type": [
+                "null",
+                "long"
+              ],
+              "default": null
             }
           ]
         }
@@ -166,7 +162,11 @@
               },
               {
                 "name": "confirmEnd",
-                "type": "long"
+                "type": [
+                  "null",
+                  "long"
+                ],
+                "default": null
               },
               {
                 "name": "level",
@@ -197,7 +197,11 @@
               },
               {
                 "name": "confirmEnd",
-                "type": "long"
+                "type": [
+                  "null",
+                  "long"
+                ],
+                "default": null
               },
               {
                 "name": "level",

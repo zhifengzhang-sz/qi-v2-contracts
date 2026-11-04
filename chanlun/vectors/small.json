@@ -8,9 +8,9 @@
 {"close":100.45,"date":1767623700000,"high":100.5,"index":5,"low":100.2,"open":100.35,"volume":1.005}
 ],
 "merged": [
-{"confirmEnd":2,"confirmStart":0,"end":1,"extremes":[1],"high":100.3,"index":1,"low":99.9,"mIndex":0,"start":0,"up":true},
-{"confirmEnd":4,"confirmStart":2,"end":3,"extremes":[3],"high":100.28,"index":3,"low":99.5,"mIndex":1,"start":2,"up":false},
-{"confirmStart":4,"end":5,"extremes":[5],"high":100.5,"index":5,"low":99.55,"mIndex":2,"start":4,"up":true}
+{"confirmEnd":2,"end":1,"extremes":[1],"high":100.3,"index":1,"low":99.9,"mIndex":0,"start":0,"up":true},
+{"confirmEnd":4,"end":3,"extremes":[3],"high":100.28,"index":3,"low":99.5,"mIndex":1,"start":2,"up":false},
+{"end":5,"extremes":[5],"high":100.5,"index":5,"low":99.55,"mIndex":2,"start":4,"up":true}
 ],
 "fractals": [
 {"mIndex":0},

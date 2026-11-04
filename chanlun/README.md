@@ -8,7 +8,7 @@ checked on every change (`make chanlun`).
 ## Taking it
 
 By the flake, pinned in the taker's `flake.lock` (`inputs.contracts.url =
-"github:zhifengzhang-sz/qi-v2-contracts?ref=chanlun-2.0.0";`):
+"github:zhifengzhang-sz/qi-v2-contracts?ref=chanlun-2.1.0";`):
 
 - `contracts.packages.${system}.chanlun-ts`: `node_modules/@qi/chanlun` and `zod`, as source; `import { decodeRun,
   klineSchema } from "@qi/chanlun"`.
@@ -19,7 +19,7 @@ By the flake, pinned in the taker's `flake.lock` (`inputs.contracts.url =
   formats, and says why there are two.
 
 Or by the language's own lock: Lake, `[[require]]` with `name = "chanlun"`, `git =
-"https://github.com/zhifengzhang-sz/qi-v2-contracts"`, `rev = "chanlun-2.0.0"`, `subDir = "chanlun/lean"`.
+"https://github.com/zhifengzhang-sz/qi-v2-contracts"`, `rev = "chanlun-2.1.0"`, `subDir = "chanlun/lean"`.
 
 ## Using it
 
@@ -42,6 +42,18 @@ A producer's output is mapped to the records by the producer or by its user, not
 
 ## Changes
 
+- **2.1.0**: a configuration still going on can be in a run, under one rule for the three records with `confirmEnd`: a
+  line's (笔, 线段, 走势) is optional, as the merged bar's and the 中枢's already were, and in `merged`, in `strokes` and in
+  each level of `segments`, `moves` and `consolidations` at most one record has none, the last. A run of confirmed
+  records alone still conforms. The merged bar's `confirmStart` is gone: it equalled `start` in every run, the first
+  K-line both beginning a merged bar and confirming its start. In Avro a line's `confirmEnd` is a union with `null`; in
+  Protobuf it is `optional`, its number 14 kept, and `confirm_start`'s 7 reserved. SPEC gains Reading the records (a
+  分型's kind and a line's direction, extent and prices from the merged bars), the identity of the 线段 of level L + 1
+  with the 走势 of level L, and notes on `index` and on a quantity's six digits. The vectors: `confirmStart` gone from
+  every merged bar; `run.json` holds again the 笔, 线段 and 走势 still going on at its end, which 2.0.0 left out; reject
+  cases for a record going on that is not the last, two going on, in each of the five parts, and a merged bar still
+  carrying `confirmStart`. Not backward-compatible both ways: 2.0.0 refuses a run that leaves out a line's
+  `confirmEnd`, and 2.1.0 refuses a run that still carries `confirmStart`.
 - **2.0.0**: the records reworked one at a time. The K-line has 7 fields, its `index`, its begin time and its prices
   and volume. A data source's K-line is derived from it, with a run that takes it: Massive's adds `vw` and `n`. The
   ongoing K-line, a bar still going on, is a record of its own, in no run, with `asOf`. The merged bar's number is

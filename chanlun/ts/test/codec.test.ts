@@ -48,7 +48,7 @@ describe("the vectors", () => {
     if (!r.ok) expect.fail(r.error);
     expect(encodeRun(r.run)).toBe(text(n));
   });
-  it("run.json holds every kind of record, 走势 of level 0, a 中枢 of level 1 and a 中枢 under construction among them", () => {
+  it("run.json holds every kind of record, 走势 of level 0, a 中枢 of level 1, a 中枢 under construction and a 笔, a 线段 and a 走势 still going on", () => {
     const r = decodeRun(text("run.json"));
     if (!r.ok) expect.fail(r.error);
     const { klines, merged, fractals, strokes, segments, moves, consolidations } = r.run;
@@ -56,6 +56,19 @@ describe("the vectors", () => {
     expect(moves[0]?.length).toBeGreaterThan(0);
     expect(consolidations[1]?.length).toBeGreaterThan(0);
     expect(consolidations.flat().some((c) => c.confirmEnd === undefined)).toBe(true);
+    // the one going on is the last of its part or level, and every other is confirmed
+    expect(strokes.at(-1)?.confirmEnd).toBeUndefined();
+    expect(segments[0]?.at(-1)?.confirmEnd).toBeUndefined();
+    expect(moves[0]?.at(-1)?.confirmEnd).toBeUndefined();
+    expect(strokes.slice(0, -1).every((s) => s.confirmEnd !== undefined)).toBe(true);
+  });
+  it("run.json's 线段 of level L + 1 are its 走势 of level L, record for record", () => {
+    const r = decodeRun(text("run.json"));
+    if (!r.ok) expect.fail(r.error);
+    const { segments, moves } = r.run;
+    moves.forEach((ms, l) => {
+      expect(segments[l + 1] ?? []).toEqual(ms.map((m) => ({ ...m, level: l + 1 })));
+    });
   });
   it.each(readdirSync(join(V, "reject")))("reject/%s is refused", (n) => {
     expect(fault(join("reject", n), decodeRun)).not.toBe("");

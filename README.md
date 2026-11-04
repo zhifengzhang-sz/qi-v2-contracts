@@ -5,7 +5,7 @@ its forms, its vectors, and its own version, tagged `<contract>-<version>`.
 
 | Contract | What it states | Forms | Version |
 |---|---|---|---|
-| [`chanlun/`](chanlun/README.md) | 缠论's records: the K-line, the merged bar, 分型, the lines, 中枢 | TypeScript (Zod), Lean; Avro and Protobuf, made from the TypeScript | 2.0.0 |
+| [`chanlun/`](chanlun/README.md) | 缠论's records: the K-line, the merged bar, 分型, the lines, 中枢 | TypeScript (Zod), Lean; Avro and Protobuf, made from the TypeScript | 2.1.0 |
 
 ## How a contract is written
 

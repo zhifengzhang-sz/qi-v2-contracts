@@ -17,7 +17,7 @@ open Lean (Json ToJson FromJson toJson fromJson?)
 /-- Each record's fields (../SPEC.md, The records), the K-line's those of the run's. -/
 def fieldsOf (klines : List String) : String → List String
   | "klines" => klines
-  | "merged" => ["index", "mIndex", "up", "high", "low", "start", "confirmStart", "end", "confirmEnd", "extremes"]
+  | "merged" => ["index", "mIndex", "up", "high", "low", "start", "end", "confirmEnd", "extremes"]
   | "fractals" => ["mIndex"]
   | "segments" | "moves" => ["start", "end", "confirmEnd", "level"]
   | "consolidations" => ["level", "start", "end", "confirmEnd", "zg", "zd", "gg", "dd"]
@@ -91,6 +91,13 @@ def startsRise (at_ name : String) (starts : Array Nat) : Except String Unit :=
     if i > 0 && starts[i - 1]! ≥ starts[i]! then
       .error s!"{at_}.{i}: a run's {name} strictly increasing by start"
 
+/-- At most one record of a part, or of a level, going on (its `confirmEnd` not set), and it the last. -/
+def ongoingLast (at_ name : String) (ends : Array (Option Nat)) : Except String Unit :=
+  ends.size.fold (init := .ok ()) fun i _ acc => do
+    acc
+    if i + 1 < ends.size && ends[i]!.isNone then
+      .error s!"{at_}.{i}: a run's {name} every one confirmed but the last"
+
 def Consolidation.rule (c : Consolidation) : Option String :=
   if !(c.start < c.end && c.dd ≤ c.zd && c.zd ≤ c.zg && c.zg ≤ c.gg) then
     some "a 中枢 from a merged bar to a later one, its band ZD to ZG within its range DD to GG"
@@ -118,7 +125,8 @@ def RunOf.check {K : Type} [KLineOf K] (r : RunOf K) : Except String Unit := do
     everyOf s!"consolidations.{l}" r.consolidations[l] Consolidation.rule
   -- the run's own rules: the K-lines and merged bars numbered by their place; the 分型 strictly increasing by `mIndex`;
   -- the 笔 and each level's 线段, 走势 and 中枢 strictly increasing by `start`; every position a K-line's, every bar a
-  -- merged bar's; each level's 线段, 走势 and 中枢 of that level
+  -- merged bar's; each level's 线段, 走势 and 中枢 of that level; in `merged`, in `strokes` and in each level of `segments`,
+  -- `moves` and `consolidations` at most one record going on, the last
   r.fractals.size.fold (init := .ok ()) fun i _ acc => do
     acc
     if i > 0 && r.fractals[i - 1]!.mIndex ≥ r.fractals[i]!.mIndex then
@@ -133,6 +141,17 @@ def RunOf.check {K : Type} [KLineOf K] (r : RunOf K) : Except String Unit := do
   r.consolidations.size.fold (init := .ok ()) fun l _ acc => do
     acc
     startsRise s!"consolidations.{l}" "中枢" (r.consolidations[l].map (·.start))
+  ongoingLast "merged" "merged bars" (r.merged.map (·.confirmEnd))
+  ongoingLast "strokes" "笔" (r.strokes.map (·.confirmEnd))
+  r.segments.size.fold (init := .ok ()) fun l _ acc => do
+    acc
+    ongoingLast s!"segments.{l}" "线段" (r.segments[l].map (·.confirmEnd))
+  r.moves.size.fold (init := .ok ()) fun l _ acc => do
+    acc
+    ongoingLast s!"moves.{l}" "走势" (r.moves[l].map (·.confirmEnd))
+  r.consolidations.size.fold (init := .ok ()) fun l _ acc => do
+    acc
+    ongoingLast s!"consolidations.{l}" "中枢" (r.consolidations[l].map (·.confirmEnd))
   everyOf "klines" (klines.mapIdx (·, ·)) fun (i, k) =>
     if k.index = i then none else some "a K-line's index its place in the run"
   everyOf "merged" (r.merged.mapIdx (·, ·)) fun (i, m) =>
@@ -143,9 +162,9 @@ def RunOf.check {K : Type} [KLineOf K] (r : RunOf K) : Except String Unit := do
     if ps.any (fun p => p.any (· ≥ n)) then some "a position past the run's K-lines"
     else if bs.any (fun x => x.any (· ≥ b)) then some "a merged bar past the run's merged bars"
     else none
-  let lineIn (l : Line) := inRun [] [l.start, l.end, l.confirmEnd]
+  let lineIn (l : Line) := inRun [] [some l.start, some l.end, l.confirmEnd]
   everyOf "merged" r.merged fun m =>
-    inRun (([m.index, m.start, m.confirmStart, m.end, m.confirmEnd] : List (Option Nat)) ++ m.extremes.toList.map some)
+    inRun (([m.index, m.start, m.end, m.confirmEnd] : List (Option Nat)) ++ m.extremes.toList.map some)
       [m.mIndex]
   everyOf "fractals" r.fractals fun f => inRun [] [f.mIndex]
   everyOf "strokes" r.strokes lineIn

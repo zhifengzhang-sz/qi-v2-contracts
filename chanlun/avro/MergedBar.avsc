@@ -28,14 +28,6 @@
       "type": "long"
     },
     {
-      "name": "confirmStart",
-      "type": [
-        "null",
-        "long"
-      ],
-      "default": null
-    },
-    {
       "name": "end",
       "type": "long"
     },

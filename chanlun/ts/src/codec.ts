@@ -33,9 +33,10 @@ import {
 // 0 its 线段 (segments), 走势 (moves) and 中枢 (consolidations).
 // The run's own rules (SPEC.md, The run): the K-lines and merged bars numbered by their place; the 分型 strictly
 // increasing by `mIndex`; the 笔 and each level's 线段, 走势 and 中枢 strictly increasing by `start`; every position a
-// K-line's, every bar a merged bar's; each level's 线段, 走势 and 中枢 of that level.
+// K-line's, every bar a merged bar's; each level's 线段, 走势 and 中枢 of that level; in `merged`, in `strokes` and in each
+// level of `segments`, `moves` and `consolidations` at most one record going on (its `confirmEnd` not set), the last.
 const positionsOf = (r: object): readonly number[] =>
-  ["index", "start", "end", "confirmStart", "confirmEnd", "extremes"].flatMap((k) => {
+  ["index", "start", "end", "confirmEnd", "extremes"].flatMap((k) => {
     const v = (r as { readonly [k: string]: unknown })[k];
     return typeof v === "number" ? [v] : Array.isArray(v) ? (v as readonly number[]) : [];
   });
@@ -87,18 +88,32 @@ const runOf = <K extends { readonly index: number }>(klines: z.ZodType<readonly 
             issue([...path, i, "start"], `a run's ${name} strictly increasing by start`);
         });
       };
+      // at most one record of a part, or of a level, going on (its `confirmEnd` not set), and it the last
+      const ongoingLast = (
+        path: readonly (string | number)[],
+        name: string,
+        rs: readonly { readonly confirmEnd?: number | undefined }[],
+      ) => {
+        rs.forEach((r, i) => {
+          if (r.confirmEnd === undefined && i < rs.length - 1)
+            issue([...path, i], `a run's ${name} every one confirmed but the last`);
+        });
+      };
       // A line's `start`, `end` and `confirmEnd` are merged bars, a merged bar's of the same names K-lines
       const linesIn = (path: readonly (string | number)[], ls: readonly Line[]) => {
         ls.forEach((l, i) => {
-          if ([l.start, l.end, l.confirmEnd].some((b) => b >= run.merged.length))
+          if ([l.start, l.end, l.confirmEnd].some((b) => b !== undefined && b >= run.merged.length))
             issue([...path, i], "a merged bar past the run's merged bars");
         });
       };
+      ongoingLast(["merged"], "merged bars", run.merged);
       linesIn(["strokes"], run.strokes);
       rising(["strokes"], "笔", run.strokes);
+      ongoingLast(["strokes"], "笔", run.strokes);
       run.segments.forEach((l, i) => {
         linesIn(["segments", i], l);
         rising(["segments", i], "线段", l);
+        ongoingLast(["segments", i], "线段", l);
         l.forEach((s, k) => {
           if (s.level !== i) issue(["segments", i, k, "level"], `a 线段 here of level ${i}`);
         });
@@ -106,6 +121,7 @@ const runOf = <K extends { readonly index: number }>(klines: z.ZodType<readonly 
       run.moves.forEach((l, i) => {
         linesIn(["moves", i], l);
         rising(["moves", i], "走势", l);
+        ongoingLast(["moves", i], "走势", l);
         l.forEach((m, k) => {
           if (m.level !== i) issue(["moves", i, k, "level"], `a 走势 here of level ${i}`);
         });
@@ -118,6 +134,7 @@ const runOf = <K extends { readonly index: number }>(klines: z.ZodType<readonly 
       // A 中枢's `start`, `end` and `confirmEnd` are merged bars, a merged bar's of the same names K-lines
       run.consolidations.forEach((cs, l) => {
         rising(["consolidations", l], "中枢", cs);
+        ongoingLast(["consolidations", l], "中枢", cs);
         cs.forEach((c, i) => {
           if ([c.start, c.end, c.confirmEnd].some((b) => b !== undefined && b >= run.merged.length))
             issue(["consolidations", l, i], "a merged bar past the run's merged bars");

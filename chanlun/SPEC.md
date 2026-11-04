@@ -1,6 +1,6 @@
 # 缠论's contract: the algorithm's records
 
-Version 2.0.0. The records the algorithm of 缠论 gives over a run of bars, of whatever implementation gives them, and
+Version 2.1.0. The records the algorithm of 缠论 gives over a run of bars, of whatever implementation gives them, and
 how they cross from one project to another as JSON. It is written in TypeScript (`ts/`, Zod schemas); Lean (`lean/`,
 structures with a JSON codec) is a second form of it; its Avro schemas (`avro/`) and Protobuf description
 (`proto/chanlun.proto`) are made from the TypeScript, for every other language and for a schema registry. The vectors (`vectors/`) are what every form must read alike.
@@ -28,7 +28,7 @@ Whether an implementation's values are right by the lessons is not the contract'
 | Kind | What it is |
 |---|---|
 | time | milliseconds since 1970-01-01 00:00:00 UTC, a whole number, not negative |
-| position | the position of a K-line in the run, from 0: a K-line's `index` and a merged bar's `index`, `start`, `end`, `confirmStart`, `confirmEnd` and each of its `extremes` |
+| position | the position of a K-line in the run, from 0: a K-line's `index` and a merged bar's `index`, `start`, `end`, `confirmEnd` and each of its `extremes` |
 | bar | the number of a merged bar (its `mIndex`, a 分型's `mIndex`, a line's `start`, `end` and `confirmEnd`, a consolidation's `start`, `end` and `confirmEnd`), from 0 |
 | price | a decimal: at most 6 digits after the point, and at most 15 digits from the first that is not 0 |
 | quantity | a decimal as a price is, not negative |
@@ -37,7 +37,13 @@ Whether an implementation's values are right by the lessons is not the contract'
 A time, a position, a bar and a count are whole numbers from 0 to 2⁵³ − 1, which every JSON reader holds
 exactly; a price and a quantity are decimals as above, which every JSON reader gives back as the same digits.
 
-A field that may be not set (marked ?) is left out when it is not set; it is never `null`. Every position is a
+The six digits after the point bound a quantity as they bound a price. Some venues give a volume with more digits;
+such a volume is refused, and the producer must bring it within the bound before it crosses.
+
+A field that may be not set (marked ?) is left out when it is not set; it is never `null`. The three records with
+`confirmEnd`, the merged bar, the line and the 中枢, leave it out under one rule: a configuration still going on, a merged
+bar still merging, a line not yet ended, a 中枢 under construction, has none; in a run at most one record of a part, or
+of a level, is going on, the last (The run). Every position is a
 K-line's of the run, and every bar a merged bar's (The run), so the time of any position is the time of the K-line at
 it (`timeAt` in TypeScript, `RunOf.timeAt` in Lean): no other time is kept.
 
@@ -100,11 +106,16 @@ of The JSON, and its canonical text is its record, as there, then a line break. 
 | `up` | boolean | its direction |
 | `high`, `low` | price | its high and low |
 | `start`, `end` | position | its first and last K-lines |
-| `confirmStart`?, `confirmEnd`? | position | the K-lines that confirmed its start and its end |
+| `confirmEnd`? | position | the K-line that confirmed its end. Not set while it is still merging |
 | `extremes` | array of position | the K-lines of its extreme, at least one: of its high when it goes up, of its low when it goes down |
 
 Rule: `start ≤ end`, `low ≤ high`, `extremes` holds at least one K-line, every entry of `extremes` is from `start` to
 `end`, in ascending order, with none twice, and `index` is in `extremes`.
+
+`index ∈ extremes` is all the contract fixes of `index`: which of `extremes` it is is the implementation's choice, and
+may be one of its parameters. The contract says what a value is, not how it is filled, so it does not say which one is
+chosen. A merged bar has no `confirmStart`: its first K-line both begins it and confirms its start, so that K-line is
+`start`; its end alone is confirmed later, by `confirmEnd`.
 
 ### Fractal (分型)
 
@@ -119,7 +130,7 @@ Rule: `start ≤ end`, `low ≤ high`, `extremes` holds at least one K-line, eve
 | Field | Kind | Meaning |
 |---|---|---|
 | `start`, `end` | bar | its start and end merged bars |
-| `confirmEnd` | bar | the merged bar at which it was confirmed |
+| `confirmEnd`? | bar | the merged bar at which it was confirmed. Not set while it is still going on |
 
 Rule: `start < end`.
 
@@ -135,7 +146,9 @@ and rule, and:
 A 走势 is a line of level L: `moveSchema` and `Move` in TypeScript, `Move` in Lean, with the same fields and rule as a
 线段.
 
-A run holds every level.
+A run holds every level. The 线段 of level L + 1 are the 走势 of level L, record for record: `segments[L + 1]` holds the
+records of `moves[L]`, each with `level` L + 1, and a level a run does not hold is empty. The contract states the
+identity and does not check it; a decoder may.
 
 ### Consolidation (中枢)
 
@@ -164,10 +177,28 @@ Rule: `start < end` and `dd ≤ zd ≤ zg ≤ gg`.
 | `consolidations` | its 中枢, by level: the array at L the 中枢 of level L, from 0, every record's `level` L, each level strictly increasing by `start` |
 
 Rules, every one checked: what the table says of each part; every position of every record below the number of
-K-lines; every bar (a merged bar's and a 分型's `mIndex`, a line's `start`, `end` and `confirmEnd`, a consolidation's `start`, `end` and `confirmEnd`) below the number of merged bars.
+K-lines; every bar (a merged bar's and a 分型's `mIndex`, a line's `start`, `end` and `confirmEnd`, a consolidation's `start`, `end` and `confirmEnd`) below the number of merged bars; in `merged`, in `strokes` and in each level of `segments`, `moves` and
+`consolidations`, at most one record with no `confirmEnd`, and if one, the last: the configuration still going on. A run
+of confirmed records alone conforms; the one going on is allowed, not required.
 
 Massive's run is a run whose `klines` are Massive's K-lines, under the same rules: `massiveRunSchema` and
 `decodeMassiveRun` in TypeScript, `MassiveRun` and `decodeMassiveRun` in Lean.
+
+## Reading the records
+
+A 分型 carries only `mIndex`, and a line only `start`, `end` and `confirmEnd`. Their kind, direction, extent and prices
+are not fields: they are read from the merged bars, so that a consumer, a chart among them, needs the records and not the
+algorithm. From the records alone:
+
+- A merged bar's extreme is its `high` when `up` is true and its `low` when `up` is false: the price its `extremes` are
+  the K-lines of.
+- A 分型 at `mIndex` m is a top where merged bar m goes up and merged bar m + 1 goes down, and a bottom where merged bar
+  m goes down and merged bar m + 1 goes up. Its price is merged bar m's extreme, at the K-line merged bar m's `index`.
+- A line from the merged bar `start` to the merged bar `end` goes up when `end`'s extreme is above `start`'s, and down
+  when it is below. Its high and low are the extremes of its two ends, the greater its high and the lesser its low, taken
+  from those merged bars' `high`, `low` and `up`; it runs from the K-line merged bar `start`'s `index` to the K-line
+  merged bar `end`'s `index`, whose times are its times (`timeAt`).
+- A record with no `confirmEnd` is the one still going on: its `end` is where it stands at the run's last K-line.
 
 ## The JSON
 

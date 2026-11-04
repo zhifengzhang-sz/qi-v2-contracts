@@ -45,7 +45,7 @@
         in {
           # 缠论's contract for TypeScript (chanlun/README.md, how to take it): a node_modules of @qi/chanlun, as
           # source, and zod, its one dependency (npm's, pinned by hash); no tests.
-          chanlun-ts = pkgs.runCommand "chanlun-ts-2.0.0" { } ''
+          chanlun-ts = pkgs.runCommand "chanlun-ts-2.1.0" { } ''
             m=$out/node_modules
             mkdir -p $m/@qi/chanlun $m/zod
             cp -r ${./chanlun/ts/src} $m/@qi/chanlun/src
@@ -55,7 +55,7 @@
             cp ${./chanlun/README.md} $out/README.md
           '';
           # 缠论's contract for Lean (chanlun/README.md): the Lake package `chanlun` as source, for a taker's Lake.
-          chanlun-lean = pkgs.runCommand "chanlun-lean-2.0.0" { } ''
+          chanlun-lean = pkgs.runCommand "chanlun-lean-2.1.0" { } ''
             mkdir -p $out
             cp -r ${./chanlun/lean}/Chanlun $out/Chanlun
             cp ${./chanlun/lean}/Chanlun.lean ${./chanlun/lean}/Main.lean ${./chanlun/lean}/lakefile.toml ${./chanlun/lean}/lean-toolchain $out/
@@ -64,7 +64,7 @@
           '';
           # 缠论's contract as Avro (chanlun/SPEC.md, The Avro schemas): one .avsc file for each record, for a taker's
           # Avro library or a schema registry
-          chanlun-avro = pkgs.runCommand "chanlun-avro-2.0.0" { } ''
+          chanlun-avro = pkgs.runCommand "chanlun-avro-2.1.0" { } ''
             mkdir -p $out
             cp ${./chanlun/avro}/*.avsc $out/
             cp ${./chanlun/SPEC.md} $out/SPEC.md
@@ -72,7 +72,7 @@
           '';
           # 缠论's contract as Protobuf (chanlun/SPEC.md, The Protobuf description): chanlun.proto, the records' fields
           # and types, for a taker's protoc
-          chanlun-proto = pkgs.runCommand "chanlun-proto-2.0.0" { } ''
+          chanlun-proto = pkgs.runCommand "chanlun-proto-2.1.0" { } ''
             mkdir -p $out
             cp ${./chanlun/proto/chanlun.proto} $out/chanlun.proto
             cp ${./chanlun/SPEC.md} $out/SPEC.md

@@ -70,13 +70,13 @@
         "high": 13,
         "low": 14,
         "start": 6,
-        "confirmStart": 7,
         "end": 8,
         "confirmEnd": 9,
         "extremes": 11
       },
       "reserved": {
         "rno": 1,
+        "confirmStart": 7,
         "stored": 10
       },
       "reservedNumbers": [4, 5]
