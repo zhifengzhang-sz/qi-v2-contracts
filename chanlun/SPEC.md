@@ -1,6 +1,6 @@
 # 缠论's contract: the algorithm's records
 
-Version 2.1.0. The records the algorithm of 缠论 gives over a run of bars, of whatever implementation gives them, and
+Version 2.1.1. The records the algorithm of 缠论 gives over a run of bars, of whatever implementation gives them, and
 how they cross from one project to another as JSON. It is written in TypeScript (`ts/`, Zod schemas); Lean (`lean/`,
 structures with a JSON codec) is a second form of it; its Avro schemas (`avro/`) and Protobuf description
 (`proto/chanlun.proto`) are made from the TypeScript, for every other language and for a schema registry. The vectors (`vectors/`) are what every form must read alike.
@@ -146,9 +146,7 @@ and rule, and:
 A 走势 is a line of level L: `moveSchema` and `Move` in TypeScript, `Move` in Lean, with the same fields and rule as a
 线段.
 
-A run holds every level. The 线段 of level L + 1 are the 走势 of level L, record for record: `segments[L + 1]` holds the
-records of `moves[L]`, each with `level` L + 1, and a level a run does not hold is empty. The contract states the
-identity and does not check it; a decoder may.
+A run holds every level, and a level a run does not hold is empty.
 
 ### Consolidation (中枢)
 

@@ -8,7 +8,7 @@ checked on every change (`make chanlun`).
 ## Taking it
 
 By the flake, pinned in the taker's `flake.lock` (`inputs.contracts.url =
-"github:zhifengzhang-sz/qi-v2-contracts?ref=chanlun-2.1.0";`):
+"github:zhifengzhang-sz/qi-v2-contracts?ref=chanlun-2.1.1";`):
 
 - `contracts.packages.${system}.chanlun-ts`: `node_modules/@qi/chanlun` and `zod`, as source; `import { decodeRun,
   klineSchema } from "@qi/chanlun"`.
@@ -19,7 +19,7 @@ By the flake, pinned in the taker's `flake.lock` (`inputs.contracts.url =
   formats, and says why there are two.
 
 Or by the language's own lock: Lake, `[[require]]` with `name = "chanlun"`, `git =
-"https://github.com/zhifengzhang-sz/qi-v2-contracts"`, `rev = "chanlun-2.1.0"`, `subDir = "chanlun/lean"`.
+"https://github.com/zhifengzhang-sz/qi-v2-contracts"`, `rev = "chanlun-2.1.1"`, `subDir = "chanlun/lean"`.
 
 ## Using it
 
@@ -42,6 +42,11 @@ A producer's output is mapped to the records by the producer or by its user, not
 
 ## Changes
 
+- **2.1.1**: the identity of the 线段 of level L + 1 with the 走势 of level L is no longer stated: it said how the
+  level above is made, not a rule of the records, and in 2.1.0 it asked that a 走势 still going on be copied into the
+  level above. A run need not copy it: the run's rule allows, in each level, one record going on, the last, and does
+  not require it. `run.json`'s `segments[1]` no longer holds one: its last record, going on, is gone. No record, field
+  or schema changes, so every run 2.1.0 reads 2.1.1 reads, and the other way.
 - **2.1.0**: a configuration still going on can be in a run, under one rule for the three records with `confirmEnd`: a
   line's (笔, 线段, 走势) is optional, as the merged bar's and the 中枢's already were, and in `merged`, in `strokes` and in
   each level of `segments`, `moves` and `consolidations` at most one record has none, the last. A run of confirmed

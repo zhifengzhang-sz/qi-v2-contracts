@@ -62,14 +62,6 @@ describe("the vectors", () => {
     expect(moves[0]?.at(-1)?.confirmEnd).toBeUndefined();
     expect(strokes.slice(0, -1).every((s) => s.confirmEnd !== undefined)).toBe(true);
   });
-  it("run.json's 线段 of level L + 1 are its 走势 of level L, record for record", () => {
-    const r = decodeRun(text("run.json"));
-    if (!r.ok) expect.fail(r.error);
-    const { segments, moves } = r.run;
-    moves.forEach((ms, l) => {
-      expect(segments[l + 1] ?? []).toEqual(ms.map((m) => ({ ...m, level: l + 1 })));
-    });
-  });
   it.each(readdirSync(join(V, "reject")))("reject/%s is refused", (n) => {
     expect(fault(join("reject", n), decodeRun)).not.toBe("");
   });
