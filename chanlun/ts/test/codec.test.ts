@@ -1,6 +1,6 @@
 // The contract's vectors (../../vectors/), each read as bin/decode.ts reads it: the runs decoded and encoded again to
-// the same text, every reject case refused; the conformance check (make check) compares the Lean form's text with the
-// same files.
+// the same text, every reject case refused; the conformance check (make check) compares the Lean and Go forms' text with
+// the same files.
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";

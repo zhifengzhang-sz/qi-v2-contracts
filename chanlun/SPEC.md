@@ -1,9 +1,12 @@
 # 缠论's contract: the algorithm's records
 
-Version 2.1.1. The records the algorithm of 缠论 gives over a run of bars, of whatever implementation gives them, and
+Version 2.2.0. The records the algorithm of 缠论 gives over a run of bars, of whatever implementation gives them, and
 how they cross from one project to another as JSON. It is written in TypeScript (`ts/`, Zod schemas); Lean (`lean/`,
-structures with a JSON codec) is a second form of it; its Avro schemas (`avro/`) and Protobuf description
-(`proto/chanlun.proto`) are made from the TypeScript, for every other language and for a schema registry. The vectors (`vectors/`) are what every form must read alike.
+structures with a JSON codec) is a second form of it, and Go (`go/`, one module of the standard library only, its types
+made from the Zod schemas, its rules and its JSON written by hand) a third, whose types and functions have the
+TypeScript's names, capitalized (`KLine`, `DecodeRun`, `EncodeRun`, `Run.TimeAt`); its Avro schemas (`avro/`) and
+Protobuf description (`proto/chanlun.proto`) are made from the TypeScript, for every other language and for a schema
+registry. The vectors (`vectors/`) are what every form must read alike.
 
 The algorithm is a chain, and so are its records: each step's output is the next step's input.
 
@@ -202,13 +205,13 @@ algorithm. From the records alone:
 
 A run crosses as one JSON object, its seven parts its names, each record an object of its fields. A number is written
 in digits: an optional `-`, then `0` or a digit not `0` and more digits, then, for a price or a quantity,
-optionally `.` and digits, the last not `0`; no exponent, so that both forms read the same number from the same text.
+optionally `.` and digits, the last not `0`; no exponent, so that every form reads the same number from the same text.
 Decoding refuses anything the records do not allow: a number written otherwise or past the bound, a name that is no
 field or part, a name twice in one object, text not UTF-8, a field missing that is not optional, `null`, a value of
 another kind (a negative number where a time, a position, a bar, a count or a quantity is, a fraction where a time, a
 position, a bar or a count is, a number where a boolean is), and a broken rule.
 
-The canonical text, which both forms write and the conformance check compares:
+The canonical text, which every form writes and the conformance check compares:
 
 - `{` and a line break, then the parts in the order of the table above, each `"part": ` followed by its value,
   separated by `,` and a line break, then a line break, `}` and a line break;

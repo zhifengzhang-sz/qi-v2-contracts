@@ -5,8 +5,8 @@ import Chanlun.Contract
 
 How records cross from one project to another (../SPEC.md, The JSON), the same as the TypeScript form's `codec.ts`.
 Decoding takes a run's JSON: every object only the fields of its record (a field not there that may be not set is
-`none`), each field of its kind, then every record's rules (`RunOf.check`). Encoding writes the canonical text both forms
-write, so that the conformance check compares them as texts: the run's parts in their order, a record a line, its
+`none`), each field of its kind, then every record's rules (`RunOf.check`). Encoding writes the canonical text every form
+writes, so that the conformance check compares them as texts: the run's parts in their order, a record a line, its
 fields in the order of their names, a field not set left out.
 -/
 

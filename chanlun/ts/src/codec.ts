@@ -1,5 +1,5 @@
 // A run's records as JSON (../SPEC.md, The JSON): how records cross from one project to another. Decoding is the run's
-// schema over the parsed text, every record's rules with it; encoding is the canonical text both forms write, so that
+// schema over the parsed text, every record's rules with it; encoding is the canonical text every form writes, so that
 // the conformance check compares them as texts: the run's parts in their order, a record a line, its fields in the
 // order of their names, a field not set left out.
 

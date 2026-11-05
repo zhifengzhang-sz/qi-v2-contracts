@@ -1,0 +1,657 @@
+{
+  "about": [
+    "The rules of ../SPEC.md, each with the reject vectors that break it, checked by ../ts/test/rules.test.ts (make check).",
+    "A passage is where SPEC.md states rules: each row and paragraph of Units, The records (before its first record) and",
+    "The run, each Rule: paragraph of a record, and The JSON's first paragraph; its name is its heading and the row's",
+    "first cell, `paragraph N`, or `Rule`. Each passage's text is the rules listed for it and the text that states no",
+    "rule (`no rule`: a meaning, what is allowed, a rule's scope or reason), and nothing else but `,;:.()` and `and`:",
+    "a rule added to SPEC.md and not listed here fails the check. Every rule has a vector, every reject vector is named",
+    "by a rule, and the TypeScript form refuses each vector of a rule with one of the rule's `refused`."
+  ],
+  "passages": {
+    "Units, time": {
+      "rules": [
+        {
+          "rule": "a whole number",
+          "refused": ["expected int, received number"],
+          "vectors": ["reject/number-with-fraction.json"]
+        },
+        {
+          "rule": "not negative",
+          "refused": ["Too small: expected number to be >=0"],
+          "vectors": ["reject/kline-time-negative.json"]
+        }
+      ],
+      "no rule": ["milliseconds since 1970-01-01 00:00:00 UTC"]
+    },
+    "Units, position": {
+      "rules": [
+        {
+          "rule": "from 0",
+          "refused": ["Too small: expected number to be >=0"],
+          "vectors": [
+            "reject/position-negative.json",
+            "reject/kline-index-negative.json",
+            "reject/merged-index-negative.json",
+            "reject/merged-extremes-negative.json"
+          ]
+        }
+      ],
+      "no rule": [
+        "the position of a K-line in the run",
+        "a K-line's `index` and a merged bar's `index`, `start`, `end`, `confirmEnd` and each of its `extremes`"
+      ]
+    },
+    "Units, bar": {
+      "rules": [
+        {
+          "rule": "from 0",
+          "refused": ["Too small: expected number to be >=0"],
+          "vectors": [
+            "reject/fractal-index-negative.json",
+            "reject/consolidation-start-negative.json",
+            "reject/consolidation-confirm-end-negative.json"
+          ]
+        }
+      ],
+      "no rule": [
+        "the number of a merged bar (its `mIndex`, a 分型's `mIndex`, a line's `start`, `end` and `confirmEnd`, a consolidation's `start`, `end` and `confirmEnd`)"
+      ]
+    },
+    "Units, price": {
+      "rules": [
+        {
+          "rule": "at most 6 digits after the point",
+          "refused": ["a number in digits"],
+          "vectors": ["reject/price-with-7-digits-after-the-point.json"]
+        },
+        {
+          "rule": "at most 15 digits from the first that is not 0",
+          "refused": ["a price a decimal of at most 6 digits after the point and 15 from the first that is not 0"],
+          "vectors": ["reject/price-of-16-digits.json"]
+        }
+      ],
+      "no rule": ["a decimal"]
+    },
+    "Units, quantity": {
+      "rules": [
+        {
+          "rule": "a decimal as a price is",
+          "refused": ["a number in digits", "a quantity a decimal of at most 6 digits after the point and 15 from the first that is not 0"],
+          "vectors": ["reject/quantity-with-7-digits-after-the-point.json", "reject/quantity-of-16-digits.json"]
+        },
+        {
+          "rule": "not negative",
+          "refused": ["Too small: expected number to be >=0"],
+          "vectors": ["reject/kline-volume-negative.json"]
+        }
+      ],
+      "no rule": []
+    },
+    "Units, count": {
+      "rules": [
+        {
+          "rule": "a whole number",
+          "refused": ["expected int, received number"],
+          "vectors": ["massive/reject/n-with-a-fraction.json"]
+        },
+        {
+          "rule": "not negative",
+          "refused": ["Too small: expected number to be >=0"],
+          "vectors": ["massive/reject/n-negative.json", "reject/consolidation-level-negative.json"]
+        }
+      ],
+      "no rule": []
+    },
+    "Units, paragraph 1": {
+      "rules": [
+        {
+          "rule": "A time, a position, a bar and a count are whole numbers from 0 to 2⁵³ − 1",
+          "refused": ["Too big: expected int", "a number in digits"],
+          "vectors": ["reject/number-past-2-53.json", "reject/number-of-17-digits.json"]
+        }
+      ],
+      "no rule": [
+        "which every JSON reader holds exactly",
+        "a price and a quantity are decimals as above, which every JSON reader gives back as the same digits"
+      ]
+    },
+    "Units, paragraph 2": {
+      "rules": [
+        {
+          "rule": "The six digits after the point bound a quantity as they bound a price",
+          "refused": ["a number in digits"],
+          "vectors": ["reject/quantity-with-7-digits-after-the-point.json"]
+        },
+        {
+          "rule": "such a volume is refused",
+          "refused": ["a number in digits"],
+          "vectors": ["reject/quantity-with-7-digits-after-the-point.json"]
+        }
+      ],
+      "no rule": [
+        "Some venues give a volume with more digits",
+        "and the producer must bring it within the bound before it crosses"
+      ]
+    },
+    "Units, paragraph 3": {
+      "rules": [
+        {
+          "rule": "it is never `null`",
+          "refused": ["received null"],
+          "vectors": ["reject/merged-null-for-unset.json", "reject/consolidation-null-for-unset.json"]
+        },
+        {
+          "rule": "in a run at most one record of a part, or of a level, is going on, the last",
+          "refused": ["every one confirmed but the last"],
+          "vectors": [
+            "reject/merged-ongoing-twice.json",
+            "reject/merged-ongoing-not-last.json",
+            "reject/strokes-ongoing-twice.json",
+            "reject/strokes-ongoing-not-last.json",
+            "reject/segments-ongoing-twice.json",
+            "reject/segments-ongoing-not-last.json",
+            "reject/moves-ongoing-twice.json",
+            "reject/moves-ongoing-not-last.json",
+            "reject/consolidations-ongoing-twice.json",
+            "reject/consolidations-ongoing-not-last.json"
+          ]
+        },
+        {
+          "rule": "Every position is a K-line's of the run",
+          "refused": ["a position past the run's K-lines"],
+          "vectors": ["reject/merged-end-past-klines.json", "reject/merged-confirm-end-past-klines.json"]
+        },
+        {
+          "rule": "every bar a merged bar's",
+          "refused": ["a merged bar past the run's merged bars"],
+          "vectors": [
+            "reject/bar-past-merged.json",
+            "reject/fractal-index-past-merged.json",
+            "reject/consolidation-end-past-merged.json"
+          ]
+        }
+      ],
+      "no rule": [
+        "A field that may be not set (marked ?) is left out when it is not set",
+        "The three records with `confirmEnd`, the merged bar, the line and the 中枢, leave it out under one rule: a configuration still going on, a merged bar still merging, a line not yet ended, a 中枢 under construction, has none",
+        "(The run)",
+        "(The run)",
+        "so the time of any position is the time of the K-line at it (`timeAt` in TypeScript, `RunOf.timeAt` in Lean): no other time is kept"
+      ]
+    },
+    "The records, paragraph 1": {
+      "rules": [
+        {
+          "rule": "none other",
+          "refused": ["Unrecognized key"],
+          "vectors": [
+            "reject/kline-unknown-field.json",
+            "reject/klines-of-massive.json",
+            "reject/merged-unknown-field.json",
+            "reject/merged-confirm-start.json",
+            "reject/fractal-unknown-field.json",
+            "reject/stroke-unknown-field.json",
+            "reject/segment-unknown-field.json",
+            "reject/move-unknown-field.json",
+            "reject/consolidation-unknown-field.json",
+            "massive/reject/kline-unknown-field.json"
+          ]
+        },
+        {
+          "rule": "none missing but an optional one",
+          "refused": ["received undefined"],
+          "vectors": [
+            "reject/kline-field-missing.json",
+            "reject/merged-extremes-missing.json",
+            "reject/fractal-index-missing.json",
+            "reject/segment-level-missing.json",
+            "reject/move-level-missing.json",
+            "reject/consolidation-level-missing.json",
+            "reject/consolidation-start-missing.json",
+            "reject/consolidation-end-missing.json",
+            "reject/consolidation-zg-missing.json",
+            "reject/consolidation-zd-missing.json",
+            "reject/consolidation-gg-missing.json",
+            "reject/consolidation-dd-missing.json",
+            "massive/reject/vw-missing.json",
+            "massive/reject/n-missing.json",
+            "massive/reject/klines-of-the-base.json",
+            "ongoing/reject/as-of-missing.json"
+          ]
+        }
+      ],
+      "no rule": ["Each record has exactly its fields", "(marked ?)"]
+    },
+    "K-line, Rule": {
+      "rules": [
+        {
+          "rule": "`low ≤ min(open, close)`",
+          "refused": ["a K-line's open and close within its low and high"],
+          "vectors": ["reject/kline-open-below-low.json", "reject/kline-close-below-low.json"]
+        },
+        {
+          "rule": "`max(open, close) ≤ high`",
+          "refused": ["a K-line's open and close within its low and high"],
+          "vectors": [
+            "reject/kline-open-above-high.json",
+            "reject/kline-close-above-high.json",
+            "massive/reject/kline-close-above-high.json"
+          ]
+        }
+      ],
+      "no rule": []
+    },
+    "The ongoing K-line, Rule": {
+      "rules": [
+        {
+          "rule": "`date ≤ asOf`",
+          "refused": ["an ongoing K-line's asOf not before its date"],
+          "vectors": ["ongoing/reject/as-of-before-date.json"]
+        }
+      ],
+      "no rule": []
+    },
+    "Merged bar (包含), Rule": {
+      "rules": [
+        {
+          "rule": "`start ≤ end`",
+          "refused": ["a merged bar's first K-line not after its last"],
+          "vectors": ["reject/merged-start-after-end.json"]
+        },
+        {
+          "rule": "`low ≤ high`",
+          "refused": ["its low at most its high"],
+          "vectors": ["reject/merged-low-above-high.json"]
+        },
+        {
+          "rule": "`extremes` holds at least one K-line",
+          "refused": ["expected array to have >=1 items"],
+          "vectors": ["reject/merged-extremes-empty.json", "massive/reject/merged-extremes-empty.json"]
+        },
+        {
+          "rule": "every entry of `extremes` is from `start` to `end`",
+          "refused": ["a merged bar's extremes from its start to its end"],
+          "vectors": [
+            "reject/merged-extremes-outside-start-end.json",
+            "massive/reject/merged-extremes-outside-start-end.json"
+          ]
+        },
+        {
+          "rule": "in ascending order",
+          "refused": ["a merged bar's extremes in ascending order, none twice"],
+          "vectors": ["reject/merged-extremes-out-of-order.json", "massive/reject/merged-extremes-out-of-order.json"]
+        },
+        {
+          "rule": "with none twice",
+          "refused": ["a merged bar's extremes in ascending order, none twice"],
+          "vectors": ["reject/merged-extremes-twice.json", "massive/reject/merged-extremes-twice.json"]
+        },
+        {
+          "rule": "`index` is in `extremes`",
+          "refused": ["a merged bar's index one of its extremes"],
+          "vectors": ["reject/merged-index-not-in-extremes.json", "massive/reject/merged-index-not-in-extremes.json"]
+        }
+      ],
+      "no rule": []
+    },
+    "Line (笔, 线段, 走势), Rule": {
+      "rules": [
+        {
+          "rule": "`start < end`",
+          "refused": ["a line from a merged bar to a later one"],
+          "vectors": [
+            "reject/line-end-not-after-start.json",
+            "reject/segment-end-not-after-start.json",
+            "reject/move-end-not-after-start.json"
+          ]
+        }
+      ],
+      "no rule": []
+    },
+    "Consolidation (中枢), Rule": {
+      "rules": [
+        {
+          "rule": "`start < end`",
+          "refused": ["a 中枢 from a merged bar to a later one"],
+          "vectors": ["reject/consolidation-start-after-end.json", "reject/consolidation-start-equal-to-end.json"]
+        },
+        {
+          "rule": "`dd ≤ zd ≤ zg ≤ gg`",
+          "refused": ["its band ZD to ZG within its range DD to GG"],
+          "vectors": [
+            "reject/consolidation-zd-below-dd.json",
+            "reject/consolidation-zd-above-zg.json",
+            "reject/consolidation-zg-above-gg.json"
+          ]
+        }
+      ],
+      "no rule": []
+    },
+    "The run, `klines`": {
+      "rules": [
+        {
+          "rule": "at least one",
+          "refused": ["expected array to have >=1 items"],
+          "vectors": ["reject/klines-none.json", "massive/reject/klines-none.json"]
+        },
+        {
+          "rule": "in the order of their times",
+          "refused": ["a run's K-lines in the order of their times"],
+          "vectors": ["reject/klines-out-of-order.json", "massive/reject/klines-out-of-order.json"]
+        },
+        {
+          "rule": "no time twice",
+          "refused": ["a run's K-lines in the order of their times, no time twice"],
+          "vectors": ["reject/klines-time-twice.json", "massive/reject/klines-time-twice.json"]
+        },
+        {
+          "rule": "each one's `index` its place among them, from 0",
+          "refused": ["a K-line's index its place in the run"],
+          "vectors": ["reject/kline-index-not-its-place.json", "massive/reject/kline-index-not-its-place.json"]
+        }
+      ],
+      "no rule": ["its K-lines"]
+    },
+    "The run, `merged`": {
+      "rules": [
+        {
+          "rule": "each one's `mIndex` its place among them, from 0",
+          "refused": ["a merged bar's number its place among the merged bars"],
+          "vectors": ["reject/merged-number-not-its-place.json", "massive/reject/merged-number-not-its-place.json"]
+        }
+      ],
+      "no rule": ["its merged bars"]
+    },
+    "The run, `fractals`": {
+      "rules": [
+        {
+          "rule": "strictly increasing by `mIndex`",
+          "refused": ["a run's 分型 strictly increasing by mIndex"],
+          "vectors": ["reject/fractals-out-of-order.json", "reject/fractals-index-twice.json"]
+        }
+      ],
+      "no rule": ["its 分型"]
+    },
+    "The run, `strokes`": {
+      "rules": [
+        {
+          "rule": "strictly increasing by `start`",
+          "refused": ["a run's 笔 strictly increasing by start"],
+          "vectors": ["reject/strokes-out-of-order.json", "reject/strokes-start-twice.json"]
+        }
+      ],
+      "no rule": ["its 笔"]
+    },
+    "The run, `segments`": {
+      "rules": [
+        {
+          "rule": "the array at L the 线段 of level L, from 0, every record's `level` L",
+          "refused": ["a 线段 here of level"],
+          "vectors": ["reject/segment-of-another-level.json"]
+        },
+        {
+          "rule": "each level strictly increasing by `start`",
+          "refused": ["a run's 线段 strictly increasing by start"],
+          "vectors": ["reject/segments-out-of-order.json", "reject/segments-start-twice.json"]
+        }
+      ],
+      "no rule": ["its 线段, by level"]
+    },
+    "The run, `moves`": {
+      "rules": [
+        {
+          "rule": "the array at L the 走势 of level L, from 0, every record's `level` L",
+          "refused": ["a 走势 here of level"],
+          "vectors": ["reject/move-of-another-level.json"]
+        },
+        {
+          "rule": "each level strictly increasing by `start`",
+          "refused": ["a run's 走势 strictly increasing by start"],
+          "vectors": ["reject/moves-out-of-order.json", "reject/moves-start-twice.json"]
+        }
+      ],
+      "no rule": ["its 走势, by level"]
+    },
+    "The run, `consolidations`": {
+      "rules": [
+        {
+          "rule": "the array at L the 中枢 of level L, from 0, every record's `level` L",
+          "refused": ["a 中枢 here of level"],
+          "vectors": ["reject/consolidation-of-another-level.json"]
+        },
+        {
+          "rule": "each level strictly increasing by `start`",
+          "refused": ["a run's 中枢 strictly increasing by start"],
+          "vectors": ["reject/consolidations-out-of-order.json", "reject/consolidations-start-twice.json"]
+        }
+      ],
+      "no rule": ["its 中枢, by level"]
+    },
+    "The run, paragraph 1": {
+      "rules": [
+        {
+          "rule": "every position of every record below the number of K-lines",
+          "refused": ["a position past the run's K-lines"],
+          "vectors": ["reject/merged-end-past-klines.json", "reject/merged-confirm-end-past-klines.json"]
+        },
+        {
+          "rule": "every bar (a merged bar's and a 分型's `mIndex`, a line's `start`, `end` and `confirmEnd`, a consolidation's `start`, `end` and `confirmEnd`) below the number of merged bars",
+          "refused": ["a merged bar past the run's merged bars"],
+          "vectors": [
+            "reject/bar-past-merged.json",
+            "reject/line-confirm-end-past-merged.json",
+            "reject/fractal-index-past-merged.json",
+            "reject/segment-past-merged.json",
+            "reject/move-past-merged.json",
+            "reject/consolidation-end-past-merged.json",
+            "reject/consolidation-confirm-end-past-merged.json"
+          ]
+        },
+        {
+          "rule": "in `merged`, in `strokes` and in each level of `segments`, `moves` and `consolidations`, at most one record with no `confirmEnd`",
+          "refused": ["every one confirmed but the last"],
+          "vectors": [
+            "reject/merged-ongoing-twice.json",
+            "reject/strokes-ongoing-twice.json",
+            "reject/segments-ongoing-twice.json",
+            "reject/moves-ongoing-twice.json",
+            "reject/consolidations-ongoing-twice.json"
+          ]
+        },
+        {
+          "rule": "and if one, the last",
+          "refused": ["every one confirmed but the last"],
+          "vectors": [
+            "reject/merged-ongoing-not-last.json",
+            "reject/strokes-ongoing-not-last.json",
+            "reject/segments-ongoing-not-last.json",
+            "reject/moves-ongoing-not-last.json",
+            "reject/consolidations-ongoing-not-last.json"
+          ]
+        }
+      ],
+      "no rule": [
+        "Rules, every one checked",
+        "what the table says of each part",
+        "the configuration still going on",
+        "A run of confirmed records alone conforms; the one going on is allowed, not required"
+      ]
+    },
+    "The run, paragraph 2": {
+      "rules": [
+        {
+          "rule": "a run whose `klines` are Massive's K-lines",
+          "refused": ["received undefined"],
+          "vectors": ["massive/reject/klines-of-the-base.json"]
+        },
+        {
+          "rule": "under the same rules",
+          "refused": [
+            "a K-line's index its place in the run",
+            "a run's K-lines in the order of their times",
+            "expected array to have >=1 items",
+            "a merged bar's number its place among the merged bars"
+          ],
+          "vectors": [
+            "massive/reject/kline-index-not-its-place.json",
+            "massive/reject/klines-out-of-order.json",
+            "massive/reject/klines-time-twice.json",
+            "massive/reject/klines-none.json",
+            "massive/reject/merged-number-not-its-place.json"
+          ]
+        }
+      ],
+      "no rule": [
+        "Massive's run is",
+        "`massiveRunSchema` and `decodeMassiveRun` in TypeScript, `MassiveRun` and `decodeMassiveRun` in Lean"
+      ]
+    },
+    "The JSON, paragraph 1": {
+      "rules": [
+        {
+          "rule": "A run crosses as one JSON object",
+          "refused": ["not JSON", "expected object, received array"],
+          "vectors": ["reject/not-json.json", "reject/run-not-an-object.json"]
+        },
+        {
+          "rule": "its seven parts its names",
+          "refused": ["received undefined", "Unrecognized key"],
+          "vectors": ["reject/run-part-missing.json", "reject/moves-missing.json", "reject/run-unknown-part.json"]
+        },
+        {
+          "rule": "each record an object of its fields",
+          "refused": ["expected object, received number"],
+          "vectors": ["reject/fractal-not-an-object.json"]
+        },
+        {
+          "rule": "an optional `-`, then `0` or a digit not `0` and more digits",
+          "refused": ["a number in digits"],
+          "vectors": ["reject/number-with-a-leading-0.json"]
+        },
+        {
+          "rule": "for a price or a quantity, optionally `.` and digits",
+          "refused": ["expected int, received number"],
+          "vectors": [
+            "reject/number-with-fraction.json",
+            "reject/position-with-a-fraction.json",
+            "reject/bar-with-a-fraction.json",
+            "massive/reject/n-with-a-fraction.json"
+          ]
+        },
+        {
+          "rule": "the last not `0`",
+          "refused": ["a number in digits"],
+          "vectors": ["reject/price-ending-in-0-after-the-point.json"]
+        },
+        {
+          "rule": "no exponent",
+          "refused": ["a number in digits"],
+          "vectors": ["reject/number-with-exponent.json", "reject/number-with-a-huge-exponent.json"]
+        },
+        {
+          "rule": "a number written otherwise",
+          "refused": ["a number in digits"],
+          "vectors": [
+            "reject/number-with-exponent.json",
+            "reject/number-with-a-leading-0.json",
+            "reject/price-ending-in-0-after-the-point.json"
+          ]
+        },
+        {
+          "rule": "or past the bound",
+          "refused": ["Too big: expected int", "a number in digits"],
+          "vectors": ["reject/number-past-2-53.json", "reject/number-of-17-digits.json"]
+        },
+        {
+          "rule": "a name that is no field or part",
+          "refused": ["Unrecognized key"],
+          "vectors": [
+            "reject/kline-unknown-field.json",
+            "reject/merged-unknown-field.json",
+            "reject/fractal-unknown-field.json",
+            "reject/stroke-unknown-field.json",
+            "reject/segment-unknown-field.json",
+            "reject/move-unknown-field.json",
+            "reject/consolidation-unknown-field.json",
+            "reject/run-unknown-part.json"
+          ]
+        },
+        {
+          "rule": "a name twice in one object",
+          "refused": ["a name twice in one object"],
+          "vectors": ["reject/kline-high-twice.json"]
+        },
+        {
+          "rule": "text not UTF-8",
+          "refused": ["text not UTF-8"],
+          "vectors": ["reject/text-not-utf-8.json"]
+        },
+        {
+          "rule": "a field missing that is not optional",
+          "refused": ["received undefined"],
+          "vectors": [
+            "reject/kline-field-missing.json",
+            "reject/consolidation-start-missing.json",
+            "massive/reject/vw-missing.json",
+            "ongoing/reject/as-of-missing.json"
+          ]
+        },
+        {
+          "rule": "`null`",
+          "refused": ["received null"],
+          "vectors": ["reject/merged-null-for-unset.json", "reject/consolidation-null-for-unset.json"]
+        },
+        {
+          "rule": "a value of another kind",
+          "refused": ["received string", "expected array, received number", "expected boolean, received number"],
+          "vectors": [
+            "reject/consolidation-start-as-text.json",
+            "reject/consolidation-end-as-text.json",
+            "reject/consolidation-confirm-end-as-text.json",
+            "reject/consolidation-zg-as-text.json",
+            "reject/consolidation-zd-as-text.json",
+            "reject/consolidation-gg-as-text.json",
+            "reject/consolidation-dd-as-text.json",
+            "reject/merged-extremes-not-a-list.json",
+            "reject/bool-as-number.json",
+            "massive/reject/vw-as-text.json"
+          ]
+        },
+        {
+          "rule": "a negative number where a time, a position, a bar, a count or a quantity is",
+          "refused": ["Too small: expected number to be >=0"],
+          "vectors": [
+            "reject/kline-time-negative.json",
+            "reject/position-negative.json",
+            "reject/fractal-index-negative.json",
+            "massive/reject/n-negative.json",
+            "reject/kline-volume-negative.json"
+          ]
+        },
+        {
+          "rule": "a fraction where a time, a position, a bar or a count is",
+          "refused": ["expected int, received number"],
+          "vectors": [
+            "reject/number-with-fraction.json",
+            "reject/position-with-a-fraction.json",
+            "reject/bar-with-a-fraction.json",
+            "massive/reject/n-with-a-fraction.json"
+          ]
+        },
+        {
+          "rule": "a number where a boolean is",
+          "refused": ["expected boolean, received number"],
+          "vectors": ["reject/bool-as-number.json"]
+        }
+      ],
+      "no rule": [
+        "A number is written in digits",
+        "then,",
+        "so that every form reads the same number from the same text",
+        "Decoding refuses anything the records do not allow",
+        "and a broken rule"
+      ]
+    }
+  }
+}
