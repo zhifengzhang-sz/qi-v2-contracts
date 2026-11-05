@@ -11,7 +11,7 @@ every change (`make chanlun`): each vector by each form, every rule of `SPEC.md`
 ## Taking it
 
 By the flake, pinned in the taker's `flake.lock` (`inputs.contracts.url =
-"github:zhifengzhang-sz/qi-v2-contracts?ref=chanlun-2.2.0";`):
+"github:zhifengzhang-sz/qi-v2-contracts?ref=chanlun-2.3.0";`):
 
 - `contracts.packages.${system}.chanlun-ts`: `node_modules/@qi/chanlun` and `zod`, as source; `import { decodeRun,
   klineSchema } from "@qi/chanlun"`.
@@ -24,7 +24,7 @@ By the flake, pinned in the taker's `flake.lock` (`inputs.contracts.url =
   formats, and says why there are two.
 
 Or by the language's own lock: Lake, `[[require]]` with `name = "chanlun"`, `git =
-"https://github.com/zhifengzhang-sz/qi-v2-contracts"`, `rev = "chanlun-2.2.0"`, `subDir = "chanlun/lean"`.
+"https://github.com/zhifengzhang-sz/qi-v2-contracts"`, `rev = "chanlun-2.3.0"`, `subDir = "chanlun/lean"`.
 
 A Go taker takes the Go form from the flake's package alone, pinned by its own `flake.lock`: never by `go get` (the
 module proxy's copy, which no `flake.lock` pins), and never by a sibling path (a checkout beside it, which moves on its
@@ -57,23 +57,50 @@ and `OngoingOf K`, of which `OngoingKLine` and `MassiveOngoingKLine` are the two
 `FromJson`.
 
 Go: `chanlun.DecodeRun(data) (Run, error)`, `chanlun.DecodeMassiveRun(data) (MassiveRun, error)`,
-`chanlun.DecodeOngoingKLine(data)` and `chanlun.DecodeMassiveOngoingKLine(data)`, of the text's bytes, UTF-8;
-`chanlun.EncodeRun(run) (string, error)` the canonical JSON of either run, and `chanlun.EncodeOngoingKLine(k)` of either
-ongoing K-line, each once the rules are checked; `run.TimeAt(p) (uint64, bool)`; each record's and each run's
-`Check() error`; the types `KLine`, `MassiveKLine`, `OngoingKLine`, `MassiveOngoingKLine`, `MergedBar`, `Fractal`,
-`Line`, `Segment`, `Move`, `Consolidation`, `Run` and `MassiveRun`, made from the Zod schemas
-(`go/chanlun/records.go`, `make chanlun-go-types`), and `Stroke`, a `Line`, written by hand beside them. A price and
-a quantity are a `Decimal`, never a `float64`: `ParseDecimal` reads it from its digits, `String` writes the same
-digits, `Cmp` and `==` compare values exactly; it holds the 15 digits before the point the contract allows, which a
-count of millionths in an `int64` does not. A whole number is a `uint64` from 0 to `Bound`. Nothing given out changes what another holder has: a record is a value, its fields
-numbers, booleans, `Decimal`s, `Optional`s (`Some`, `None`, `Get`) and `List`s, none an exported slice, map or pointer;
-a `List` keeps its items behind methods, `ListOf` copying them in, `Slice` copying them out, `Len`, `At`, `Last`, `All`
-and `Values` giving them as values.
+`chanlun.DecodeOngoingKLine(data)` and `chanlun.DecodeMassiveOngoingKLine(data)`, of the text's bytes, UTF-8, each
+the zero value with its fault; `chanlun.EncodeRun(run) (string, error)` the canonical JSON of either run, and
+`chanlun.EncodeOngoingKLine(k)` of either ongoing K-line, each once the rules are checked; `run.TimeAt(p) (uint64,
+bool)`; each record's and each run's `Check() error`; the types `KLine`, `MassiveKLine`, `OngoingKLine`,
+`MassiveOngoingKLine`, `MergedBar`, `Fractal`, `Line`, `Segment`, `Move`, `Consolidation`, `Run` and `MassiveRun`,
+made from the Zod schemas (`go/chanlun/records.go`, `make chanlun-go-types`), and `Stroke`, a `Line`, written by hand
+beside them. Decoding reads the text straight into the records, with no tree of the whole text: a run as producers
+write it holds its records and its text, little more (a `List` is 24 bytes, so a text of many empty levels, each `[]`,
+costs some 8 times its size). A price and a quantity are a `Decimal`, 16 bytes, never a `float64`: `ParseDecimal` reads it from
+its digits, `DecimalOf(units, decimals)` from a whole number of units (millionths with 6, cents with 2), refusing a
+value past the bounds, never rounding it; `String` writes its digits, `Neg` gives its negation, `Cmp` and `==` compare
+values exactly; it holds the 15 digits before the point the contract allows, which a count of millionths in an `int64`
+does not. A whole number is a `uint64` from 0 to `Bound`. Not by `encoding/json`: every record, both runs, `Decimal`,
+`List` and `Optional` give `ErrEncodingJSON` from `MarshalJSON` and `UnmarshalJSON`, which says to use `EncodeRun`
+and `DecodeRun`, since `encoding/json` would write a second text of the one run, by Go's names, and read it without its
+rules. Nothing given out changes what another holder has: a record is a value, its fields numbers, booleans,
+`Decimal`s, `Optional`s (`Some`, `None`, `Get`) and `List`s, none an exported slice, map or pointer; a `List` keeps its
+items behind methods, `ListOf` copying them in, `Slice` copying them out, `Len`, `At`, `Last`, `All` and `Values` giving
+them as values.
 
 A producer's output is mapped to the records by the producer or by its user, not by the contract.
 
 ## Changes
 
+- **2.3.0**: one canonical text for one run. A part by level (`segments`, `moves`, `consolidations`) ends with a level
+  that is not empty: the levels it holds are 0 to its highest level with a record, an empty level below that stays
+  allowed, and a part with no record is `[]`, never `[[]]`. 2.0.0 to 2.2.0 read `"moves": [[a]]` and
+  `"moves": [[a], []]`, one run, and wrote each back as it was given, so one run had two texts; the canonical text is how
+  runs are compared and pinned, so 2.3.0 refuses the second, in all three forms (`decode: `, exit 1) and in the Go's
+  `Check`, by which its `EncodeRun` never writes it. Not backward-compatible one way: a run written under 2.0.0 to
+  2.2.0 with a trailing empty level is read by 2.2.0, not by 2.3.0, and its producer must drop the empty levels above
+  its highest with a record; every run 2.3.0 reads 2.2.0 reads, to the same text. `run.json` was such a run: its
+  `moves` held five empty levels after level 0, and its `consolidations` four after level 1, now dropped, its records
+  unchanged. Five reject cases for the rule (`segments`, `moves` and `consolidations` ending with an empty level,
+  `segments` as `[[]]`, and Massive's `moves` ending with one), in `vectors/rules.json` under it, and the generated
+  cases add an empty level at a part's end. The Go form made lighter, no text it reads or writes changed: its
+  `Decimal` 16 bytes (24 before), its sign in the word of its millionths, exact as before; `Neg`, its negation;
+  `DecimalOf(units, decimals)`, a producer's whole number of units as a `Decimal`, refused past the bounds; its reader
+  without the tree of the whole text, reading straight into the records (a run of 200,000 K-lines, 43.6 MB, read in
+  about a sixth of the time, with 39 MB of heap above the text where 2.2.0 took some 750 MB). `encoding/json` no longer
+  writes `{}` for a price: every record, both runs, `Decimal`, `List` and `Optional` refuse it in `MarshalJSON` and
+  `UnmarshalJSON` with `ErrEncodingJSON`, which says to use `EncodeRun` and `DecodeRun`. A decode that fails gives the
+  zero value, never a record half read. The Lean form's usage error starts with `decode: `, as the others do.
+  `SPEC.md` names the Go's types beside the TypeScript's and the Lean's.
 - **2.2.0**: a Go form, `go/`, and its package `chanlun-go`: one module of the standard library only; its types made
   from the Zod schemas by `ts/bin/go.ts` (`make chanlun-go-types`, and `make check` compares them); its rules and its
   JSON written by hand, refusing what the other forms refuse, encoding/json's leniencies among them (a name twice, bytes

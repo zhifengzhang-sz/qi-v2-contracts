@@ -1,4 +1,4 @@
-// 缠论's contract, chanlun 2.2.0 (../SPEC.md): the records' fields and types, made from the Zod schemas of
+// 缠论's contract, chanlun 2.3.0 (../SPEC.md): the records' fields and types, made from the Zod schemas of
 // ../ts/src by ../ts/bin/proto.ts with the field numbers of fields.json; not edited by hand. The records' rules are
 // not here (SPEC.md, The records and The run): every reader checks them, and reads the vectors (../vectors/) alike.
 

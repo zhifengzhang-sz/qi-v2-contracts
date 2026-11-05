@@ -3,7 +3,7 @@
   # forms. Packages: chanlun-ts (缠论's contract for TypeScript), chanlun-lean (for Lean), chanlun-go (for Go),
   # chanlun-avro and chanlun-proto (its Avro schemas and Protobuf description, made from the TypeScript). The common
   # flake, qi-v2, gives the one nixpkgs of every project and the pure shell.
-  description = "qi-v2-contracts: the contracts shared by the qi-v2 projects (chanlun 2.2.0: 缠论's records, for TypeScript, Lean and Go, and as Avro and Protobuf)";
+  description = "qi-v2-contracts: the contracts shared by the qi-v2 projects (chanlun 2.3.0: 缠论's records, for TypeScript, Lean and Go, and as Avro and Protobuf)";
 
   inputs.qi-v2.url = "github:zhifengzhang-sz/qi-v2-nix?dir=qi-v2";
   inputs.nixpkgs.follows = "qi-v2/nixpkgs";
@@ -46,7 +46,7 @@
         in {
           # 缠论's contract for TypeScript (chanlun/README.md, how to take it): a node_modules of @qi/chanlun, as
           # source, and zod, its one dependency (npm's, pinned by hash); no tests.
-          chanlun-ts = pkgs.runCommand "chanlun-ts-2.2.0" { } ''
+          chanlun-ts = pkgs.runCommand "chanlun-ts-2.3.0" { } ''
             m=$out/node_modules
             mkdir -p $m/@qi/chanlun $m/zod
             cp -r ${./chanlun/ts/src} $m/@qi/chanlun/src
@@ -56,7 +56,7 @@
             cp ${./chanlun/README.md} $out/README.md
           '';
           # 缠论's contract for Lean (chanlun/README.md): the Lake package `chanlun` as source, for a taker's Lake.
-          chanlun-lean = pkgs.runCommand "chanlun-lean-2.2.0" { } ''
+          chanlun-lean = pkgs.runCommand "chanlun-lean-2.3.0" { } ''
             mkdir -p $out
             cp -r ${./chanlun/lean}/Chanlun $out/Chanlun
             cp ${./chanlun/lean}/Chanlun.lean ${./chanlun/lean}/Main.lean ${./chanlun/lean}/lakefile.toml ${./chanlun/lean}/lean-toolchain $out/
@@ -65,7 +65,7 @@
           '';
           # 缠论's contract for Go (chanlun/README.md, how to take it): the module of chanlun/go as source, without its
           # tests, for a taker's go.mod to replace its module path with; the standard library only.
-          chanlun-go = pkgs.runCommand "chanlun-go-2.2.0" { } ''
+          chanlun-go = pkgs.runCommand "chanlun-go-2.3.0" { } ''
             mkdir -p $out/chanlun $out/cmd/decode
             cp ${./chanlun/go/go.mod} $out/go.mod
             for f in ${./chanlun/go/chanlun}/*.go; do
@@ -77,7 +77,7 @@
           '';
           # 缠论's contract as Avro (chanlun/SPEC.md, The Avro schemas): one .avsc file for each record, for a taker's
           # Avro library or a schema registry
-          chanlun-avro = pkgs.runCommand "chanlun-avro-2.2.0" { } ''
+          chanlun-avro = pkgs.runCommand "chanlun-avro-2.3.0" { } ''
             mkdir -p $out
             cp ${./chanlun/avro}/*.avsc $out/
             cp ${./chanlun/SPEC.md} $out/SPEC.md
@@ -85,7 +85,7 @@
           '';
           # 缠论's contract as Protobuf (chanlun/SPEC.md, The Protobuf description): chanlun.proto, the records' fields
           # and types, for a taker's protoc
-          chanlun-proto = pkgs.runCommand "chanlun-proto-2.2.0" { } ''
+          chanlun-proto = pkgs.runCommand "chanlun-proto-2.3.0" { } ''
             mkdir -p $out
             cp ${./chanlun/proto/chanlun.proto} $out/chanlun.proto
             cp ${./chanlun/SPEC.md} $out/SPEC.md

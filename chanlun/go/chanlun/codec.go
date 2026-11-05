@@ -2,7 +2,6 @@ package chanlun
 
 import (
 	"reflect"
-	"strings"
 )
 
 // A run's records as JSON, and an ongoing K-line's (SPEC.md, The JSON): decoding reads the text (json.go) into the
@@ -10,105 +9,108 @@ import (
 // canonical text every form writes, which the conformance check compares: the run's parts in their order, a record a
 // line, its fields in the order of their names, a field not set left out.
 
+// decodeAs: data as a T, every rule checked; on a fault the zero T, never a T half read or one that breaks a rule
 func decodeAs[T interface{ Check() error }](data []byte) (T, error) {
-	var r T
-	j, err := parse(data)
-	if err != nil {
-		return r, err
-	}
-	if err := decodeRecord(reflect.ValueOf(&r).Elem(), &j, ""); err != nil {
-		return r, err
+	var r, zero T
+	if err := parse(data, reflect.ValueOf(&r).Elem()); err != nil {
+		return zero, err
 	}
 	if err := r.Check(); err != nil {
-		return r, err
+		return zero, err
 	}
 	return r, nil
 }
 
-// DecodeRun: a run's JSON, its bytes UTF-8, as its records; a fault, with its place, as an error.
+// DecodeRun: a run's JSON, its bytes UTF-8, as its records; a fault, with its place, as an error, and the zero Run.
 func DecodeRun(data []byte) (Run, error) { return decodeAs[Run](data) }
 
-// DecodeMassiveRun: a run of Massive's K-lines, its JSON, as its records; a fault as an error.
+// DecodeMassiveRun: a run of Massive's K-lines, its JSON, as its records; a fault as an error, and the zero MassiveRun.
 func DecodeMassiveRun(data []byte) (MassiveRun, error) { return decodeAs[MassiveRun](data) }
 
-// DecodeOngoingKLine: an ongoing K-line's JSON as its record; a fault as an error.
+// DecodeOngoingKLine: an ongoing K-line's JSON as its record; a fault as an error, and the zero OngoingKLine.
 func DecodeOngoingKLine(data []byte) (OngoingKLine, error) {
 	return decodeAs[OngoingKLine](data)
 }
 
-// DecodeMassiveOngoingKLine: Massive's ongoing K-line's JSON as its record; a fault as an error.
+// DecodeMassiveOngoingKLine: Massive's ongoing K-line's JSON as its record; a fault as an error, and the zero
+// MassiveOngoingKLine.
 func DecodeMassiveOngoingKLine(data []byte) (MassiveOngoingKLine, error) {
 	return decodeAs[MassiveOngoingKLine](data)
 }
 
-func records[T any](b *strings.Builder, l List[T]) {
+// records: a part's records, a record a line
+func records[T any](e *encoder, l *List[T]) {
 	if l.Len() == 0 {
-		b.WriteString("[]")
+		e.str("[]")
 		return
 	}
-	b.WriteString("[\n")
-	for i, r := range l.items {
+	s := shapeOf(reflect.TypeFor[T]())
+	e.str("[\n")
+	for i := range l.items {
 		if i > 0 {
-			b.WriteString(",\n")
+			e.str(",\n")
 		}
-		writeRecord(b, reflect.ValueOf(r))
+		e.write(reflect.ValueOf(&l.items[i]).Elem(), s)
+		e.cut()
 	}
-	b.WriteString("\n]")
+	e.str("\n]")
 }
 
-func levels[T any](b *strings.Builder, l List[List[T]]) {
+// levels: a part by level, a level's records in place of a record
+func levels[T any](e *encoder, l *List[List[T]]) {
 	if l.Len() == 0 {
-		b.WriteString("[]")
+		e.str("[]")
 		return
 	}
-	b.WriteString("[\n")
-	for i, rs := range l.items {
+	e.str("[\n")
+	for i := range l.items {
 		if i > 0 {
-			b.WriteString(",\n")
+			e.str(",\n")
 		}
-		records(b, rs)
+		records(e, &l.items[i])
 	}
-	b.WriteString("\n]")
+	e.str("\n]")
 }
 
 // EncodeRun: a run's canonical JSON, of a run or of Massive's run, once its rules are checked: a run that breaks one is
 // not written, and its fault is the error.
 func EncodeRun[R Run | MassiveRun](run R) (string, error) {
-	var b strings.Builder
-	part := func(name string, write func()) {
-		if b.Len() > 2 {
-			b.WriteString(",\n")
-		}
-		b.WriteString(`"` + name + `": `)
-		write()
-	}
-	b.WriteString("{\n")
-	switch r := any(run).(type) {
-	case Run:
+	e := &encoder{}
+	switch r := any(&run).(type) {
+	case *Run:
 		if err := r.Check(); err != nil {
 			return "", err
 		}
-		part("klines", func() { records(&b, r.Klines) })
-		writeParts(part, &b, r.Merged, r.Fractals, r.Strokes, r.Segments, r.Moves, r.Consolidations)
-	case MassiveRun:
+		e.str("{\n\"klines\": ")
+		records(e, &r.Klines)
+		writeParts(e, &r.Merged, &r.Fractals, &r.Strokes, &r.Segments, &r.Moves, &r.Consolidations)
+	case *MassiveRun:
 		if err := r.Check(); err != nil {
 			return "", err
 		}
-		part("klines", func() { records(&b, r.Klines) })
-		writeParts(part, &b, r.Merged, r.Fractals, r.Strokes, r.Segments, r.Moves, r.Consolidations)
+		e.str("{\n\"klines\": ")
+		records(e, &r.Klines)
+		writeParts(e, &r.Merged, &r.Fractals, &r.Strokes, &r.Segments, &r.Moves, &r.Consolidations)
 	}
-	b.WriteString("\n}\n")
-	return b.String(), nil
+	e.str("\n}\n")
+	return e.text(), nil
 }
 
-func writeParts(part func(string, func()), b *strings.Builder, merged List[MergedBar], fractals List[Fractal],
-	strokes List[Line], segments List[List[Segment]], moves List[List[Move]], consolidations List[List[Consolidation]]) {
-	part("merged", func() { records(b, merged) })
-	part("fractals", func() { records(b, fractals) })
-	part("strokes", func() { records(b, strokes) })
-	part("segments", func() { levels(b, segments) })
-	part("moves", func() { levels(b, moves) })
-	part("consolidations", func() { levels(b, consolidations) })
+// writeParts: the parts after klines, in their order, each after `,`, a line break and its name
+func writeParts(e *encoder, merged *List[MergedBar], fractals *List[Fractal], strokes *List[Line],
+	segments *List[List[Segment]], moves *List[List[Move]], consolidations *List[List[Consolidation]]) {
+	e.str(",\n\"merged\": ")
+	records(e, merged)
+	e.str(",\n\"fractals\": ")
+	records(e, fractals)
+	e.str(",\n\"strokes\": ")
+	records(e, strokes)
+	e.str(",\n\"segments\": ")
+	levels(e, segments)
+	e.str(",\n\"moves\": ")
+	levels(e, moves)
+	e.str(",\n\"consolidations\": ")
+	levels(e, consolidations)
 }
 
 // EncodeOngoingKLine: an ongoing K-line's canonical JSON, of the base's or of Massive's, once its rules are checked: its
@@ -117,8 +119,8 @@ func EncodeOngoingKLine[K OngoingKLine | MassiveOngoingKLine](kline K) (string, 
 	if err := any(kline).(interface{ Check() error }).Check(); err != nil {
 		return "", err
 	}
-	var b strings.Builder
-	writeRecord(&b, reflect.ValueOf(kline))
-	b.WriteString("\n")
-	return b.String(), nil
+	e := &encoder{}
+	writeInto(e, &kline)
+	e.str("\n")
+	return e.text(), nil
 }

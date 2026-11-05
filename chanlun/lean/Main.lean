@@ -27,7 +27,7 @@ def main (args : List String) : IO UInt32 := do
   match batch, args.filter (fun a => a != "--massive" && a != "--ongoing" && a != "--batch") with
   | false, [file] =>
     if file.startsWith "--" then
-      IO.eprintln usage; return 1
+      IO.eprintln s!"decode: {usage}"; return 1
     match answer massive ongoing (← IO.FS.readBinFile file) with
     | .ok text => IO.print text; return 0
     | .error e => IO.eprintln s!"decode: {e}"; return 1
@@ -40,4 +40,4 @@ def main (args : List String) : IO UInt32 := do
         | .error e => s!"decode: {e}\n"
       IO.FS.writeFile (System.FilePath.mk outDir / n) out
     return 0
-  | _, _ => IO.eprintln usage; return 1
+  | _, _ => IO.eprintln s!"decode: {usage}"; return 1

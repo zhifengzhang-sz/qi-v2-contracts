@@ -8,8 +8,13 @@
 // DecodeRun and DecodeMassiveRun read a run's JSON, DecodeOngoingKLine and DecodeMassiveOngoingKLine an ongoing
 // K-line's, refusing what every form refuses: a number not written in digits or past the bound, a name that is no
 // field or part, a name twice in one object, text not UTF-8, a field missing that is not optional, null, a value of
-// another kind, and a broken rule. EncodeRun and EncodeOngoingKLine write the canonical text, once the rules are
-// checked. A price and a quantity are a Decimal, exact, never a float64; a whole number is a uint64 up to Bound.
+// another kind, and a broken rule; on a fault they give the zero value. They read the text straight into the records,
+// with no tree of the whole text. EncodeRun and EncodeOngoingKLine write the canonical text, once the rules
+// are checked. A price and a quantity are a Decimal, exact, never a float64 (ParseDecimal from its digits, DecimalOf
+// from a whole number of units, Neg its negation); a whole number is a uint64 up to Bound. Nothing goes through
+// encoding/json: each type's MarshalJSON and UnmarshalJSON give ErrEncodingJSON (encoding.go). A type a taker defines
+// on one of them (type Price chanlun.Decimal) has none of its methods, these among them, and encoding/json writes it
+// as {}: hold the package's own types.
 //
 // Nothing given out changes what another holder has. A record is a value: its fields are numbers, booleans, Decimals,
 // Optionals and Lists, each a value with no exported slice, map or pointer. A List keeps its items behind methods:

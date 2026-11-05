@@ -10,7 +10,8 @@
 // The kinds: a value changed (a number by one up or down, to 0, negative, with a seventh decimal, with a sixteenth
 // digit, with an exponent; a value as text, `null`, a boolean); a field dropped, a field added (a name of no record,
 // one of another record's, or a name the object already has); an entry of a list dropped, doubled or moved (a record,
-// a level, an entry of `extremes`); `confirmEnd` taken away, or added where it is not set.
+// a level, an entry of `extremes`); `confirmEnd` taken away, or added where it is not set; an empty level added at the
+// end of a part by level (`segments`, `moves`, `consolidations`), `[[]]` of a part that is `[]`.
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -331,6 +332,16 @@ const change = (j: J, kind: string, pick: <T>(xs: readonly T[]) => T | undefined
           return { t: "obj", kvs };
         },
       );
+    case "empty-level-added":
+      return value(
+        all.filter(
+          ([p, v]) =>
+            p.length === 1 &&
+            (p[0] === "segments" || p[0] === "moves" || p[0] === "consolidations") &&
+            v.t === "arr",
+        ),
+        (x) => (x.t === "arr" ? { t: "arr", xs: [...x.xs, { t: "arr", xs: [] }] } : undefined),
+      );
     default:
       return undefined;
   }
@@ -355,6 +366,7 @@ export const kinds = [
   "entry-moved",
   "confirm-end-dropped",
   "confirm-end-added",
+  "empty-level-added",
 ] as const;
 
 const rand = random(seed);

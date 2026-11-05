@@ -2,6 +2,7 @@ package chanlun
 
 import (
 	"fmt"
+	"math/bits"
 	"reflect"
 	"slices"
 	"strconv"
@@ -11,243 +12,539 @@ import (
 	"unicode/utf8"
 )
 
-// The contract's JSON (SPEC.md, The JSON), read by hand: encoding/json alone takes a name twice (the last wins),
-// replaces bytes that are not UTF-8 and reads a number with an exponent and a field it does not know, each of which the
-// contract refuses. Here the text is read once into values that keep each number's digits, refusing what is not JSON
-// and what the contract does not allow of any JSON (text not UTF-8, a name twice in one object, a number not written in
-// digits); then each record is read from them into its type (records.go) by its fields' tags, refusing a name that is
-// no field, a field missing that is not optional, null, and a value of another kind. The rules come after (rules.go).
+// The contract's JSON (SPEC.md, The JSON), read and written by hand: encoding/json alone takes a name twice (the last
+// wins), replaces bytes that are not UTF-8 and reads a number with an exponent and a field it does not know, each of
+// which the contract refuses. Here the text is read from its first byte to its last straight into the records' types
+// (records.go) by their fields' tags, each array's items counted before they are read (items), so that a run's text
+// is gone over a few times at most, never more than its types are deep; no tree of the whole text is built, so
+// reading a run holds the text and the run, little more. It refuses what is not JSON and what the contract does not allow of any JSON (text not UTF-8,
+// a name twice in one object, a number not written in digits), a name that is no field, a field missing that is not
+// optional, null, and a value of another kind. The rules come after (rules.go).
 
-// A JSON value as read: a number keeps its digits, an object its names in their order.
-type value struct {
-	kind  kind
-	text  string   // a number's digits, a string's characters
-	b     bool     // a boolean's value
-	items []value  // an array's items, an object's values
-	names []string // an object's names
-}
-
-type kind uint8
+// A record's fields, by their tags, and how each is read and written; a type's, how a value of it is read and written
+type op uint8
 
 const (
-	jNull kind = iota
-	jBool
-	jNumber
-	jString
-	jArray
-	jObject
+	opUint    op = iota // a whole number, a uint64
+	opBool              // a boolean
+	opDecimal           // a price or a quantity, a Decimal
+	opCodec             // a List or an Optional, read and written by its own methods (codec)
+	opRecord            // a record, by its fields
+	opNone              // a type the JSON does not read
 )
 
-func (k kind) String() string {
-	return [...]string{"null", "a boolean", "a number", "a text", "an array", "an object"}[k]
+type field struct {
+	name   string
+	quoted string // "name":
+	index  int
+	shape  *shape // its type's
 }
 
-// deepest: the most arrays and objects one inside another that are read. A run's JSON has at most four (the run, a part,
-// a level or a record, and a record or its extremes); beyond deepest no record is, and the text is refused before the
-// stack grows with it.
-const deepest = 64
-
-type reader struct {
-	s     []byte
-	i     int
-	depth int
+type shape struct {
+	op       op
+	fields   []field // a record's, in the order of the type
+	sorted   []field // a record's, in the order of their names (ASCII), the canonical text's
+	required uint64  // a record's fields not optional, a bit each by their place in fields
+	least    int     // the fewest bytes of text a value of it takes: 0, true, [], a record of its fields not optional
 }
 
-func (r *reader) fault(what string) error {
-	return fmt.Errorf("not JSON: %s at byte %d", what, r.i)
+var shapes sync.Map // reflect.Type → *shape
+
+var (
+	decimalType = reflect.TypeFor[Decimal]()
+	codecType   = reflect.TypeFor[codec]()
+)
+
+func opOf(t reflect.Type) op {
+	switch {
+	case t == decimalType:
+		return opDecimal
+	case reflect.PointerTo(t).Implements(codecType):
+		return opCodec
+	case t.Kind() == reflect.Uint64:
+		return opUint
+	case t.Kind() == reflect.Bool:
+		return opBool
+	case t.Kind() == reflect.Struct:
+		return opRecord
+	}
+	return opNone
 }
 
-// parse: the text as one JSON value, its numbers well written; anything else after it refused
-func parse(data []byte) (value, error) {
+func shapeOf(t reflect.Type) *shape {
+	if s, ok := shapes.Load(t); ok {
+		return s.(*shape)
+	}
+	s := &shape{op: opOf(t), least: 1} // a number's 0, a record's {, and its fields below
+	switch s.op {
+	case opBool:
+		s.least = len("true")
+	case opCodec:
+		s.least = len("[]")
+	}
+	if s.op == opRecord {
+		for i := range t.NumField() {
+			sf := t.Field(i)
+			name, ok := sf.Tag.Lookup("chanlun")
+			if !ok {
+				continue
+			}
+			if len(s.fields) == 64 {
+				panic("chanlun: a record of more than 64 fields")
+			}
+			f := field{name: name, quoted: strconv.Quote(name) + ":", index: i, shape: shapeOf(sf.Type)}
+			// an Optional may be left out; every other field is required, and is in the fewest bytes of the record
+			if _, optional := reflect.Zero(sf.Type).Interface().(interface{ IsSet() bool }); !optional {
+				s.required |= 1 << len(s.fields)
+				s.least += len(f.quoted) + f.shape.least + 1 // its name, its value, and , or }
+			}
+			s.fields = append(s.fields, f)
+		}
+		s.sorted = slices.Clone(s.fields)
+		slices.SortFunc(s.sorted, func(a, b field) int { return strings.Compare(a.name, b.name) })
+	}
+	v, _ := shapes.LoadOrStore(t, s)
+	return v.(*shape)
+}
+
+// codec: what List and Optional give the JSON: each reads itself from the text and writes itself, and an Optional not
+// set is not written
+type codec interface {
+	readJSON(d *decoder) error
+	writeJSON(e *encoder)
+	written() bool
+}
+
+// A place in the JSON as the TypeScript form names it: the names and places from the top, joined by ., klines.5.date;
+// the top itself "the JSON". Kept as steps while reading, and made a text only for a fault.
+type step struct {
+	name  string // a field's or a part's name, or "" for a place in an array
+	index int
+}
+
+// The reader: the text, where it is, and the place it is reading
+type decoder struct {
+	s    []byte
+	i    int
+	at   []step
+	name []byte // a name read with escapes in it
+}
+
+func (d *decoder) place(more ...string) string {
+	var b strings.Builder
+	for _, s := range d.at {
+		if b.Len() > 0 {
+			b.WriteByte('.')
+		}
+		if s.name != "" {
+			b.WriteString(s.name)
+		} else {
+			b.WriteString(strconv.Itoa(s.index))
+		}
+	}
+	for _, m := range more {
+		if b.Len() > 0 {
+			b.WriteByte('.')
+		}
+		b.WriteString(m)
+	}
+	if b.Len() == 0 {
+		return "the JSON"
+	}
+	return b.String()
+}
+
+// fault: a value refused at the place being read
+func (d *decoder) fault(format string, a ...any) error {
+	return fmt.Errorf("%s: %s", d.place(), fmt.Sprintf(format, a...))
+}
+
+// syntax: a text that is not JSON
+func (d *decoder) syntax(what string) error {
+	return fmt.Errorf("not JSON: %s at byte %d", what, d.i)
+}
+
+// parse: data read into dst, a record's or a run's type: the text one JSON value, its numbers well written, and
+// nothing after it
+func parse(data []byte, dst reflect.Value) error {
 	if !utf8.Valid(data) {
-		return value{}, fmt.Errorf("text not UTF-8")
+		return fmt.Errorf("text not UTF-8")
 	}
-	r := reader{s: data}
-	v, err := r.value()
-	if err != nil {
-		return value{}, err
+	d := decoder{s: data, at: make([]step, 0, 8)}
+	if err := d.read(dst, shapeOf(dst.Type())); err != nil {
+		return err
 	}
-	r.space()
-	if r.i != len(r.s) {
-		return value{}, r.fault("text after the value")
+	d.space()
+	if d.i != len(d.s) {
+		return d.syntax("text after the value")
 	}
-	return v, nil
+	return nil
 }
 
-func (r *reader) space() {
-	for r.i < len(r.s) {
-		switch r.s[r.i] {
+func (d *decoder) space() {
+	for d.i < len(d.s) {
+		switch d.s[d.i] {
 		case ' ', '\t', '\n', '\r':
-			r.i++
+			d.i++
 		default:
 			return
 		}
 	}
 }
 
-func (r *reader) value() (value, error) {
-	r.space()
-	if r.i >= len(r.s) {
-		return value{}, r.fault("the text ends where a value is")
+func hasWord(s []byte, w string) bool { return len(s) >= len(w) && string(s[:len(w)]) == w }
+
+// begin: the first byte of the value that begins at the place, after any space: {, [, ", - or a digit, t or f; a
+// fault if none begins there, or null, which the contract never writes
+func (d *decoder) begin() (byte, error) {
+	d.space()
+	if d.i >= len(d.s) {
+		return 0, d.syntax("the text ends where a value is")
 	}
-	switch c := r.s[r.i]; {
-	case c == '{':
-		return r.object()
-	case c == '[':
-		return r.array()
-	case c == '"':
-		s, err := r.string()
-		return value{kind: jString, text: s}, err
-	case c == '-' || ('0' <= c && c <= '9'):
-		return r.number()
+	switch c := d.s[d.i]; {
+	case c == '{' || c == '[' || c == '"' || c == '-' || ('0' <= c && c <= '9'):
+		return c, nil
+	case hasWord(d.s[d.i:], "true"), hasWord(d.s[d.i:], "false"):
+		return c, nil
+	case hasWord(d.s[d.i:], "null"):
+		return 0, d.fault("null, where a field not set is left out")
 	}
-	for _, w := range []struct {
-		word string
-		v    value
-	}{{"true", value{kind: jBool, b: true}}, {"false", value{kind: jBool}}, {"null", value{kind: jNull}}} {
-		if strings.HasPrefix(string(r.s[r.i:min(r.i+len(w.word), len(r.s))]), w.word) {
-			r.i += len(w.word)
-			return w.v, nil
-		}
-	}
-	return value{}, r.fault("no value")
+	return 0, d.syntax("no value")
 }
 
-func (r *reader) enter() error {
-	r.depth++
-	if r.depth > deepest {
-		return r.fault(fmt.Sprintf("arrays and objects more than %d deep", deepest))
+// kindOf: what a value that begins with c is, for a fault
+func kindOf(c byte) string {
+	switch c {
+	case '{':
+		return "an object"
+	case '[':
+		return "an array"
+	case '"':
+		return "a text"
+	case 't', 'f':
+		return "a boolean"
+	}
+	return "a number"
+}
+
+func isNumber(c byte) bool { return c == '-' || ('0' <= c && c <= '9') }
+
+// read: the value at the place read into dst, by its type's shape
+func (d *decoder) read(dst reflect.Value, s *shape) error {
+	switch s.op {
+	case opUint:
+		n, err := d.whole()
+		dst.SetUint(n)
+		return err
+	case opBool:
+		b, err := d.boolean()
+		dst.SetBool(b)
+		return err
+	case opDecimal:
+		x, err := d.decimal()
+		*dst.Addr().Interface().(*Decimal) = x
+		return err
+	case opCodec:
+		return dst.Addr().Interface().(codec).readJSON(d)
+	case opRecord:
+		return d.record(dst, s)
+	}
+	return d.fault("a field of a type the JSON does not read (%s)", dst.Type())
+}
+
+// readInto: the value at the place read into *p, of a field's type
+func readInto[T any](d *decoder, p *T) error {
+	switch q := any(p).(type) {
+	case *uint64:
+		n, err := d.whole()
+		*q = n
+		return err
+	case *Decimal:
+		x, err := d.decimal()
+		*q = x
+		return err
+	case *bool:
+		b, err := d.boolean()
+		*q = b
+		return err
+	case codec:
+		return q.readJSON(d)
+	}
+	return d.read(reflect.ValueOf(p).Elem(), shapeOf(reflect.TypeFor[T]()))
+}
+
+func (d *decoder) boolean() (bool, error) {
+	c, err := d.begin()
+	switch {
+	case err != nil:
+		return false, err
+	case c == 't':
+		d.i += len("true")
+		return true, nil
+	case c == 'f':
+		d.i += len("false")
+		return false, nil
+	}
+	return false, d.fault("a boolean, not %s", kindOf(c))
+}
+
+// number: a JSON number, refused unless written as the contract writes a number (SPEC.md, The JSON): in digits, no
+// exponent; a whole number of at most 16 digits, or a decimal of at most 6 digits after the point and 15 from the
+// first that is not 0, the last not 0. Its kind and bound are its field's (whole, decimal). The bytes of the text.
+func (d *decoder) number() ([]byte, error) {
+	start := d.i
+	for d.i < len(d.s) {
+		c := d.s[d.i]
+		if !isNumber(c) && c != '+' && c != '.' && c != 'e' && c != 'E' {
+			break
+		}
+		d.i++
+	}
+	t := d.s[start:d.i]
+	_, w, f, ok := digits(t)
+	if !ok || (len(f) == 0 && len(w) > 16) ||
+		(len(f) > 0 && (len(f) > decimalFraction || significant(w, f) > decimalDigits)) {
+		return nil, fmt.Errorf("%s: a number in digits, a whole number of at most 16, a decimal of at most 6 after the point and 15 in all", t)
+	}
+	return t, nil
+}
+
+// Bound: the largest whole number of the contract, either way (SPEC.md, Units): 2⁵³ − 1, which every JSON reader holds
+// exactly. A time, a position, a bar and a count are whole numbers from 0 to Bound.
+const Bound = 1<<53 - 1
+
+// whole: a whole number from 0 to Bound, as a time, a position, a bar and a count are (-0 is 0)
+func (d *decoder) whole() (uint64, error) {
+	c, err := d.begin()
+	if err != nil {
+		return 0, err
+	}
+	if !isNumber(c) {
+		return 0, d.fault("a whole number, not %s", kindOf(c))
+	}
+	t, err := d.number()
+	if err != nil {
+		return 0, err
+	}
+	neg, w, f, _ := digits(t)
+	if len(f) > 0 {
+		return 0, d.fault("%s: a whole number, not a fraction", t)
+	}
+	var n uint64 // at most 16 digits (number)
+	for _, c := range w {
+		n = n*10 + uint64(c-'0')
+	}
+	switch {
+	case n > Bound:
+		return 0, d.fault("%s: a number past %d", t, uint64(Bound))
+	case neg && n != 0:
+		return 0, d.fault("%s: a whole number not negative", t)
+	}
+	return n, nil
+}
+
+// decimal: a price or a quantity, read from its digits (ParseDecimal)
+func (d *decoder) decimal() (Decimal, error) {
+	c, err := d.begin()
+	if err != nil {
+		return Decimal{}, err
+	}
+	if !isNumber(c) {
+		return Decimal{}, d.fault("a decimal, not %s", kindOf(c))
+	}
+	t, err := d.number()
+	if err != nil {
+		return Decimal{}, err
+	}
+	x, ok := decimalOf(t)
+	if !ok {
+		return Decimal{}, d.fault("%s: %v", t, errDecimal)
+	}
+	return x, nil
+}
+
+// record: an object read into a record: exactly its fields, none other, none twice, none missing but an optional one
+func (d *decoder) record(dst reflect.Value, s *shape) error {
+	c, err := d.begin()
+	if err != nil {
+		return err
+	}
+	if c != '{' {
+		return d.fault("an object, not %s", kindOf(c))
+	}
+	d.i++
+	var got uint64
+	d.space()
+	if d.i < len(d.s) && d.s[d.i] == '}' {
+		d.i++
+	} else {
+		for {
+			d.space()
+			if d.i >= len(d.s) || d.s[d.i] != '"' {
+				return d.syntax("no name")
+			}
+			name, err := d.text()
+			if err != nil {
+				return err
+			}
+			k := -1
+			for i := range s.fields {
+				if string(name) == s.fields[i].name {
+					k = i
+					break
+				}
+			}
+			if k < 0 {
+				return d.fault("%q is no field of it", name)
+			}
+			f := &s.fields[k]
+			// a name twice in one object: refused, as no form keeps one of the two
+			if got&(1<<k) != 0 {
+				return fmt.Errorf("%q: a name twice in one object", f.name)
+			}
+			got |= 1 << k
+			d.space()
+			if d.i >= len(d.s) || d.s[d.i] != ':' {
+				return d.syntax("no : after a name")
+			}
+			d.i++
+			d.at = append(d.at, step{name: f.name})
+			if err := d.read(dst.Field(f.index), f.shape); err != nil {
+				return err
+			}
+			d.at = d.at[:len(d.at)-1]
+			d.space()
+			if d.i >= len(d.s) {
+				return d.syntax("an object not closed")
+			}
+			d.i++
+			if d.s[d.i-1] == '}' {
+				break
+			}
+			if d.s[d.i-1] != ',' {
+				return d.syntax("no , or } after a value")
+			}
+		}
+	}
+	if missing := s.required &^ got; missing != 0 {
+		return fmt.Errorf("%s: a field missing", d.place(s.fields[bits.TrailingZeros64(missing)].name))
 	}
 	return nil
 }
 
-func (r *reader) object() (value, error) {
-	if err := r.enter(); err != nil {
-		return value{}, err
-	}
-	defer func() { r.depth-- }()
-	r.i++ // {
-	v := value{kind: jObject}
-	var seen map[string]bool
-	r.space()
-	if r.i < len(r.s) && r.s[r.i] == '}' {
-		r.i++
-		return v, nil
-	}
-	for {
-		r.space()
-		if r.i >= len(r.s) || r.s[r.i] != '"' {
-			return value{}, r.fault("no name")
-		}
-		name, err := r.string()
-		if err != nil {
-			return value{}, err
-		}
-		// a name twice in one object: refused, as no form keeps one of the two
-		if len(v.names) >= 8 && seen == nil {
-			seen = make(map[string]bool, 16)
-			for _, n := range v.names {
-				seen[n] = true
+// items: how many items the array that begins at the place holds, by its commas outside any text, array or object in
+// it, and its bytes between [ and ]: so that its items are read into a list of their number, not one grown and copied
+// as it is read. Only a measure: the array is read after, and refused then if it is not JSON.
+func (d *decoder) items() (n, length int) {
+	depth, some := 0, false
+	for i := d.i + 1; i < len(d.s); i++ {
+		switch c := d.s[i]; c {
+		case '"':
+			for i++; i < len(d.s) && d.s[i] != '"'; i++ {
+				if d.s[i] == '\\' {
+					i++
+				}
+			}
+		case '[', '{':
+			depth++
+		case ']', '}':
+			if depth == 0 {
+				if some {
+					n++
+				}
+				return n, i - d.i - 1
+			}
+			depth--
+		case ',':
+			if depth == 0 {
+				n++
 			}
 		}
-		if (seen != nil && seen[name]) || (seen == nil && slices.Contains(v.names, name)) {
-			return value{}, fmt.Errorf("%q: a name twice in one object", name)
-		}
-		if seen != nil {
-			seen[name] = true
-		}
-		r.space()
-		if r.i >= len(r.s) || r.s[r.i] != ':' {
-			return value{}, r.fault("no : after a name")
-		}
-		r.i++
-		x, err := r.value()
-		if err != nil {
-			return value{}, err
-		}
-		v.names, v.items = append(v.names, name), append(v.items, x)
-		r.space()
-		if r.i >= len(r.s) {
-			return value{}, r.fault("an object not closed")
-		}
-		r.i++
-		switch r.s[r.i-1] {
-		case '}':
-			return v, nil
-		case ',':
-		default:
-			return value{}, r.fault("no , or } after a value")
+		if i < len(d.s) {
+			if c := d.s[i]; c != ' ' && c != '\t' && c != '\n' && c != '\r' {
+				some = true
+			}
 		}
 	}
+	return n, len(d.s) - d.i - 1
 }
 
-func (r *reader) array() (value, error) {
-	if err := r.enter(); err != nil {
-		return value{}, err
+// list: the items of an array, room made for as many as it holds, then each read by item into the place it will
+// keep, and the array's end found. The room is never more than its bytes hold of items of least bytes each, so that a
+// text that is not JSON, [,,,] among them, makes no more room than one that is.
+func (d *decoder) list(least int, room func(n int), item func(i int) error) error {
+	c, err := d.begin()
+	if err != nil {
+		return err
 	}
-	defer func() { r.depth-- }()
-	r.i++ // [
-	v := value{kind: jArray}
-	r.space()
-	if r.i < len(r.s) && r.s[r.i] == ']' {
-		r.i++
-		return v, nil
+	if c != '[' {
+		return d.fault("an array, not %s", kindOf(c))
 	}
-	for {
-		x, err := r.value()
-		if err != nil {
-			return value{}, err
+	n, length := d.items()
+	room(min(n, (length+1)/(least+1)))
+	d.i++
+	d.space()
+	if d.i < len(d.s) && d.s[d.i] == ']' {
+		d.i++
+		return nil
+	}
+	for i := 0; ; i++ {
+		d.at = append(d.at, step{index: i})
+		if err := item(i); err != nil {
+			return err
 		}
-		v.items = append(v.items, x)
-		r.space()
-		if r.i >= len(r.s) {
-			return value{}, r.fault("an array not closed")
+		d.at = d.at[:len(d.at)-1]
+		d.space()
+		if d.i >= len(d.s) {
+			return d.syntax("an array not closed")
 		}
-		r.i++
-		switch r.s[r.i-1] {
+		d.i++
+		switch d.s[d.i-1] {
 		case ']':
-			return v, nil
+			return nil
 		case ',':
 		default:
-			return value{}, r.fault("no , or ] after a value")
+			return d.syntax("no , or ] after a value")
 		}
 	}
 }
 
-// string: a JSON string's characters, its escapes read; a character below U+0020, an escape JSON does not have, and
-// half of a character escaped as UTF-16 refused
-func (r *reader) string() (string, error) {
-	r.i++ // "
-	start := r.i
-	for r.i < len(r.s) && r.s[r.i] != '"' && r.s[r.i] != '\\' && r.s[r.i] >= 0x20 {
-		r.i++
+// text: a JSON string's characters, its escapes read; a character below U+0020, an escape JSON does not have, and
+// half of a character escaped as UTF-16 refused. The bytes of the text where it has no escape, else of d.name: either
+// good until the next name is read.
+func (d *decoder) text() ([]byte, error) {
+	d.i++ // "
+	start := d.i
+	for d.i < len(d.s) && d.s[d.i] != '"' && d.s[d.i] != '\\' && d.s[d.i] >= 0x20 {
+		d.i++
 	}
-	if r.i < len(r.s) && r.s[r.i] == '"' {
-		r.i++
-		return string(r.s[start : r.i-1]), nil
+	if d.i < len(d.s) && d.s[d.i] == '"' {
+		d.i++
+		return d.s[start : d.i-1], nil
 	}
-	b := []byte(string(r.s[start:r.i]))
+	b := append(d.name[:0], d.s[start:d.i]...)
+	defer func() { d.name = b[:0] }()
 	for {
-		if r.i >= len(r.s) {
-			return "", r.fault("a text not closed")
+		if d.i >= len(d.s) {
+			return nil, d.syntax("a text not closed")
 		}
-		c := r.s[r.i]
+		c := d.s[d.i]
 		switch {
 		case c == '"':
-			r.i++
-			return string(b), nil
+			d.i++
+			return b, nil
 		case c < 0x20:
-			return "", r.fault("a control character in a text")
+			return nil, d.syntax("a control character in a text")
 		case c != '\\':
 			b = append(b, c)
-			r.i++
+			d.i++
 			continue
 		}
-		if r.i+1 >= len(r.s) {
-			return "", r.fault("a text not closed")
+		if d.i+1 >= len(d.s) {
+			return nil, d.syntax("a text not closed")
 		}
-		e := r.s[r.i+1]
-		r.i += 2
+		e := d.s[d.i+1]
+		d.i += 2
 		switch e {
 		case '"', '\\', '/':
 			b = append(b, e)
@@ -262,293 +559,185 @@ func (r *reader) string() (string, error) {
 		case 't':
 			b = append(b, '\t')
 		case 'u':
-			c1, ok := r.hex4()
+			c1, ok := d.hex4()
 			if !ok {
-				return "", r.fault("an escape \\u not of four hex digits")
+				return nil, d.syntax("an escape \\u not of four hex digits")
 			}
 			if utf16.IsSurrogate(c1) {
 				c2 := rune(-1)
-				if r.i+1 < len(r.s) && r.s[r.i] == '\\' && r.s[r.i+1] == 'u' {
-					r.i += 2
-					c2, ok = r.hex4()
+				if d.i+1 < len(d.s) && d.s[d.i] == '\\' && d.s[d.i+1] == 'u' {
+					d.i += 2
+					c2, ok = d.hex4()
 					if !ok {
-						return "", r.fault("an escape \\u not of four hex digits")
+						return nil, d.syntax("an escape \\u not of four hex digits")
 					}
 				}
 				c1 = utf16.DecodeRune(c1, c2)
 				if c1 == utf8.RuneError {
-					return "", r.fault("half of a character escaped")
+					return nil, d.syntax("half of a character escaped")
 				}
 			}
 			b = utf8.AppendRune(b, c1)
 		default:
-			return "", r.fault("an escape JSON does not have")
+			return nil, d.syntax("an escape JSON does not have")
 		}
 	}
 }
 
-func (r *reader) hex4() (rune, bool) {
-	if r.i+4 > len(r.s) {
+func (d *decoder) hex4() (rune, bool) {
+	if d.i+4 > len(d.s) {
 		return 0, false
 	}
-	n, err := strconv.ParseUint(string(r.s[r.i:r.i+4]), 16, 32)
+	var n rune
+	for _, c := range d.s[d.i : d.i+4] {
+		switch {
+		case '0' <= c && c <= '9':
+			n = n<<4 | rune(c-'0')
+		case 'a' <= c && c <= 'f':
+			n = n<<4 | rune(c-'a'+10)
+		case 'A' <= c && c <= 'F':
+			n = n<<4 | rune(c-'A'+10)
+		default:
+			return 0, false
+		}
+	}
+	d.i += 4
+	return n, true
+}
+
+func (l *List[T]) readJSON(d *decoder) error {
+	var items []T
+	s := shapeOf(reflect.TypeFor[T]())
+	room := func(n int) {
+		if n > 0 {
+			items = make([]T, 0, n)
+		}
+	}
+	err := d.list(s.least, room, func(int) error {
+		var zero T
+		items = append(items, zero)
+		p := &items[len(items)-1]
+		if s.op == opRecord {
+			return d.record(reflect.ValueOf(p).Elem(), s)
+		}
+		return readInto(d, p)
+	})
 	if err != nil {
-		return 0, false
-	}
-	r.i += 4
-	return rune(n), true
-}
-
-// number: a JSON number, refused unless written as the contract writes a number (SPEC.md, The JSON): in digits, no
-// exponent; a whole number of at most 16 digits, or a decimal of at most 6 digits after the point and 15 from the
-// first that is not 0, the last not 0. Its kind and bound are its field's (whole, ParseDecimal).
-func (r *reader) number() (value, error) {
-	start := r.i
-	for r.i < len(r.s) && strings.IndexByte("-+.eE0123456789", r.s[r.i]) >= 0 {
-		r.i++
-	}
-	t := string(r.s[start:r.i])
-	_, w, f, ok := digits(t)
-	if !ok || (f == "" && len(w) > 16) || (f != "" && (len(f) > decimalFraction || significant(w, f) > decimalDigits)) {
-		return value{}, fmt.Errorf("%s: a number in digits, a whole number of at most 16, a decimal of at most 6 after the point and 15 in all", t)
-	}
-	return value{kind: jNumber, text: t}, nil
-}
-
-// Bound: the largest whole number of the contract, either way (SPEC.md, Units): 2⁵³ − 1, which every JSON reader holds
-// exactly. A time, a position, a bar and a count are whole numbers from 0 to Bound.
-const Bound = 1<<53 - 1
-
-// whole: a whole number from 0 to Bound, as a time, a position, a bar and a count are (-0 is 0)
-func whole(v *value) (uint64, error) {
-	if v.kind != jNumber {
-		return 0, fmt.Errorf("a whole number, not %s", v.kind)
-	}
-	neg, w, f, _ := digits(v.text)
-	if f != "" {
-		return 0, fmt.Errorf("%s: a whole number, not a fraction", v.text)
-	}
-	n, err := strconv.ParseUint(w, 10, 64)
-	if err != nil || n > Bound {
-		return 0, fmt.Errorf("%s: a number past %d", v.text, uint64(Bound))
-	}
-	if neg && n != 0 {
-		return 0, fmt.Errorf("%s: a whole number not negative", v.text)
-	}
-	return n, nil
-}
-
-// A record's fields, by their tags: in the order of the type, and in the order of their names (ASCII), the canonical
-// text's
-type field struct {
-	name     string
-	index    int
-	optional bool
-}
-
-type fields struct {
-	list   []field
-	sorted []field
-	byName map[string]int
-}
-
-var fieldsCache sync.Map // reflect.Type → *fields
-
-func fieldsOf(t reflect.Type) *fields {
-	if f, ok := fieldsCache.Load(t); ok {
-		return f.(*fields)
-	}
-	fs := &fields{byName: map[string]int{}}
-	for i := range t.NumField() {
-		sf := t.Field(i)
-		name, ok := sf.Tag.Lookup("chanlun")
-		if !ok {
-			continue
-		}
-		_, opt := reflect.Zero(sf.Type).Interface().(optional)
-		fs.byName[name] = len(fs.list)
-		fs.list = append(fs.list, field{name: name, index: i, optional: opt})
-	}
-	fs.sorted = slices.Clone(fs.list)
-	slices.SortFunc(fs.sorted, func(a, b field) int { return strings.Compare(a.name, b.name) })
-	f, _ := fieldsCache.LoadOrStore(t, fs)
-	return f.(*fields)
-}
-
-// What List and Optional give the JSON: List reads and writes its items, Optional its value
-type fromJSON interface {
-	fromJSON(v *value, at string) error
-}
-
-type optional interface {
-	jsonValue() (reflect.Value, bool)
-}
-
-type list interface {
-	jsonItems() []reflect.Value
-}
-
-func (l *List[T]) fromJSON(v *value, at string) error {
-	if v.kind != jArray {
-		return fmt.Errorf("%s: an array, not %s", place(at), v.kind)
-	}
-	items := make([]T, len(v.items))
-	for i := range v.items {
-		if err := decode(reflect.ValueOf(&items[i]).Elem(), &v.items[i], join(at, strconv.Itoa(i))); err != nil {
-			return err
-		}
+		return err
 	}
 	l.items = items
 	return nil
 }
 
-func (l List[T]) jsonItems() []reflect.Value {
-	vs := make([]reflect.Value, len(l.items))
-	for i := range l.items {
-		vs[i] = reflect.ValueOf(l.items[i])
-	}
-	return vs
-}
+func (l *List[T]) written() bool { return true }
 
-func (o *Optional[T]) fromJSON(v *value, at string) error {
-	var x T
-	if err := decode(reflect.ValueOf(&x).Elem(), v, at); err != nil {
+func (o *Optional[T]) readJSON(d *decoder) error {
+	if err := readInto(d, &o.value); err != nil {
 		return err
 	}
-	*o = Some(x)
+	o.set = true
 	return nil
 }
 
-func (o Optional[T]) jsonValue() (reflect.Value, bool) { return reflect.ValueOf(o.value), o.set }
+func (o *Optional[T]) written() bool { return o.set }
 
-var decimalType = reflect.TypeFor[Decimal]()
-
-// A place in the JSON as the TypeScript form names it: the names and places from the top, joined by ., klines.5.date;
-// the top itself "the JSON"
-func join(at, name string) string {
-	if at == "" {
-		return name
-	}
-	return at + "." + name
+// The writer: the canonical text (SPEC.md, The JSON), held as it is written in pieces of about a chunk each, never
+// grown and copied, then copied once into the text it gives
+type encoder struct {
+	b      []byte   // the piece being written
+	pieces [][]byte // the pieces written before it
 }
 
-func place(at string) string {
-	if at == "" {
-		return "the JSON"
+const chunk = 1 << 20
+
+// cut: the piece being written put by once it is a chunk long, and a new one begun
+func (e *encoder) cut() {
+	if len(e.b) >= chunk {
+		e.pieces = append(e.pieces, e.b)
+		e.b = make([]byte, 0, chunk+chunk/8)
 	}
-	return at
 }
 
-// decode: the value v read into dst, of a record's type or of one of its fields' types, at the place `at`
-func decode(dst reflect.Value, v *value, at string) error {
-	if v.kind == jNull {
-		return fmt.Errorf("%s: null, where a field not set is left out", place(at))
+// text: the text written, in one string
+func (e *encoder) text() string {
+	n := len(e.b)
+	for _, p := range e.pieces {
+		n += len(p)
 	}
-	if d, ok := dst.Addr().Interface().(fromJSON); ok {
-		return d.fromJSON(v, at)
+	var t strings.Builder
+	t.Grow(n)
+	for _, p := range e.pieces {
+		t.Write(p)
 	}
-	switch t := dst.Type(); {
-	case t == decimalType:
-		if v.kind != jNumber {
-			return fmt.Errorf("%s: a decimal, not %s", place(at), v.kind)
-		}
-		d, err := ParseDecimal(v.text)
-		if err != nil {
-			return fmt.Errorf("%s: %s: %w", place(at), v.text, err)
-		}
-		dst.Set(reflect.ValueOf(d))
-	case t.Kind() == reflect.Uint64:
-		n, err := whole(v)
-		if err != nil {
-			return fmt.Errorf("%s: %w", place(at), err)
-		}
-		dst.SetUint(n)
-	case t.Kind() == reflect.Bool:
-		if v.kind != jBool {
-			return fmt.Errorf("%s: a boolean, not %s", place(at), v.kind)
-		}
-		dst.SetBool(v.b)
-	case t.Kind() == reflect.Struct:
-		return decodeRecord(dst, v, at)
-	default:
-		return fmt.Errorf("%s: a field of a type the JSON does not read (%s)", place(at), t)
-	}
-	return nil
+	t.Write(e.b)
+	return t.String()
 }
 
-// decodeRecord: an object read into a record: exactly its fields, none other, none missing but an optional one
-func decodeRecord(dst reflect.Value, v *value, at string) error {
-	if v.kind != jObject {
-		return fmt.Errorf("%s: an object, not %s", place(at), v.kind)
-	}
-	fs := fieldsOf(dst.Type())
-	got := make([]bool, len(fs.list))
-	for k, name := range v.names {
-		i, ok := fs.byName[name]
-		if !ok {
-			return fmt.Errorf("%s: %q is no field of it", place(at), name)
-		}
-		got[i] = true
-		if err := decode(dst.Field(fs.list[i].index), &v.items[k], join(at, name)); err != nil {
-			return err
-		}
-	}
-	for i, f := range fs.list {
-		if !got[i] && !f.optional {
-			return fmt.Errorf("%s: a field missing", join(at, f.name))
-		}
-	}
-	return nil
-}
+func (e *encoder) str(s string) { e.b = append(e.b, s...) }
 
-// writeRecord: a record as the canonical text writes it (SPEC.md, The JSON): its fields in the order of their names,
-// a field not set left out, no spaces
-func writeRecord(b *strings.Builder, v reflect.Value) {
-	fs := fieldsOf(v.Type())
-	b.WriteByte('{')
-	first := true
-	for _, f := range fs.sorted {
-		x := v.Field(f.index)
-		if o, ok := x.Interface().(optional); ok {
-			inner, set := o.jsonValue()
-			if !set {
+func (e *encoder) uint(n uint64) { e.b = strconv.AppendUint(e.b, n, 10) }
+
+func (e *encoder) decimal(x Decimal) { e.b = x.appendTo(e.b) }
+
+func (e *encoder) boolean(v bool) { e.b = strconv.AppendBool(e.b, v) }
+
+// write: a value as the canonical text writes it, by its type's shape: a number in its digits, a boolean true or
+// false, an array of numbers [, its numbers separated by ,, ], a record its fields in the order of their names, a field
+// not set left out, no spaces
+func (e *encoder) write(v reflect.Value, s *shape) {
+	switch s.op {
+	case opUint:
+		e.uint(v.Uint())
+	case opBool:
+		e.boolean(v.Bool())
+	case opDecimal:
+		e.decimal(*v.Addr().Interface().(*Decimal))
+	case opCodec:
+		v.Addr().Interface().(codec).writeJSON(e)
+	case opRecord:
+		e.b = append(e.b, '{')
+		first := true
+		for _, f := range s.sorted {
+			x := v.Field(f.index)
+			if f.shape.op == opCodec && !x.Addr().Interface().(codec).written() {
 				continue
 			}
-			x = inner
+			if !first {
+				e.b = append(e.b, ',')
+			}
+			first = false
+			e.str(f.quoted)
+			e.write(x, f.shape)
 		}
-		if !first {
-			b.WriteByte(',')
-		}
-		first = false
-		b.WriteString(strconv.Quote(f.name))
-		b.WriteByte(':')
-		writeValue(b, x)
+		e.b = append(e.b, '}')
 	}
-	b.WriteByte('}')
 }
 
-// writeValue: a field's value: a number in its digits, a boolean true or false, an array of numbers [, its numbers
-// separated by ,, ]
-func writeValue(b *strings.Builder, x reflect.Value) {
-	if l, ok := x.Interface().(list); ok {
-		b.WriteByte('[')
-		for i, item := range l.jsonItems() {
-			if i > 0 {
-				b.WriteByte(',')
-			}
-			writeValue(b, item)
-		}
-		b.WriteByte(']')
-		return
-	}
-	switch t := x.Type(); {
-	case t == decimalType:
-		b.WriteString(x.Interface().(Decimal).String())
-	case t.Kind() == reflect.Uint64:
-		b.WriteString(strconv.FormatUint(x.Uint(), 10))
-	case t.Kind() == reflect.Bool:
-		b.WriteString(strconv.FormatBool(x.Bool()))
-	case t.Kind() == reflect.Struct:
-		writeRecord(b, x)
+// writeInto: *p as the canonical text writes it, of a field's type
+func writeInto[T any](e *encoder, p *T) {
+	switch q := any(p).(type) {
+	case *uint64:
+		e.uint(*q)
+	case *Decimal:
+		e.decimal(*q)
+	case *bool:
+		e.boolean(*q)
+	case codec:
+		q.writeJSON(e)
+	default:
+		e.write(reflect.ValueOf(p).Elem(), shapeOf(reflect.TypeFor[T]()))
 	}
 }
+
+func (l *List[T]) writeJSON(e *encoder) {
+	e.b = append(e.b, '[')
+	for i := range l.items {
+		if i > 0 {
+			e.b = append(e.b, ',')
+		}
+		writeInto(e, &l.items[i])
+	}
+	e.b = append(e.b, ']')
+}
+
+func (o *Optional[T]) writeJSON(e *encoder) { writeInto(e, &o.value) }

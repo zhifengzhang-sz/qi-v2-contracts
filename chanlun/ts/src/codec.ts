@@ -34,7 +34,8 @@ import {
 // The run's own rules (SPEC.md, The run): the K-lines and merged bars numbered by their place; the 分型 strictly
 // increasing by `mIndex`; the 笔 and each level's 线段, 走势 and 中枢 strictly increasing by `start`; every position a
 // K-line's, every bar a merged bar's; each level's 线段, 走势 and 中枢 of that level; in `merged`, in `strokes` and in each
-// level of `segments`, `moves` and `consolidations` at most one record going on (its `confirmEnd` not set), the last.
+// level of `segments`, `moves` and `consolidations` at most one record going on (its `confirmEnd` not set), the last;
+// `segments`, `moves` and `consolidations` each ending with a level that is not empty, so that one run has one text.
 const positionsOf = (r: object): readonly number[] =>
   ["index", "start", "end", "confirmEnd", "extremes"].flatMap((k) => {
     const v = (r as { readonly [k: string]: unknown })[k];
@@ -106,6 +107,14 @@ const runOf = <K extends { readonly index: number }>(klines: z.ZodType<readonly 
             issue([...path, i], "a merged bar past the run's merged bars");
         });
       };
+      // a part by level ends with a level that is not empty: its levels 0 to its highest with a record, `[]` if none
+      const lastLevel = (part: string, ls: readonly (readonly unknown[])[]) => {
+        if (ls.length > 0 && ls.at(-1)?.length === 0)
+          issue([part, ls.length - 1], "a part by level's last level not empty");
+      };
+      lastLevel("segments", run.segments);
+      lastLevel("moves", run.moves);
+      lastLevel("consolidations", run.consolidations);
       ongoingLast(["merged"], "merged bars", run.merged);
       linesIn(["strokes"], run.strokes);
       rising(["strokes"], "笔", run.strokes);

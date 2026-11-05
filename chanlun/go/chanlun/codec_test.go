@@ -4,6 +4,9 @@ package chanlun
 // and a fuzzed text never a panic, and, if read, given back as a text that reads to itself.
 
 import (
+	"os"
+	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -91,6 +94,80 @@ func TestRulesOfARecordMadeInGo(t *testing.T) {
 		"\"merged\": [],\n\"fractals\": [],\n\"strokes\": [],\n\"segments\": [],\n\"moves\": [],\n\"consolidations\": []\n}\n"
 	if text != want {
 		t.Errorf("not the canonical text:\n%s", text)
+	}
+}
+
+// A decode that fails gives the zero value: never a record half read, nor a run that breaks a rule
+func TestRefusedIsZero(t *testing.T) {
+	for _, c := range []struct {
+		dir  string
+		mode mode
+	}{{"reject", mode{}}, {"massive/reject", mode{massive: true}}, {"ongoing/reject", mode{ongoing: true}}} {
+		names, err := filepath.Glob(filepath.Join(vectors, c.dir, "*.json"))
+		if err != nil || len(names) == 0 {
+			t.Fatalf("%s: no reject case", c.dir)
+		}
+		for _, n := range names {
+			data, err := os.ReadFile(n)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var got any
+			switch {
+			case c.mode.ongoing:
+				got, err = DecodeOngoingKLine(data)
+			case c.mode.massive:
+				got, err = DecodeMassiveRun(data)
+			default:
+				got, err = DecodeRun(data)
+			}
+			if err == nil || !reflect.ValueOf(got).IsZero() {
+				t.Errorf("%s: %v, and not the zero value", n, err)
+			}
+		}
+	}
+}
+
+// A part by level ends with a level that is not empty, in a run made in Go as in a run read: Check refuses it, and
+// EncodeRun does not write it; an empty level below the last stays
+func TestLastLevelNotEmpty(t *testing.T) {
+	r, err := DecodeRun(read(t, "small.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	with := func(f func(*Run)) Run { c := r; f(&c); return c }
+	segments, consolidations := r.Segments.Slice(), r.Consolidations.Slice()
+	for name, broken := range map[string]Run{
+		"segments [[a], []]": with(func(c *Run) { c.Segments = ListOf(append(segments, List[Segment]{})...) }),
+		"segments [[]]":      with(func(c *Run) { c.Segments = ListOf(List[Segment]{}) }),
+		"moves [[a], []]":    with(func(c *Run) { c.Moves = ListOf(r.Moves.At(0), List[Move]{}) }),
+		"consolidations [[a], [b], []]": with(func(c *Run) {
+			c.Consolidations = ListOf(append(consolidations, List[Consolidation]{})...)
+		}),
+	} {
+		if err := broken.Check(); err == nil || !strings.Contains(err.Error(), "a part by level's last level not empty") {
+			t.Errorf("%s: Check gave %v", name, err)
+		}
+		if text, err := EncodeRun(broken); err == nil {
+			t.Errorf("%s: written:\n%s", name, text)
+		}
+	}
+	// the 中枢 of level 1 alone: level 0 empty below it, allowed, and given back
+	below := with(func(c *Run) { c.Consolidations = ListOf(List[Consolidation]{}, consolidations[1]) })
+	text, err := EncodeRun(below)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if again, err := DecodeRun([]byte(text)); err != nil || again.Consolidations.At(0).Len() != 0 {
+		t.Fatalf("an empty level below the last: %v", err)
+	}
+	if !strings.Contains(text, "\"consolidations\": [\n[],\n[\n{") {
+		t.Fatalf("an empty level below the last not written as []:\n%s", text)
+	}
+	// a part with no record is []
+	none := with(func(c *Run) { c.Segments, c.Moves = List[List[Segment]]{}, List[List[Move]]{} })
+	if text, err := EncodeRun(none); err != nil || !strings.Contains(text, "\"segments\": [],\n\"moves\": [],\n") {
+		t.Fatalf("an empty part: %v\n%s", err, text)
 	}
 }
 

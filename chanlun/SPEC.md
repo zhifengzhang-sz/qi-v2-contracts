@@ -1,6 +1,6 @@
 # 缠论's contract: the algorithm's records
 
-Version 2.2.0. The records the algorithm of 缠论 gives over a run of bars, of whatever implementation gives them, and
+Version 2.3.0. The records the algorithm of 缠论 gives over a run of bars, of whatever implementation gives them, and
 how they cross from one project to another as JSON. It is written in TypeScript (`ts/`, Zod schemas); Lean (`lean/`,
 structures with a JSON codec) is a second form of it, and Go (`go/`, one module of the standard library only, its types
 made from the Zod schemas, its rules and its JSON written by hand) a third, whose types and functions have the
@@ -48,7 +48,7 @@ A field that may be not set (marked ?) is left out when it is not set; it is nev
 bar still merging, a line not yet ended, a 中枢 under construction, has none; in a run at most one record of a part, or
 of a level, is going on, the last (The run). Every position is a
 K-line's of the run, and every bar a merged bar's (The run), so the time of any position is the time of the K-line at
-it (`timeAt` in TypeScript, `RunOf.timeAt` in Lean): no other time is kept.
+it (`timeAt` in TypeScript, `RunOf.timeAt` in Lean, `Run.TimeAt` in Go): no other time is kept.
 
 ## The records
 
@@ -73,8 +73,8 @@ run).
 
 #### Massive's K-line
 
-`massiveKlineSchema` and `MassiveKLine` in TypeScript, `MassiveKLine` in Lean, 9 fields: the base's, and from Massive's
-row:
+`massiveKlineSchema` and `MassiveKLine` in TypeScript, `MassiveKLine` in Lean, `MassiveKLine` in Go, 9 fields: the
+base's, and from Massive's row:
 
 | Field | Kind | Meaning |
 |---|---|---|
@@ -96,9 +96,10 @@ Rule: `date ≤ asOf`.
 
 It is defined once over any source's K-line, as the run is, so that a source's own fields are defined only in its
 K-line: `OngoingKLine` of the base and `MassiveOngoingKLine` of Massive's. In TypeScript they are `ongoingKlineSchema`
-and `massiveOngoingKlineSchema`; in Lean, `OngoingOf K`. It crosses as one JSON object of its fields, under the rules
-of The JSON, and its canonical text is its record, as there, then a line break. Each form decodes it with
-`decodeOngoingKLine` and `decodeMassiveOngoingKLine`, and writes it with `encodeOngoingKLine`.
+and `massiveOngoingKlineSchema`; in Lean, `OngoingOf K`; in Go, `OngoingKLine` and `MassiveOngoingKLine`. It crosses
+as one JSON object of its fields, under the rules of The JSON, and its canonical text is its record, as there, then a
+line break. Each form decodes it with `decodeOngoingKLine` and `decodeMassiveOngoingKLine`, and writes it with
+`encodeOngoingKLine` (in Go, `DecodeOngoingKLine`, `DecodeMassiveOngoingKLine` and `EncodeOngoingKLine`).
 
 ### Merged bar (包含)
 
@@ -128,7 +129,7 @@ chosen. A merged bar has no `confirmStart`: its first K-line both begins it and 
 
 ### Line (笔, 线段, 走势)
 
-`lineSchema` and `Line` in TypeScript, `Line` in Lean.
+`lineSchema` and `Line` in TypeScript, `Line` in Lean, `Line` in Go.
 
 | Field | Kind | Meaning |
 |---|---|---|
@@ -137,23 +138,24 @@ chosen. A merged bar has no `confirmStart`: its first K-line both begins it and 
 
 Rule: `start < end`.
 
-A 笔 is a line: `strokeSchema` and `Stroke` in TypeScript, `Stroke` in Lean.
+A 笔 is a line: `strokeSchema` and `Stroke` in TypeScript, `Stroke` in Lean, `Stroke` in Go.
 
-A 线段 is a line of level L: `segmentSchema` and `Segment` in TypeScript, `Segment` in Lean. It has the line's fields
-and rule, and:
+A 线段 is a line of level L: `segmentSchema` and `Segment` in TypeScript, `Segment` in Lean, `Segment` in Go. It has the
+line's fields and rule, and:
 
 | Field | Kind | Meaning |
 |---|---|---|
 | `level` | count | its level L |
 
-A 走势 is a line of level L: `moveSchema` and `Move` in TypeScript, `Move` in Lean, with the same fields and rule as a
-线段.
+A 走势 is a line of level L: `moveSchema` and `Move` in TypeScript, `Move` in Lean, `Move` in Go, with the same fields
+and rule as a 线段.
 
-A run holds every level, and a level a run does not hold is empty.
+A part by level holds the levels 0 to its highest level with a record (The run), and a level a run does not hold,
+above them, is empty.
 
 ### Consolidation (中枢)
 
-`consolidationSchema` and `Consolidation` in TypeScript, `Consolidation` in Lean.
+`consolidationSchema` and `Consolidation` in TypeScript, `Consolidation` in Lean, `Consolidation` in Go.
 
 | Field | Kind | Meaning |
 |---|---|---|
@@ -182,8 +184,13 @@ K-lines; every bar (a merged bar's and a 分型's `mIndex`, a line's `start`, `e
 `consolidations`, at most one record with no `confirmEnd`, and if one, the last: the configuration still going on. A run
 of confirmed records alone conforms; the one going on is allowed, not required.
 
+A part by level, `segments`, `moves` or `consolidations`, ends with a level that is not empty: the levels it holds are 0
+to its highest level with a record, a level below its highest may be empty, and a part with no record is `[]`. So one
+run has one canonical text: `"moves": [[a]]` and `"moves": [[a], []]` would be one run, and the second is refused.
+
 Massive's run is a run whose `klines` are Massive's K-lines, under the same rules: `massiveRunSchema` and
-`decodeMassiveRun` in TypeScript, `MassiveRun` and `decodeMassiveRun` in Lean.
+`decodeMassiveRun` in TypeScript, `MassiveRun` and `decodeMassiveRun` in Lean, `MassiveRun` and `DecodeMassiveRun` in
+Go.
 
 ## Reading the records
 

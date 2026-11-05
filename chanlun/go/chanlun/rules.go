@@ -2,6 +2,7 @@ package chanlun
 
 import (
 	"fmt"
+	"strconv"
 )
 
 // The records' rules (SPEC.md, Units, The records and The run), written by hand, each Check giving the first rule
@@ -120,8 +121,8 @@ func (m MergedBar) Check() error {
 // Check: a 分型's rule: its mIndex within Bound.
 func (f Fractal) Check() error { return bounded("a 分型", f.MIndex) }
 
-func lineRule(start, end uint64, confirmEnd Optional[uint64], more ...uint64) error {
-	if err := bounded("a line", append([]uint64{start, end, confirmEnd.or(0)}, more...)...); err != nil {
+func lineRule(start, end uint64, confirmEnd Optional[uint64], level uint64) error {
+	if err := bounded("a line", start, end, confirmEnd.or(0), level); err != nil {
 		return err
 	}
 	if start >= end {
@@ -131,7 +132,7 @@ func lineRule(start, end uint64, confirmEnd Optional[uint64], more ...uint64) er
 }
 
 // Check: a line's rule: start < end.
-func (l Line) Check() error { return lineRule(l.Start, l.End, l.ConfirmEnd) }
+func (l Line) Check() error { return lineRule(l.Start, l.End, l.ConfirmEnd, 0) }
 
 // Check: a 线段's rule, a line's: start < end.
 func (s Segment) Check() error { return lineRule(s.Start, s.End, s.ConfirmEnd, s.Level) }
@@ -172,9 +173,23 @@ type klineOf interface {
 	base() KLine
 }
 
+// where: a part, or a level of a part by level, made its place's text (segments.2) only for a fault, so that a run of
+// many levels is checked with no text made for each
+type where struct {
+	part  string
+	level int // -1 for a part not by level
+}
+
+func (w where) String() string {
+	if w.level < 0 {
+		return w.part
+	}
+	return w.part + "." + strconv.Itoa(w.level)
+}
+
 // lines: the rules of the run over the records of one part or one level: each one's own, its level, its bars below
 // the number of merged bars, strictly increasing by start, every one confirmed but the last
-func lines[L levelled](at, name string, rs List[L], level uint64, levelledPart bool, merged uint64) error {
+func lines[L levelled](at where, name string, rs List[L], level uint64, levelledPart bool, merged uint64) error {
 	var previous uint64
 	for i, r := range rs.items {
 		if err := r.Check(); err != nil {
@@ -192,6 +207,15 @@ func lines[L levelled](at, name string, rs List[L], level uint64, levelledPart b
 			return fmt.Errorf("%s.%d: a run's %s every one confirmed but the last", at, i, name)
 		}
 		previous = start
+	}
+	return nil
+}
+
+// lastLevel: a part by level ends with a level that is not empty: its levels 0 to its highest with a record, an
+// empty part a List of no level (SPEC.md, The run), so that one run has one text
+func lastLevel[T any](part string, levels List[List[T]]) error {
+	if last, ok := levels.Last(); ok && last.Len() == 0 {
+		return fmt.Errorf("%s.%d: a part by level's last level not empty", part, levels.Len()-1)
 	}
 	return nil
 }
@@ -256,22 +280,32 @@ func checkRun[K klineOf](klines List[K], merged List[MergedBar], fractals List[F
 	for i, s := range strokes.items {
 		ss[i] = stroke(s)
 	}
-	if err := lines("strokes", "笔", List[stroke]{items: ss}, 0, false, b); err != nil {
+	if err := lines(where{"strokes", -1}, "笔", List[stroke]{items: ss}, 0, false, b); err != nil {
 		return err
 	}
-	// segments, moves and consolidations: by level, the array at L the records of level L
+	// segments, moves and consolidations: by level, the array at L the records of level L, each part ending with a
+	// level that is not empty
+	if err := lastLevel("segments", segments); err != nil {
+		return err
+	}
+	if err := lastLevel("moves", moves); err != nil {
+		return err
+	}
+	if err := lastLevel("consolidations", consolidations); err != nil {
+		return err
+	}
 	for l, rs := range segments.items {
-		if err := lines(fmt.Sprintf("segments.%d", l), "线段", rs, uint64(l), true, b); err != nil {
+		if err := lines(where{"segments", l}, "线段", rs, uint64(l), true, b); err != nil {
 			return err
 		}
 	}
 	for l, rs := range moves.items {
-		if err := lines(fmt.Sprintf("moves.%d", l), "走势", rs, uint64(l), true, b); err != nil {
+		if err := lines(where{"moves", l}, "走势", rs, uint64(l), true, b); err != nil {
 			return err
 		}
 	}
 	for l, rs := range consolidations.items {
-		if err := lines(fmt.Sprintf("consolidations.%d", l), "中枢", rs, uint64(l), true, b); err != nil {
+		if err := lines(where{"consolidations", l}, "中枢", rs, uint64(l), true, b); err != nil {
 			return err
 		}
 	}

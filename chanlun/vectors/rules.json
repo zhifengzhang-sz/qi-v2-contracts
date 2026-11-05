@@ -177,7 +177,7 @@
         "The three records with `confirmEnd`, the merged bar, the line and the 中枢, leave it out under one rule: a configuration still going on, a merged bar still merging, a line not yet ended, a 中枢 under construction, has none",
         "(The run)",
         "(The run)",
-        "so the time of any position is the time of the K-line at it (`timeAt` in TypeScript, `RunOf.timeAt` in Lean): no other time is kept"
+        "so the time of any position is the time of the K-line at it (`timeAt` in TypeScript, `RunOf.timeAt` in Lean, `Run.TimeAt` in Go): no other time is kept"
       ]
     },
     "The records, paragraph 1": {
@@ -481,6 +481,32 @@
     "The run, paragraph 2": {
       "rules": [
         {
+          "rule": "ends with a level that is not empty",
+          "refused": ["a part by level's last level not empty"],
+          "vectors": [
+            "reject/segments-last-level-empty.json",
+            "reject/moves-last-level-empty.json",
+            "reject/consolidations-last-level-empty.json",
+            "reject/segments-only-an-empty-level.json",
+            "massive/reject/moves-last-level-empty.json"
+          ]
+        },
+        {
+          "rule": "a part with no record is `[]`",
+          "refused": ["a part by level's last level not empty"],
+          "vectors": ["reject/segments-only-an-empty-level.json"]
+        }
+      ],
+      "no rule": [
+        "A part by level, `segments`, `moves` or `consolidations`",
+        "the levels it holds are 0 to its highest level with a record",
+        "a level below its highest may be empty",
+        "So one run has one canonical text: `\"moves\": [[a]]` and `\"moves\": [[a], []]` would be one run, and the second is refused"
+      ]
+    },
+    "The run, paragraph 3": {
+      "rules": [
+        {
           "rule": "a run whose `klines` are Massive's K-lines",
           "refused": ["received undefined"],
           "vectors": ["massive/reject/klines-of-the-base.json"]
@@ -491,20 +517,22 @@
             "a K-line's index its place in the run",
             "a run's K-lines in the order of their times",
             "expected array to have >=1 items",
-            "a merged bar's number its place among the merged bars"
+            "a merged bar's number its place among the merged bars",
+            "a part by level's last level not empty"
           ],
           "vectors": [
             "massive/reject/kline-index-not-its-place.json",
             "massive/reject/klines-out-of-order.json",
             "massive/reject/klines-time-twice.json",
             "massive/reject/klines-none.json",
-            "massive/reject/merged-number-not-its-place.json"
+            "massive/reject/merged-number-not-its-place.json",
+            "massive/reject/moves-last-level-empty.json"
           ]
         }
       ],
       "no rule": [
         "Massive's run is",
-        "`massiveRunSchema` and `decodeMassiveRun` in TypeScript, `MassiveRun` and `decodeMassiveRun` in Lean"
+        "`massiveRunSchema` and `decodeMassiveRun` in TypeScript, `MassiveRun` and `decodeMassiveRun` in Lean, `MassiveRun` and `DecodeMassiveRun` in Go"
       ]
     },
     "The JSON, paragraph 1": {

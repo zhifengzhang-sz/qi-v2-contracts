@@ -92,7 +92,8 @@ func TestNothingGivenOutChangesTheRun(t *testing.T) {
 }
 
 // No type given out has an exported field, or a method whose result is, a slice, a map, a pointer or a channel: what
-// a holder is given can only be a value, but for List.Slice, a copy (TestNothingGivenOutChangesTheRun)
+// a holder is given can only be a value, but for List.Slice, a copy (TestNothingGivenOutChangesTheRun), and
+// MarshalJSON, which gives no bytes at all (TestNotByEncodingJSON)
 func TestNothingGivenOutIsShared(t *testing.T) {
 	shared := func(k reflect.Kind) bool {
 		return k == reflect.Slice || k == reflect.Map || k == reflect.Pointer || k == reflect.Chan || k == reflect.UnsafePointer
@@ -113,7 +114,7 @@ func TestNothingGivenOutIsShared(t *testing.T) {
 			for i := range m.NumMethod() {
 				method := m.Method(i)
 				for o := range method.Type.NumOut() {
-					if shared(method.Type.Out(o).Kind()) && method.Name != "Slice" {
+					if shared(method.Type.Out(o).Kind()) && method.Name != "Slice" && method.Name != "MarshalJSON" {
 						t.Errorf("%s.%s: a result a holder shares", m, method.Name)
 					}
 				}

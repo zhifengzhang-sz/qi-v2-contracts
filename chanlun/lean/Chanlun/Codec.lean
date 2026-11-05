@@ -98,6 +98,13 @@ def ongoingLast (at_ name : String) (ends : Array (Option Nat)) : Except String 
     if i + 1 < ends.size && ends[i]!.isNone then
       .error s!"{at_}.{i}: a run's {name} every one confirmed but the last"
 
+/-- A part by level ends with a level that is not empty: its levels 0 to its highest with a record, `[]` if none, so
+that one run has one text. Given its levels' sizes. -/
+def lastLevel (part : String) (sizes : Array Nat) : Except String Unit :=
+  match sizes.back? with
+  | some 0 => .error s!"{part}.{sizes.size - 1}: a part by level's last level not empty"
+  | _ => .ok ()
+
 def Consolidation.rule (c : Consolidation) : Option String :=
   if !(c.start < c.end && c.dd ≤ c.zd && c.zd ≤ c.zg && c.zg ≤ c.gg) then
     some "a 中枢 from a merged bar to a later one, its band ZD to ZG within its range DD to GG"
@@ -126,7 +133,11 @@ def RunOf.check {K : Type} [KLineOf K] (r : RunOf K) : Except String Unit := do
   -- the run's own rules: the K-lines and merged bars numbered by their place; the 分型 strictly increasing by `mIndex`;
   -- the 笔 and each level's 线段, 走势 and 中枢 strictly increasing by `start`; every position a K-line's, every bar a
   -- merged bar's; each level's 线段, 走势 and 中枢 of that level; in `merged`, in `strokes` and in each level of `segments`,
-  -- `moves` and `consolidations` at most one record going on, the last
+  -- `moves` and `consolidations` at most one record going on, the last; each part by level ending with a level that is
+  -- not empty
+  lastLevel "segments" (r.segments.map (·.size))
+  lastLevel "moves" (r.moves.map (·.size))
+  lastLevel "consolidations" (r.consolidations.map (·.size))
   r.fractals.size.fold (init := .ok ()) fun i _ acc => do
     acc
     if i > 0 && r.fractals[i - 1]!.mIndex ≥ r.fractals[i]!.mIndex then
