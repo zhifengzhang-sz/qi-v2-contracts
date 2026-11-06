@@ -8,16 +8,16 @@ capitalized (`KLine`, `DecodeOngoingKLine`, `EncodeOngoingKLine`); its Avro sche
 (`proto/market.proto`) are made from the TypeScript, for every other language and for a schema registry. The vectors
 (`vectors/`) are what every form must read alike.
 
-A contract built on it takes its K-line, its units and its JSON, and defines no K-line of its own: 缠论's
-(`../chanlun/SPEC.md`), whose run holds K-lines of this contract, each at its place in the run, its `index`. This
-contract says what a K-line is; that one what a run of them is.
+A K-line is one bar of a series of them, at its place in the series, its `index`. A contract built on this one takes
+its K-line, its units and its JSON, and defines no K-line of its own: this contract says what a K-line is; that one
+what it holds of them.
 
 ## Units
 
 | Kind | What it is |
 |---|---|
 | time | milliseconds since 1970-01-01 00:00:00 UTC, a whole number, not negative |
-| position | the position of a K-line in the run, from 0: a K-line's `index` |
+| position | the position of a K-line in its series, from 0: a K-line's `index` |
 | price | a decimal: at most 6 digits after the point, and at most 15 digits from the first that is not 0 |
 | quantity | a decimal as a price is, not negative |
 | count | a whole number, not negative |
@@ -36,18 +36,18 @@ Each record has exactly its fields: none other, none missing.
 
 | Field | Kind | Meaning |
 |---|---|---|
-| `index` | position | its place in the run, from 0 |
+| `index` | position | its place in its series, from 0 |
 | `date` | time | its begin time |
 | `open`, `high`, `low`, `close` | price | its prices |
 | `volume` | quantity | its volume |
 
 Rule: `low ≤ min(open, close)` and `max(open, close) ≤ high`.
 
-A K-line is a complete bar. A bar still going on is an ongoing K-line, a record of its own, in no run.
+A K-line is a complete bar. A bar still going on is an ongoing K-line, a record of its own, in no series yet.
 
 This is the base contract, 7 fields. Each data source has a contract of its own, derived from the base: the base's
-fields and its rule, and the source's own fields, in every form, with a run that takes it in a contract built on this
-one (Massive's run, `../chanlun/SPEC.md`, The run).
+fields and its rule, and the source's own fields, in every form, which a contract built on this one takes as it takes
+the base's.
 
 #### Massive's K-line
 
@@ -72,13 +72,12 @@ and:
 
 Rule: `date ≤ asOf`.
 
-It is defined once over any source's K-line, as chanlun's run is, so that a source's own fields are defined only in
-its K-line: `OngoingKLine` of the base and `MassiveOngoingKLine` of Massive's. In TypeScript they are
-`ongoingKlineSchema` and `massiveOngoingKlineSchema`; in Lean, `OngoingOf K`; in Go, `OngoingKLine` and
-`MassiveOngoingKLine`. It crosses as one JSON object of its fields, under the rules of The JSON, and its canonical text
-is its record, as there, then a line break. Each form decodes it with `decodeOngoingKLine` and
-`decodeMassiveOngoingKLine`, and writes it with `encodeOngoingKLine` (in Go, `DecodeOngoingKLine`,
-`DecodeMassiveOngoingKLine` and `EncodeOngoingKLine`).
+It is defined once over any source's K-line, so that a source's own fields are defined only in its K-line:
+`OngoingKLine` of the base and `MassiveOngoingKLine` of Massive's. In TypeScript they are `ongoingKlineSchema` and
+`massiveOngoingKlineSchema`; in Lean, `OngoingOf K`; in Go, `OngoingKLine` and `MassiveOngoingKLine`. It crosses as one
+JSON object of its fields, under the rules of The JSON, and its canonical text is its record, as there, then a line
+break. Each form decodes it with `decodeOngoingKLine` and `decodeMassiveOngoingKLine`, and writes it with
+`encodeOngoingKLine` (in Go, `DecodeOngoingKLine`, `DecodeMassiveOngoingKLine` and `EncodeOngoingKLine`).
 
 ## The JSON
 
@@ -93,11 +92,11 @@ The canonical text, which every form writes and the conformance check compares:
 
 - a record: its fields in the order of their names (ASCII), no spaces; a number in its digits.
 
-A contract built on this one writes its own records under these rules, and its own text around them (chanlun's run,
-`../chanlun/SPEC.md`, The JSON); each form gives it the reading and the writing of a record for that: in TypeScript
-`decodeAs(schema, text)` and `encodeRecord(r)`, in Lean `Market.parsed`, `Market.strict` and `Market.record`. The Go
-form gives its records' types, their rules (`Check`) and a K-line's base (`Base`), and `Decimal` with `DecimalOf` and
-`AppendTo`, by which such a contract reads and writes its own text of them.
+A contract built on this one writes its own records under these rules, and its own text around them; each form gives
+it the reading and the writing of a record for that: in TypeScript `decodeAs(schema, text)` and `encodeRecord(r)`, in
+Lean `Market.parsed`, `Market.strict` and `Market.record`. The Go form gives its records' types, their rules (`Check`)
+and a K-line's base (`Base`), and `Decimal` with `DecimalOf` and `AppendTo`, by which such a contract reads and writes
+its own text of them.
 
 ## The Avro schemas
 

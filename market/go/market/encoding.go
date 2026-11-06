@@ -14,8 +14,8 @@ import (
 // ErrEncodingJSON: what MarshalJSON and UnmarshalJSON give, for every type of the package: the contract's JSON is
 // written and read by its own functions, not by encoding/json.
 var ErrEncodingJSON = errors.New("market: not by encoding/json: an ongoing K-line is written by EncodeOngoingKLine " +
-	"and read by DecodeOngoingKLine or DecodeMassiveOngoingKLine, a K-line in its run by the contract built on this " +
-	"one (chanlun's EncodeRun and DecodeRun), a Decimal by String and ParseDecimal")
+	"and read by DecodeOngoingKLine or DecodeMassiveOngoingKLine, a K-line by the contract built on this one that " +
+	"holds it, a Decimal by String and ParseDecimal")
 
 // MarshalJSON: refused, ErrEncodingJSON: a Decimal's digits are String's.
 func (Decimal) MarshalJSON() ([]byte, error) { return nil, ErrEncodingJSON }
@@ -35,14 +35,14 @@ func (MassiveOngoingKLine) MarshalJSON() ([]byte, error) { return nil, ErrEncodi
 // UnmarshalJSON: refused, ErrEncodingJSON: Massive's ongoing K-line is read by DecodeMassiveOngoingKLine.
 func (*MassiveOngoingKLine) UnmarshalJSON([]byte) error { return ErrEncodingJSON }
 
-// MarshalJSON: refused, ErrEncodingJSON: a K-line is written in its run, by the contract built on this one.
+// MarshalJSON: refused, ErrEncodingJSON: a K-line is written by the contract built on this one that holds it.
 func (KLine) MarshalJSON() ([]byte, error) { return nil, ErrEncodingJSON }
 
-// UnmarshalJSON: refused, ErrEncodingJSON: a K-line is read in its run, by the contract built on this one.
+// UnmarshalJSON: refused, ErrEncodingJSON: a K-line is read by the contract built on this one that holds it.
 func (*KLine) UnmarshalJSON([]byte) error { return ErrEncodingJSON }
 
-// MarshalJSON: refused, ErrEncodingJSON: Massive's K-line is written in its run, by the contract built on this one.
+// MarshalJSON: refused, ErrEncodingJSON: Massive's K-line is written by the contract built on this one that holds it.
 func (MassiveKLine) MarshalJSON() ([]byte, error) { return nil, ErrEncodingJSON }
 
-// UnmarshalJSON: refused, ErrEncodingJSON: Massive's K-line is read in its run, by the contract built on this one.
+// UnmarshalJSON: refused, ErrEncodingJSON: Massive's K-line is read by the contract built on this one that holds it.
 func (*MassiveKLine) UnmarshalJSON([]byte) error { return ErrEncodingJSON }

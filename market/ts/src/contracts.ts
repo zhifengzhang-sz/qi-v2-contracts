@@ -1,11 +1,10 @@
 // The market data's records (../SPEC.md, The records): the K-lines, of whatever source gives them, each a Zod schema.
 //
 //   the K-line (klineSchema; a data source's, massiveKlineSchema)       the bars as read, each complete
-//   (a bar still going on: the ongoing K-line, ongoingKlineSchema, massiveOngoingKlineSchema, in no run)
+//   (a bar still going on: the ongoing K-line, ongoingKlineSchema, massiveOngoingKlineSchema, in no series yet)
 //
 // A K-line's date is its begin time, milliseconds since 1970, UTC. A price and a quantity are decimals. A contract built
-// on this one takes its K-line, and its units (positionSchema, priceSchema) for records of its own: 缠论's, whose run
-// holds K-lines of this contract (../../chanlun/SPEC.md, The run).
+// on this one takes its K-line, and its units (positionSchema, priceSchema) for records of its own.
 
 import { z } from "zod";
 
@@ -30,7 +29,7 @@ const quantity = z
   .refine((x) => decimal(String(x)), `a quantity ${decimalMessage}`);
 
 // The units a contract built on this one takes for records of its own (../SPEC.md, Units): a position, a K-line's
-// place in the run, and a price
+// place in its series, and a price
 export const positionSchema = position;
 export const priceSchema = price;
 
@@ -47,7 +46,7 @@ const withinRangeMessage = "a K-line's open and close within its low and high";
 // base's rule; a plain object for that (a schema ending in `.readonly().refine(...)` has no `.extend`).
 const klineBase = z
   .object({
-    // its place in the run, from 0
+    // its place in its series, from 0
     index: position,
     // its begin time
     date: time,
@@ -69,9 +68,9 @@ const massiveKlineBase = klineBase.extend({
 });
 export const massiveKlineSchema = massiveKlineBase.readonly().refine(withinRange, withinRangeMessage);
 
-// The ongoing K-line of a data source, defined once over the source's K-line, as chanlun's run is: its K-line's fields
-// and rule, `index` the place it will take when complete, and `asOf`, when its values were last updated, not before its
-// `date`. A bar still going on, in no run. (Zod's types do not reach a field through the generic shape, hence the casts.)
+// The ongoing K-line of a data source, defined once over the source's K-line: its K-line's fields and rule, `index` the
+// place it will take when complete, and `asOf`, when its values were last updated, not before its `date`. A bar still
+// going on, in no series yet. (Zod's types do not reach a field through the generic shape, hence the casts.)
 type Ongoing = KLine & { readonly asOf: number };
 const ongoingOf = <S extends typeof klineBase.shape>(kline: z.ZodObject<S, z.core.$strict>) =>
   kline

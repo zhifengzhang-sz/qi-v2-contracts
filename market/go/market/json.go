@@ -18,8 +18,8 @@ import (
 // (records.go) by its fields' tags, with no tree of the text built. It refuses what is not JSON and what the contract
 // does not allow of any JSON (text not UTF-8, a name twice in one object, a number not written in digits), a name that
 // is no field, a field missing, null, and a value of another kind. The rules come after (rules.go). The records here
-// are of numbers alone, whole numbers and decimals: a contract built on this one, whose records hold more (chanlun's,
-// with booleans, lists and fields that may be not set), reads its text by a reader of its own, under the same rules.
+// are of numbers alone, whole numbers and decimals: a contract built on this one, whose records may hold more
+// (booleans, lists, fields that may be not set), reads its text by a reader of its own, under the same rules.
 
 // A record's fields, by their tags, and how each is read and written; a type's, how a value of it is read and written
 type op uint8

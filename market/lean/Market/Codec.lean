@@ -7,7 +7,7 @@ How records cross from one project to another (../SPEC.md, The JSON), the same a
 Decoding takes an ongoing K-line's JSON: the object only the fields of its record, each field of its kind, then its
 rules (`OngoingOf.check`). Encoding writes the canonical text every form writes, so that the conformance check compares
 them as texts: a record's fields in the order of their names, a field not set left out. A contract built on this one
-reads and writes its own records by the same (`parsed`, `strict`, `record`): 缠论's run.
+reads and writes its own records by the same (`parsed`, `strict`, `record`).
 -/
 
 namespace Market

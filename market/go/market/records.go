@@ -33,7 +33,7 @@ type MassiveKLine struct {
 	N      uint64  `market:"n"`
 }
 
-// OngoingKLine: the ongoing K-line of the base, a bar still going on, in no run (SPEC.md, The ongoing K-line).
+// OngoingKLine: the ongoing K-line of the base, a bar still going on, in no series yet (SPEC.md, The ongoing K-line).
 type OngoingKLine struct {
 	Index  uint64  `market:"index"`
 	Date   uint64  `market:"date"`

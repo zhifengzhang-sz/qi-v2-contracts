@@ -17,6 +17,5 @@
 //
 // A K-line is a value: its fields are numbers and Decimals, each a value with no exported slice, map or pointer, so a
 // holder that changes its copy changes nothing in anyone else's. A contract built on this one takes its K-lines, their
-// rules (Check) and their base (Base), and Decimal for its own prices: 缠论's, whose run holds them
-// (github.com/zhifengzhang-sz/qi-v2-contracts/chanlun/go).
+// rules (Check) and their base (Base), and Decimal for its own prices.
 package market

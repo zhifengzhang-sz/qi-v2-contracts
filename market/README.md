@@ -5,12 +5,12 @@ another as JSON: `SPEC.md`. Three forms, the same records: TypeScript (`ts/`, `@
 Lake package `market`, no Mathlib) and Go (`go/`, the module `github.com/zhifengzhang-sz/qi-v2-contracts/market/go`,
 the standard library only, its types made from the Zod schemas, its rules and JSON written by hand). The vectors
 (`vectors/`) are what every form reads alike, checked on every change (`make market`): each vector by each form, every
-reject vector here with the rule of `SPEC.md` it breaks (`vectors/rules.json`), and changed copies of the vectors made
-by a fixed seed (`vectors/cases.ts`).
+rule of `SPEC.md` with a reject vector here that breaks it and every reject vector with the rule it breaks
+(`vectors/rules.json`), and changed copies of the vectors made by a fixed seed (`vectors/cases.ts`).
 
-A contract built on it takes its K-line, and defines none of its own: 缠论's (`../chanlun/`), whose run holds K-lines of
-this contract. Its runs are where a K-line's rules are broken one by one (`../chanlun/vectors/rules.json`, under
-`market`); market's own vectors are the ongoing K-lines.
+A contract built on it takes its K-line, and defines none of its own. The vectors here are its own: the two ongoing
+K-lines, of the base and of Massive's, and for every rule of `SPEC.md` at least one of them with one thing wrong that
+breaks it.
 
 ## Taking it
 
@@ -57,9 +57,9 @@ record's canonical text.
 Lean: `Market.decodeOngoingKLine text : Except String OngoingKLine`, `Market.decodeMassiveOngoingKLine text : Except
 String MassiveOngoingKLine`, `Market.encodeOngoingKLine k : String`; the structures `KLine`, `MassiveKLine`, `Price` and
 `Quantity`, and `OngoingOf K`, of which `OngoingKLine` and `MassiveOngoingKLine` are the two ongoing K-lines, with
-`ToJson` and `FromJson`; `KLineOf K`, what a run needs of a source's K-line; `Market.KLine.rule`. For a contract built
-on it: `Market.parsed text`, a JSON text under the rules of The JSON, `Market.strict`, an object of only its fields and
-no `null`, and `Market.record`, a record's canonical text.
+`ToJson` and `FromJson`; `KLineOf K`, what a contract built on it needs of a source's K-line; `Market.KLine.rule`. For
+a contract built on it: `Market.parsed text`, a JSON text under the rules of The JSON, `Market.strict`, an object of
+only its fields and no `null`, and `Market.record`, a record's canonical text.
 
 Go: `market.DecodeOngoingKLine(data) (OngoingKLine, error)` and `market.DecodeMassiveOngoingKLine(data)`, of the
 text's bytes, UTF-8, each the zero value with its fault; `market.EncodeOngoingKLine(k) (string, error)` the canonical
@@ -80,26 +80,28 @@ A source's output is mapped to the records by the source's reader or by its user
 
 ## Changes
 
-- **1.0.0**: the market data contract, a product of its own: the K-line records of chanlun 2.3.0 (`../chanlun/`), the
-  base K-line and Massive's and the ongoing K-line of each, with their rules, their units, the rules of their JSON and
-  their canonical texts, and the ongoing K-line's readers and writers, as chanlun 2.3.0 has them. It is 1.0.0 because
-  those records have been released, and stable, through five versions of chanlun (2.0.0 to 2.3.0); a new source's
-  records will be a minor version of it. No record, field, rule or text changes: the ongoing K-line vectors, here
-  (`vectors/ongoing/`), read and write the same text, byte for byte, and every run of chanlun's holds its K-lines as it
-  did. In every form, as chanlun 2.3.0's, of the K-line alone: TypeScript `@qi/market`, Lean the Lake package `market`
-  (namespace `Market`), Go the module `github.com/zhifengzhang-sz/qi-v2-contracts/market/go` (package `market`); the
-  Avro schemas `KLine.avsc`, `MassiveKLine.avsc`, `OngoingKLine.avsc`, `MassiveOngoingKLine.avsc`, in the namespace
-  `qi.market.v1` (chanlun's were in `qi.chanlun.v1`); the Protobuf description `market.proto`, package `qi.market.v1`,
-  each message's field numbers and reserved numbers its own of `qi.chanlun.v1`, its bytes the same. Not the same
-  for a reader that names the record: an Avro reader resolves a record by its full name, so a schema of
-  `qi.chanlun.v1` and one of `qi.market.v1` do not read each other's data without an alias, and a schema registry
-  sees a new schema; a Protobuf message's full name is new where a reader names it (an `Any`'s type URL). Given for a
-  contract built on it, which chanlun 2.3.0 kept inside: in TypeScript `decodeAs`, `encodeRecord`, `positionSchema`
-  and `priceSchema`; in Lean `Market.record`, no longer private; in Go `Decimal.AppendTo` and `KLine.Base` and
-  `MassiveKLine.Base`, unexported before. Each form's `decode` reads an ongoing K-line, with `--ongoing` as before. Its
-  checks: the conformance, 2 ongoing K-lines given back and 2 reject cases refused by the three forms; every rule of
-  `SPEC.md` listed with the reject vectors here that break it (`vectors/rules.json`), those of a K-line in a run
-  chanlun's (its check holds every rule here to a vector, here or in a run); the generated cases, 400 copies of the
-  two ongoing K-lines, by the kinds of change a record of numbers has, by the seed of chanlun's: new copies, not
-  chanlun 2.3.0's copies of them, which were drawn among the kinds of a run too (58 read and 342 refused here, 62 and
-  338 there); each ongoing K-line through Avro and back.
+- **1.0.0**: the market data contract, a product of its own: the K-line records of chanlun 2.3.0, the base K-line and
+  Massive's and the ongoing K-line of each, with their rules, their units, the rules of their JSON and their canonical
+  texts, and the ongoing K-line's readers and writers, as chanlun 2.3.0 has them. It is 1.0.0 because those records
+  have been released, and stable, through five versions of chanlun (2.0.0 to 2.3.0); a new source's records will be a
+  minor version of it. No record, field, rule or text changes: the ongoing K-line vectors, here (`vectors/ongoing/`),
+  read and write the same text, byte for byte. In every form, as chanlun 2.3.0's, of the K-line alone: TypeScript
+  `@qi/market`, Lean the Lake package `market` (namespace `Market`), Go the module
+  `github.com/zhifengzhang-sz/qi-v2-contracts/market/go` (package `market`); the Avro schemas `KLine.avsc`,
+  `MassiveKLine.avsc`, `OngoingKLine.avsc`, `MassiveOngoingKLine.avsc`, in the namespace `qi.market.v1` (chanlun's
+  were in `qi.chanlun.v1`); the Protobuf description `market.proto`, package `qi.market.v1`, each message's field
+  numbers and reserved numbers its own of `qi.chanlun.v1`, its bytes the same. Not the same for a reader that names
+  the record: an Avro reader resolves a record by its full name, so a schema of `qi.chanlun.v1` and one of
+  `qi.market.v1` do not read each other's data without an alias, and a schema registry sees a new schema; a Protobuf
+  message's full name is new where a reader names it (an `Any`'s type URL). Given for a contract built on it, kept
+  inside before: in TypeScript `decodeAs`, `encodeRecord`, `positionSchema` and `priceSchema`; in Lean
+  `Market.record`, no longer private; in Go `Decimal.AppendTo` and `KLine.Base` and `MassiveKLine.Base`, unexported
+  before. Each form's `decode` reads an ongoing K-line, with `--ongoing` as before, Massive's with `--massive`. Its
+  vectors are its own: a reject vector here for every rule of `SPEC.md`, an ongoing K-line with one thing wrong, the
+  file named by what it breaks, 37 in all, 29 of the base (`vectors/ongoing/reject/`) and 8 of Massive's
+  (`vectors/ongoing/massive/reject/`), those of the rules about its `vw` and `n` among them. Its checks, on its own
+  files alone: the conformance, 2 ongoing K-lines given back and 37 reject cases refused by the three forms, each as
+  the ongoing K-line it is read as; every rule of `SPEC.md`, 32, listed with the reject vectors here that break it, at
+  least one each (`vectors/rules.json`), its check failing for a rule with none; the generated cases, 400 copies of the
+  two ongoing K-lines, by the kinds of change a record of numbers has, by its own seed (20261105), 58 read and 342
+  refused; each ongoing K-line through Avro and back.

@@ -8,8 +8,7 @@ The K-lines, of whatever source gives them (../SPEC.md, The records), the same a
 from one project to another as JSON (`Market/Codec.lean`).
 
 A K-line's `date` is its begin time, milliseconds since 1970, UTC. A price and a quantity are decimals, held exactly. A
-contract built on this one takes its K-line and its units for records of its own: 缠论's, whose run holds K-lines of
-this contract (../../chanlun/SPEC.md, The run).
+contract built on this one takes its K-line and its units for records of its own.
 -/
 namespace Market
 
@@ -58,7 +57,7 @@ instance : FromJson Quantity := ⟨fun j => do
 
 /-- A K-line, the base contract, 7 fields: a complete bar. -/
 structure KLine where
-  /-- its place in the run, from 0 -/
+  /-- its place in its series, from 0 -/
   index : Nat
   /-- its begin time, milliseconds since 1970, UTC -/
   date : Nat
@@ -75,8 +74,8 @@ structure MassiveKLine extends KLine where
   n : Nat
   deriving Repr, BEq, Inhabited, ToJson, FromJson
 
-/-- What a run needs of its K-lines, of the base contract or of a data source's (chanlun's run among them): the base's
-fields, and the names of its own. -/
+/-- What a contract built on this one needs of a K-line, of the base contract or of a data source's: the base's fields,
+and the names of its own. -/
 class KLineOf (K : Type) where
   base : K → KLine
   fields : List String
@@ -89,9 +88,9 @@ instance : KLineOf MassiveKLine where
   base := MassiveKLine.toKLine
   fields := ["index", "date", "open", "high", "low", "close", "volume", "vw", "n"]
 
-/-- The ongoing K-line of a data source, defined once over the source's K-line `K`, as chanlun's run is: its K-line's
-fields and rule, `index` the place it will take when complete, and `asOf`, when its values were last updated, not before its
-`date`. A bar still going on, in no run. Its JSON is one object: the K-line's fields and `asOf`. -/
+/-- The ongoing K-line of a data source, defined once over the source's K-line `K`: its K-line's fields and rule, `index`
+the place it will take when complete, and `asOf`, when its values were last updated, not before its `date`. A bar still
+going on, in no series yet. Its JSON is one object: the K-line's fields and `asOf`. -/
 structure OngoingOf (K : Type) where
   kline : K
   asOf : Nat

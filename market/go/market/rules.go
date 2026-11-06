@@ -37,7 +37,7 @@ func (k KLine) Check() error {
 func (k KLine) Base() KLine { return k }
 
 // Base: the K-line of the base contract Massive's K-line derives from, its fields but vw and n (SPEC.md, Massive's
-// K-line): what a run of a contract built on this one reads of any source's K-line, its index and its date.
+// K-line): what a contract built on this one reads of any source's K-line, its index and its date.
 func (k MassiveKLine) Base() KLine {
 	return KLine{Index: k.Index, Date: k.Date, Open: k.Open, High: k.High, Low: k.Low, Close: k.Close, Volume: k.Volume}
 }

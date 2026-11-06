@@ -307,6 +307,7 @@
           market-conformance = conformanceOf "market" ./market marketVectors ''
             give --ongoing vectors/ongoing/kline.json; give "--massive --ongoing" vectors/ongoing/massive.json
             for v in vectors/ongoing/reject/*.json; do refuse --ongoing $v; done
+            for v in vectors/ongoing/massive/reject/*.json; do refuse "--massive --ongoing" $v; done
           '';
           chanlun-conformance = conformanceOf "chanlun" ./chanlun chanlunVectors ''
             for v in vectors/run.json vectors/small.json vectors/edge.json; do give "" $v; done
@@ -346,7 +347,7 @@
               cat ${copies}/report line > $out/report
             '';
           market-cases = casesOf "market" ./market/vectors
-            (fs.difference marketVectors ./market/vectors/ongoing/reject)
+            (fs.difference marketVectors (fs.union ./market/vectors/ongoing/reject ./market/vectors/ongoing/massive/reject))
             { ongoing = "--ongoing"; massive-ongoing = "--massive --ongoing"; };
           chanlun-cases = casesOf "chanlun" ./chanlun/vectors
             (fs.difference chanlunVectors (fs.union ./chanlun/vectors/reject ./chanlun/vectors/massive/reject))

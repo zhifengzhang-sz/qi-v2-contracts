@@ -177,7 +177,7 @@ func figures(n uint64) int {
 }
 
 // AppendTo appends the decimal's digits to b, as String writes them, and gives the extended slice: how a writer of a
-// text holding many, a run of a contract built on this one among them, writes each with nothing allocated.
+// text holding many, a contract built on this one among them, writes each with nothing allocated.
 func (d Decimal) AppendTo(b []byte) []byte {
 	if d.below0() {
 		b = append(b, '-')

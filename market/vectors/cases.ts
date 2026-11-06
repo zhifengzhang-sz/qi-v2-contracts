@@ -9,12 +9,11 @@
 //
 // The kinds, those of a record of numbers, as a K-line is: a value changed (a number by one up or down, to 0,
 // negative, with a seventh decimal, with a sixteenth digit, with an exponent; a value as text, `null`, a boolean); a
-// field dropped, a field added (a name of no record, one of another record's, or a name the object already has). The
-// kinds of a run's records and parts are chanlun's (../../chanlun/vectors/cases.ts), with the same seed.
+// field dropped, a field added (a name of no record, one of another record's, or a name the object already has).
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-// the seed, chanlun's, and how many copies of each vector
+// the seed, and how many copies of each vector
 const seed = 20261105;
 const vectors: readonly {
   readonly file: string;

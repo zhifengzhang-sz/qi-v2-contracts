@@ -1,7 +1,7 @@
 // The records as JSON (../SPEC.md, The JSON): how records cross from one project to another. Decoding is a record's
 // schema over the parsed text, its rules with it; encoding is the canonical text every form writes, so that the
 // conformance check compares them as texts: a record's fields in the order of their names, a field not set left out.
-// A contract built on this one reads and writes its own records by the same two (decodeAs, encodeRecord): 缠论's run.
+// A contract built on this one reads and writes its own records by the same two (decodeAs, encodeRecord).
 
 import type { z } from "zod";
 import {

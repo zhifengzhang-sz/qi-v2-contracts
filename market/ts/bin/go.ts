@@ -27,7 +27,7 @@ const docs = {
   MassiveKLine:
     "Massive's K-line: the base's fields, and vw and n of Massive's row (SPEC.md, Massive's K-line).",
   OngoingKLine:
-    "the ongoing K-line of the base, a bar still going on, in no run (SPEC.md, The ongoing K-line).",
+    "the ongoing K-line of the base, a bar still going on, in no series yet (SPEC.md, The ongoing K-line).",
   MassiveOngoingKLine: "Massive's ongoing K-line (SPEC.md, The ongoing K-line).",
 };
 const fail = (error: string): never => {

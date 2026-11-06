@@ -5,7 +5,6 @@ package market
 
 import (
 	"os"
-	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -103,24 +102,21 @@ func TestRulesOfARecordMadeInGo(t *testing.T) {
 	}
 }
 
-// A decode that fails gives the zero value: never a record half read, nor one that breaks a rule
+// A decode that fails gives the zero value: never a record half read, nor one that breaks a rule. Each reject case is
+// refused as the record it is read as, and read as either ongoing K-line it gives the zero value where it is refused.
 func TestRefusedIsZero(t *testing.T) {
-	names, err := filepath.Glob(filepath.Join(vectors, "ongoing", "reject", "*.json"))
-	if err != nil || len(names) == 0 {
-		t.Fatal("ongoing/reject: no reject case")
-	}
-	for _, n := range names {
-		data, err := os.ReadFile(n)
+	for _, c := range rejectCases(t) {
+		data, err := os.ReadFile(c.file)
 		if err != nil {
 			t.Fatal(err)
 		}
 		got, err := DecodeOngoingKLine(data)
-		if err == nil || !reflect.ValueOf(got).IsZero() {
-			t.Errorf("%s: %v, and not the zero value", n, err)
+		if (err == nil && !c.massive) || (err != nil && !reflect.ValueOf(got).IsZero()) {
+			t.Errorf("%s: %v, and not the zero value", c.file, err)
 		}
 		m, err := DecodeMassiveOngoingKLine(data)
-		if err == nil || !reflect.ValueOf(m).IsZero() {
-			t.Errorf("%s as Massive's: %v, and not the zero value", n, err)
+		if (err == nil && c.massive) || (err != nil && !reflect.ValueOf(m).IsZero()) {
+			t.Errorf("%s as Massive's: %v, and not the zero value", c.file, err)
 		}
 	}
 }

@@ -60,18 +60,43 @@ func TestVectorsGivenBack(t *testing.T) {
 	}
 }
 
-func TestVectorsRefused(t *testing.T) {
-	names, err := filepath.Glob(filepath.Join(vectors, "ongoing", "reject", "*.json"))
-	if err != nil || len(names) == 0 {
-		t.Fatal("ongoing/reject: no reject case")
+// rejectCase: a reject case's file, and whether it is read as Massive's ongoing K-line (ongoing/massive/reject) or as
+// the base's (ongoing/reject)
+type rejectCase struct {
+	file    string
+	massive bool
+}
+
+// rejectCases: every reject case, of the base and of Massive's
+func rejectCases(t *testing.T) []rejectCase {
+	t.Helper()
+	var cases []rejectCase
+	for _, d := range []struct {
+		dir     string
+		massive bool
+	}{
+		{filepath.Join("ongoing", "reject"), false},
+		{filepath.Join("ongoing", "massive", "reject"), true},
+	} {
+		names, err := filepath.Glob(filepath.Join(vectors, d.dir, "*.json"))
+		if err != nil || len(names) == 0 {
+			t.Fatalf("%s: no reject case", d.dir)
+		}
+		for _, n := range names {
+			cases = append(cases, rejectCase{n, d.massive})
+		}
 	}
-	for _, n := range names {
-		t.Run(filepath.Base(n), func(t *testing.T) {
-			data, err := os.ReadFile(n)
+	return cases
+}
+
+func TestVectorsRefused(t *testing.T) {
+	for _, c := range rejectCases(t) {
+		t.Run(c.file, func(t *testing.T) {
+			data, err := os.ReadFile(c.file)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if _, err := giveBack(false, data); err == nil {
+			if _, err := giveBack(c.massive, data); err == nil {
 				t.Fatal("not refused")
 			}
 		})

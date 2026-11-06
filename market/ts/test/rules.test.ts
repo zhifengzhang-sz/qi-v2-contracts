@@ -1,12 +1,12 @@
-// Every rule of SPEC.md is listed with the reject vectors here that break it, and every reject vector names a rule
+// Every rule of SPEC.md has a reject vector here that breaks it, and every reject vector names a rule
 // (../../vectors/rules.json, whose `about` says how): SPEC.md's passages that state rules are read from its headings,
-// tables and paragraphs; each is the rules listed for it and the text listed as no rule, and nothing else; the
-// TypeScript form refuses each vector of a rule with one of the rule's refusals. A rule no vector here breaks is broken
-// in a run, by the contract built on this one, whose check holds every rule here to a vector (chanlun's).
+// tables and paragraphs; each is the rules listed for it and the text listed as no rule, and nothing else; each rule
+// has its vectors, and the TypeScript form refuses each of them with one of the rule's refusals. It reads this
+// contract's files alone: its SPEC.md and its vectors.
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { decodeOngoingKLine } from "../src/codec.ts";
+import { decodeMassiveOngoingKLine, decodeOngoingKLine } from "../src/codec.ts";
 
 const V = join(import.meta.dirname, "..", "..", "vectors");
 type Rule = {
@@ -81,7 +81,8 @@ const unlisted = (name: string, text: string, passage: Passage | undefined): str
 
 const spec = passagesOf(readFileSync(join(V, "..", "SPEC.md"), "utf8"), new Set(["Units", "The records"]));
 
-// A reject vector's fault in the TypeScript form, as bin/decode.ts reads it: an ongoing K-line of the base
+// A reject vector's fault in the TypeScript form, by its folder's mode, as bin/decode.ts reads it: an ongoing K-line of
+// the base, or with --massive of Massive's (ongoing/massive/reject)
 const fault = (vector: string): string => {
   const bytes = readFileSync(join(V, vector));
   let text: string;
@@ -90,23 +91,34 @@ const fault = (vector: string): string => {
   } catch {
     return "text not UTF-8";
   }
-  const r = decodeOngoingKLine(text);
+  const r = vector.startsWith("ongoing/massive/")
+    ? decodeMassiveOngoingKLine(text)
+    : decodeOngoingKLine(text);
   return r.ok ? "" : r.error;
 };
 
-const rejects = ["ongoing/reject"].flatMap((d) =>
+const rejects = ["ongoing/reject", "ongoing/massive/reject"].flatMap((d) =>
   readdirSync(join(V, d))
     .filter((f) => f.endsWith(".json"))
     .map((f) => `${d}/${f}`),
 );
 
-describe("every rule of SPEC.md is listed with its reject vectors here", () => {
+describe("every rule of SPEC.md has a reject vector here", () => {
   it("SPEC.md's passages are found", () => {
     expect(spec.size).toBeGreaterThan(10);
   });
   it.each([...spec.keys()])("SPEC.md, %s: its rules listed, nothing else in it", (name) => {
     const fault = unlisted(name, spec.get(name) ?? "", listed[name]);
     if (fault !== undefined) expect.fail(fault);
+  });
+  it("every rule has a vector here", () => {
+    expect(
+      Object.entries(listed).flatMap(([name, p]) =>
+        p.rules
+          .filter((r) => r.vectors.length === 0)
+          .map((r) => `vectors/rules.json, ${name}: "${r.rule}" has no vector`),
+      ),
+    ).toEqual([]);
   });
   it("every passage of vectors/rules.json is SPEC.md's", () => {
     expect(Object.keys(listed).filter((n) => !spec.has(n))).toEqual([]);
