@@ -24,7 +24,12 @@ schema the data was written with. A Protobuf reader needs no such schema, but it
 ## Checks and releases
 
 Each contract's forms decode its vectors to the same values: the conformance check, `make check`, run on every
-change (`nix develop`, then `make check`). A contract is published as the flake's packages, one a contract and form
+change (`nix develop`, then `make check`). A change runs again each check that reads what it changed; every other
+check keeps its result, kept by what it reads: by Nix for those that read only the repository's files and the
+flake's inputs, the flake's checks (`nix flake check` runs them all), and by its key in `.stamps` for the TypeScript
+form's, whose packages npm gives. `make check FULL=1` runs every part.
+
+A contract is published as the flake's packages, one a contract and form
 (`chanlun-ts`, `chanlun-lean`, `chanlun-go`, `chanlun-avro`, `chanlun-proto`); a release is its version in its spec, its forms and its packages, an entry under
 Changes in its README, the checks passed, then its tag. The repository holds no data and no implementation of what
 a contract describes.

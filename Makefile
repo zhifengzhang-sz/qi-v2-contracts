@@ -1,21 +1,64 @@
-# The contracts' checks (README.md): each form's own, then the conformance of each contract's forms, run on every
-# change. In the shell (nix develop).
+# The contracts' checks (README.md): each form's own, then the conformance of each contract's forms, each run only when
+# what it reads has changed, its result kept by what it reads: the flake's checks (flake.nix) by Nix, the TypeScript
+# form's, whose packages npm gives, by its key in .stamps. FULL=1 runs every part. In the shell (nix develop).
 .PHONY: help check chanlun chanlun-ts chanlun-avro chanlun-proto chanlun-go-types chanlun-lean chanlun-go chanlun-conformance chanlun-cases packages products-check
+SYSTEM = x86_64-linux
 KIT = $(shell bun -e 'const n = JSON.parse(await Bun.file("flake.lock").text()).nodes.kit.locked; console.log(n.type + ":" + n.owner + "/" + n.repo + "/" + n.rev + "?dir=" + n.dir)')
+
+# FULL=1: every part again, the TypeScript form's stamp passed over and each of the flake's checks made new by a salt,
+# read under --impure (flake.nix, checks)
+ifneq ($(FULL),)
+export CHECK_SALT := $(shell date +%s%N)
+impure = --impure
+endif
+
+# nix build of $(1), offline when the store holds everything it needs, that is when a dry run offline would build only
+# this flake's own derivations (chanlun-…, made from the files here); online otherwise, as on a fresh store (CI's).
+# Each build's log shown, the others built on when one fails, the outputs' paths written.
+nix-build = o=; d=$$(nix build $(impure) --offline --dry-run --no-link $(1) 2>&1) && \
+	! printf '%s\n' "$$d" | grep '^  /nix/store/.*\.drv$$' | grep -qv -- '-chanlun-[^/]*\.drv$$' && o=--offline; \
+	nix build $(impure) $$o -L -j auto --keep-going --no-link --print-out-paths $(1)
+
+# the flake's checks named, asked of Nix at once, and each one's report printed, kept with its result; a file under
+# chanlun that git does not know, which they would not see, stops them
+nix-checks = u=$$(git ls-files --others --exclude-standard chanlun) || exit 1; [ -z "$$u" ] || \
+	{ echo "not in git, so not seen by the flake's checks (git add it): $$u"; exit 1; }; \
+	p=$$($(call nix-build,$(foreach c,$(1),.\#checks.$(SYSTEM).$(c)))) && for r in $$p; do cat $$r/report; done
 
 help: ## the targets
 	@grep -E '^[a-z-]+:.*## ' Makefile | sed 's/:.*## /: /'
 
-check: chanlun products-check ## every contract: its forms' checks and their conformance
+check: chanlun products-check ## every contract: its forms' checks and their conformance, each only when what it reads has changed (FULL=1: every part)
 
-chanlun: chanlun-ts chanlun-lean chanlun-go chanlun-conformance chanlun-cases ## 缠论's contract
+chanlun: chanlun-ts ## 缠论's contract: the TypeScript form, then the flake's checks at once
+	@$(call nix-checks,chanlun-lean chanlun-go chanlun-conformance chanlun-cases)
 
-chanlun-ts: ## the TypeScript form: Biome, tsc, its tests over the vectors, every run through Avro among them, and every rule of SPEC.md with its reject vectors (chanlun/vectors/rules.json); its Avro schemas, Protobuf description and Go types what its Zod schemas make, read by an Avro implementation and protoc
-	cd chanlun/ts && bun install --frozen-lockfile && biome check . && ./node_modules/.bin/tsc --noEmit -p . && ./node_modules/.bin/vitest run
-	cd chanlun/ts && bun bin/avsc.ts --check
-	cd chanlun/ts && bun bin/proto.ts --check
-	cd chanlun/ts && bun bin/go.ts --check
-	protoc --proto_path=chanlun/proto --descriptor_set_out=/dev/null chanlun.proto
+# The TypeScript form's key: its recipe (chanlun-ts-run, as written here), every file it reads (its packages by
+# bun.lock), and the store path of each tool it runs. Its stamp, .stamps/chanlun-ts.<key>, written when it passes, keeps
+# its result: it runs again when no stamp has its key, or with FULL=1. No recipe found, or no key made, stops make.
+ts-reads = chanlun/ts chanlun/SPEC.md chanlun/avro chanlun/proto chanlun/go/chanlun/records.go
+ts-tools = bun biome node protoc
+ts-key := $(shell r=$$(sed -n '/^define chanlun-ts-run$$/,/^endef$$/p' Makefile) && [ -n "$$r" ] && { printf '%s\n' "$$r"; \
+	{ find $(ts-reads) -name node_modules -prune -o -type f -print0; find chanlun/vectors -name '*.json' -print0; } | LC_ALL=C sort -z | xargs -0 sha256sum; \
+	for t in $(ts-tools); do readlink -f "$$(command -v $$t)"; done; } | sha256sum | cut -c1-16)
+$(if $(ts-key),,$(error the TypeScript form's key: no recipe chanlun-ts-run in the Makefile, or no key made of it))
+
+chanlun-ts: .stamps/chanlun-ts.$(ts-key) ## the TypeScript form: Biome, tsc, its tests over the vectors, every run through Avro among them, and every rule of SPEC.md with its reject vectors (chanlun/vectors/rules.json); its Avro schemas, Protobuf description and Go types what its Zod schemas make, read by an Avro implementation and protoc (a make step, kept by its key)
+	@echo "chanlun-ts: PASS, kept by what it reads as .stamps/chanlun-ts.$(ts-key)"
+
+.stamps/chanlun-ts.$(ts-key): $(if $(FULL),FORCE)
+	$(chanlun-ts-run)
+	@mkdir -p .stamps && touch $@
+
+define chanlun-ts-run
+cd chanlun/ts && bun install --frozen-lockfile && biome check . && ./node_modules/.bin/tsc --noEmit -p . && ./node_modules/.bin/vitest run
+cd chanlun/ts && bun bin/avsc.ts --check
+cd chanlun/ts && bun bin/proto.ts --check
+cd chanlun/ts && bun bin/go.ts --check
+protoc --proto_path=chanlun/proto --descriptor_set_out=/dev/null chanlun.proto
+endef
+
+FORCE:
 
 chanlun-avro: ## the Avro schemas, chanlun/avro/*.avsc, made again from the Zod schemas
 	cd chanlun/ts && bun bin/avsc.ts
@@ -26,46 +69,17 @@ chanlun-proto: ## the Protobuf description, chanlun/proto/chanlun.proto, made ag
 chanlun-go-types: ## the Go form's types, chanlun/go/chanlun/records.go, made again from the Zod schemas
 	cd chanlun/ts && bun bin/go.ts
 
-chanlun-lean: ## the Lean form, built with its decode, by the shell's Lean once its version is the one chanlun/lean/lean-toolchain names
-	@v=$$(lean --version | sed -n 's/^Lean (version \([^,]*\),.*/\1/p'); t=$$(sed 's|^leanprover/lean4:v||' chanlun/lean/lean-toolchain); \
-	[ -n "$$v" ] && [ "$$t" = "$$v" ] || { echo "chanlun-lean: the shell's Lean is '$$v', chanlun/lean/lean-toolchain names '$$t'"; exit 1; }
-	cd chanlun/lean && lake build
+chanlun-lean: ## the Lean form, built by Lake with its decode, by qi-v2's Lean (the shell's) once its version is the one chanlun/lean/lean-toolchain names (a check of the flake)
+	@$(call nix-checks,$@)
 
-chanlun-go: ## the Go form, chanlun/go: every file as gofmt writes it, go vet, its tests over the vectors, and its decode built (chanlun/go/.bin/decode); the standard library only, nothing fetched
-	@cd chanlun/go && u=$$(gofmt -l .) && [ -z "$$u" ] || { echo "chanlun-go: not as gofmt writes it: $$u"; exit 1; }
-	cd chanlun/go && GOPROXY=off go vet ./... && GOPROXY=off go test ./... && GOPROXY=off go build -o .bin/decode ./cmd/decode
+chanlun-go: ## the Go form, chanlun/go: every file as gofmt writes it, go vet, its tests over the vectors; the standard library only, nothing fetched (a check of the flake)
+	@$(call nix-checks,$@)
 
-chanlun-conformance: chanlun-lean chanlun-go ## the three forms on every vector: each run decoded and written to the same text by each, every reject case refused by each, as a fault of the contract (exit 1, `decode: ` and its message), not a crash; Massive's by each form's --massive, an ongoing K-line by --ongoing
-	@cd chanlun && s=0; r=0; o=0; n=0; \
-	give() { case "$$1" in *--ongoing*) o=$$((o+1));; *) r=$$((r+1));; esac; \
-	  (cd ts && bun bin/decode.ts $$1 ../$$2) | cmp -s - $$2 || { echo "conformance: ts does not give $$2 back"; s=1; }; \
-	  lean/.lake/build/bin/decode $$1 $$2 | cmp -s - $$2 || { echo "conformance: lean does not give $$2 back"; s=1; }; \
-	  go/.bin/decode $$1 $$2 | cmp -s - $$2 || { echo "conformance: go does not give $$2 back"; s=1; }; }; \
-	refuse() { n=$$((n+1)); \
-	  e=$$(cd ts && bun bin/decode.ts $$1 ../$$2 2>&1 >/dev/null); c=$$?; \
-	  [ $$c = 1 ] && case "$$e" in "decode: "*) true;; *) false;; esac || { echo "conformance: ts on $$2: exit $$c, $$e"; s=1; }; \
-	  e=$$(timeout 60 lean/.lake/build/bin/decode $$1 $$2 2>&1 >/dev/null); c=$$?; \
-	  [ $$c = 1 ] && case "$$e" in "decode: "*) true;; *) false;; esac || { echo "conformance: lean on $$2: exit $$c, $$e"; s=1; }; \
-	  e=$$(timeout 60 go/.bin/decode $$1 $$2 2>&1 >/dev/null); c=$$?; \
-	  [ $$c = 1 ] && case "$$e" in "decode: "*) true;; *) false;; esac || { echo "conformance: go on $$2: exit $$c, $$e"; s=1; }; }; \
-	for v in vectors/run.json vectors/small.json vectors/edge.json; do give "" $$v; done; \
-	for v in vectors/massive/small.json vectors/massive/edge.json; do give --massive $$v; done; \
-	give --ongoing vectors/ongoing/kline.json; give "--massive --ongoing" vectors/ongoing/massive.json; \
-	for v in vectors/reject/*.json; do refuse "" $$v; done; \
-	for v in vectors/massive/reject/*.json; do refuse --massive $$v; done; \
-	for v in vectors/ongoing/reject/*.json; do refuse --ongoing $$v; done; \
-	[ $$s = 0 ] && echo "chanlun conformance: $$r runs and $$o ongoing K-lines given back alike by three forms (ts, lean, go), $$n reject cases refused by all three: PASS" || { echo "chanlun conformance: FAIL"; exit 1; }
+chanlun-conformance: ## the three forms on every vector, each form's part reading its decode and the vectors alone: each run decoded and written to the same text by each, every reject case refused by each, as a fault of the contract (exit 1, `decode: ` and its message), not a crash; Massive's by each form's --massive, an ongoing K-line by --ongoing (a check of the flake)
+	@$(call nix-checks,$@)
 
-chanlun-cases: chanlun-lean chanlun-go ## the generated cases: from each valid vector, changed copies by a fixed seed (chanlun/vectors/cases.ts), each answered alike by the three forms, all refusing it or all giving back the same text; each form's decode reads them in one process (--batch) and writes nothing to stderr
-	@cd chanlun && t=$$(mktemp -d) && trap 'rm -rf $$t' EXIT && s=$$(date +%s) && bun vectors/cases.ts make $$t && \
-	for g in run massive ongoing massive-ongoing; do \
-	  case $$g in run) f="";; massive) f=--massive;; ongoing) f=--ongoing;; *) f="--massive --ongoing";; esac; \
-	  mkdir -p $$t/ts/$$g $$t/lean/$$g $$t/go/$$g && \
-	  (cd ts && bun bin/decode.ts $$f --batch $$t/$$g $$t/ts/$$g) 2>$$t/ts.err && \
-	  lean/.lake/build/bin/decode $$f --batch $$t/$$g $$t/lean/$$g 2>$$t/lean.err && \
-	  go/.bin/decode $$f --batch $$t/$$g $$t/go/$$g 2>$$t/go.err && \
-	  [ ! -s $$t/ts.err ] && [ ! -s $$t/lean.err ] && [ ! -s $$t/go.err ] || { echo "chanlun cases: a form's decode failed on $$g:"; cat $$t/*.err; exit 1; }; \
-	done && bun vectors/cases.ts compare $$t ts lean go && echo "chanlun cases: made, read and compared in $$(( $$(date +%s) - s )) s"
+chanlun-cases: ## the generated cases: from each valid vector, changed copies by a fixed seed (chanlun/vectors/cases.ts), each answered alike by the three forms, all refusing it or all giving back the same text; each form's decode reads them in one process (--batch) and writes nothing to stderr (a check of the flake)
+	@$(call nix-checks,$@)
 
 packages: ## the flake's packages built, and each taken as a taker takes it: the TypeScript one imported by Bun, the Lean one built by Lake, the Go one built by Go in a module of its own by a replace to its store path, nothing fetched, each decoding the small run, and Massive's, to the same text; the Avro one what the schemas make, read by an Avro implementation; the Protobuf one read by protoc
 	@ts=$$(nix build .#chanlun-ts --no-link --print-out-paths) && lean=$$(nix build .#chanlun-lean --no-link --print-out-paths) && \
@@ -93,4 +107,4 @@ packages: ## the flake's packages built, and each taken as a taker takes it: the
 	protoc --proto_path=$$proto --descriptor_set_out=/dev/null chanlun.proto && echo "packages: $$proto read by protoc: PASS"
 
 products-check: ## whether PRODUCTS.md states what the project has (the kit's kit products)
-	@kit=$$(nix build "$(KIT)" --no-link --print-out-paths) && $$kit/bin/kit products --root .
+	@kit=$$($(call nix-build,"$(KIT)")) && $$kit/bin/kit products --root .
