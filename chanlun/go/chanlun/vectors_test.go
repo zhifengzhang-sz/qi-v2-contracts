@@ -1,8 +1,8 @@
 package chanlun
 
-// The contract's vectors (../../vectors/), each read as the program decode reads it: the runs and the ongoing K-lines
-// decoded and encoded again to the same text, every reject case refused; the conformance check (make check) compares
-// the TypeScript and Lean forms' text with the same files.
+// The contract's vectors (../../vectors/), each read as the program decode reads it: the runs decoded and encoded again
+// to the same text, every reject case refused; the conformance check (make check) compares the TypeScript and Lean
+// forms' text with the same files. The ongoing K-lines are market's (../../../market/vectors/).
 
 import (
 	"os"
@@ -24,25 +24,12 @@ func read(t *testing.T, name string) []byte {
 }
 
 type mode struct {
-	massive, ongoing bool
+	massive bool
 }
 
 // giveBack: the text a vector is decoded and encoded to, in its mode
 func giveBack(m mode, data []byte) (string, error) {
-	switch {
-	case m.ongoing && m.massive:
-		k, err := DecodeMassiveOngoingKLine(data)
-		if err != nil {
-			return "", err
-		}
-		return EncodeOngoingKLine(k)
-	case m.ongoing:
-		k, err := DecodeOngoingKLine(data)
-		if err != nil {
-			return "", err
-		}
-		return EncodeOngoingKLine(k)
-	case m.massive:
+	if m.massive {
 		r, err := DecodeMassiveRun(data)
 		if err != nil {
 			return "", err
@@ -66,8 +53,6 @@ func TestVectorsGivenBack(t *testing.T) {
 		{"edge.json", mode{}},
 		{"massive/small.json", mode{massive: true}},
 		{"massive/edge.json", mode{massive: true}},
-		{"ongoing/kline.json", mode{ongoing: true}},
-		{"ongoing/massive.json", mode{massive: true, ongoing: true}},
 	} {
 		t.Run(c.file, func(t *testing.T) {
 			data := read(t, c.file)
@@ -89,7 +74,6 @@ func TestVectorsRefused(t *testing.T) {
 	}{
 		{"reject", mode{}},
 		{"massive/reject", mode{massive: true}},
-		{"ongoing/reject", mode{ongoing: true}},
 	} {
 		names, err := filepath.Glob(filepath.Join(vectors, c.dir, "*.json"))
 		if err != nil || len(names) == 0 {

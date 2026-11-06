@@ -10,16 +10,22 @@ import (
 	"sync"
 	"unicode/utf16"
 	"unicode/utf8"
+
+	"github.com/zhifengzhang-sz/qi-v2-contracts/market/go/market"
 )
 
-// The contract's JSON (SPEC.md, The JSON), read and written by hand: encoding/json alone takes a name twice (the last
+// The contract's JSON (SPEC.md, The JSON), under market's (../../market/SPEC.md, The JSON), read and written by hand: encoding/json alone takes a name twice (the last
 // wins), replaces bytes that are not UTF-8 and reads a number with an exponent and a field it does not know, each of
 // which the contract refuses. Here the text is read from its first byte to its last straight into the records' types
 // (records.go) by their fields' tags, each array's items counted before they are read (items), so that a run's text
 // is gone over a few times at most, never more than its types are deep; no tree of the whole text is built, so
 // reading a run holds the text and the run, little more. It refuses what is not JSON and what the contract does not allow of any JSON (text not UTF-8,
 // a name twice in one object, a number not written in digits), a name that is no field, a field missing that is not
-// optional, null, and a value of another kind. The rules come after (rules.go).
+// optional, null, and a value of another kind. The rules come after (rules.go). A K-line is market's: read and written
+// here by its fields, tagged `market`, as every record is by its own, a price and a quantity as market's Decimal,
+// made by DecimalOf and written by AppendTo, and held to market's rules by its Check (rules.go). Market's own reader
+// reads market's records alone, of numbers; a run holds lists, booleans and fields that may be not set, which it reads
+// here, under the same rules of the JSON.
 
 // A record's fields, by their tags, and how each is read and written; a type's, how a value of it is read and written
 type op uint8
@@ -51,7 +57,7 @@ type shape struct {
 var shapes sync.Map // reflect.Type → *shape
 
 var (
-	decimalType = reflect.TypeFor[Decimal]()
+	decimalType = reflect.TypeFor[market.Decimal]()
 	codecType   = reflect.TypeFor[codec]()
 )
 
@@ -85,7 +91,11 @@ func shapeOf(t reflect.Type) *shape {
 	if s.op == opRecord {
 		for i := range t.NumField() {
 			sf := t.Field(i)
+			// a field of a record of this contract by its tag, of a K-line by market's
 			name, ok := sf.Tag.Lookup("chanlun")
+			if !ok {
+				name, ok = sf.Tag.Lookup("market")
+			}
 			if !ok {
 				continue
 			}
@@ -242,7 +252,7 @@ func (d *decoder) read(dst reflect.Value, s *shape) error {
 		return err
 	case opDecimal:
 		x, err := d.decimal()
-		*dst.Addr().Interface().(*Decimal) = x
+		*dst.Addr().Interface().(*market.Decimal) = x
 		return err
 	case opCodec:
 		return dst.Addr().Interface().(codec).readJSON(d)
@@ -259,7 +269,7 @@ func readInto[T any](d *decoder, p *T) error {
 		n, err := d.whole()
 		*q = n
 		return err
-	case *Decimal:
+	case *market.Decimal:
 		x, err := d.decimal()
 		*q = x
 		return err
@@ -309,11 +319,58 @@ func (d *decoder) number() ([]byte, error) {
 	return t, nil
 }
 
-// Bound: the largest whole number of the contract, either way (SPEC.md, Units): 2⁵³ − 1, which every JSON reader holds
-// exactly. A time, a position, a bar and a count are whole numbers from 0 to Bound.
-const Bound = 1<<53 - 1
+// The bounds of a number's digits, market's (../../market/SPEC.md, Units): at most 15 from the first that is not 0,
+// at most 6 after the point
+const (
+	decimalDigits   = 15
+	decimalFraction = 6
+)
 
-// whole: a whole number from 0 to Bound, as a time, a position, a bar and a count are (-0 is 0)
+// digits splits a number written as the contract writes it (../../market/SPEC.md, The JSON), as market's Decimal
+// reads it: an optional -, then 0 or a digit not 0
+// and more digits, then optionally . and digits, the last not 0. ok is false for anything else: an exponent, a + or a
+// leading 0 among them. Of a text or of the bytes of one, so that the JSON is read with no copy.
+func digits[S string | []byte](s S) (neg bool, whole, fraction S, ok bool) {
+	if len(s) > 0 && s[0] == '-' {
+		neg, s = true, s[1:]
+	}
+	w := 0
+	for w < len(s) && '0' <= s[w] && s[w] <= '9' {
+		w++
+	}
+	if w == 0 || (w > 1 && s[0] == '0') {
+		return false, whole, fraction, false
+	}
+	whole, s = s[:w], s[w:]
+	if len(s) == 0 {
+		return neg, whole, s, true
+	}
+	if s[0] != '.' || len(s) == 1 || s[len(s)-1] == '0' {
+		return false, whole, fraction, false
+	}
+	for i := 1; i < len(s); i++ {
+		if s[i] < '0' || '9' < s[i] {
+			return false, whole, fraction, false
+		}
+	}
+	return neg, whole, s[1:], true
+}
+
+// significant: the number of digits of whole and fraction from the first that is not 0
+func significant[S string | []byte](whole, fraction S) int {
+	z := 0
+	for z < len(whole) && whole[z] == '0' {
+		z++
+	}
+	if z == len(whole) {
+		for k := 0; k < len(fraction) && fraction[k] == '0'; k++ {
+			z++
+		}
+	}
+	return len(whole) + len(fraction) - z
+}
+
+// whole: a whole number from 0 to market's Bound, as a time, a position, a bar and a count are (-0 is 0)
 func (d *decoder) whole() (uint64, error) {
 	c, err := d.begin()
 	if err != nil {
@@ -335,30 +392,42 @@ func (d *decoder) whole() (uint64, error) {
 		n = n*10 + uint64(c-'0')
 	}
 	switch {
-	case n > Bound:
-		return 0, d.fault("%s: a number past %d", t, uint64(Bound))
+	case n > market.Bound:
+		return 0, d.fault("%s: a number past %d", t, uint64(market.Bound))
 	case neg && n != 0:
 		return 0, d.fault("%s: a whole number not negative", t)
 	}
 	return n, nil
 }
 
-// decimal: a price or a quantity, read from its digits (ParseDecimal)
-func (d *decoder) decimal() (Decimal, error) {
+// decimal: a price or a quantity, read from its digits: their units, a whole number, and how many of them are after
+// the point, made a Decimal by market's DecimalOf, which refuses it past the bounds as ParseDecimal does its digits
+func (d *decoder) decimal() (market.Decimal, error) {
 	c, err := d.begin()
 	if err != nil {
-		return Decimal{}, err
+		return market.Decimal{}, err
 	}
 	if !isNumber(c) {
-		return Decimal{}, d.fault("a decimal, not %s", kindOf(c))
+		return market.Decimal{}, d.fault("a decimal, not %s", kindOf(c))
 	}
 	t, err := d.number()
 	if err != nil {
-		return Decimal{}, err
+		return market.Decimal{}, err
 	}
-	x, ok := decimalOf(t)
-	if !ok {
-		return Decimal{}, d.fault("%s: %v", t, errDecimal)
+	neg, w, f, _ := digits(t)
+	var units int64 // at most 16 digits (number), no 0 first but 0 itself: below 10^16
+	for _, c := range w {
+		units = units*10 + int64(c-'0')
+	}
+	for _, c := range f {
+		units = units*10 + int64(c-'0')
+	}
+	if neg {
+		units = -units
+	}
+	x, err := market.DecimalOf(units, len(f))
+	if err != nil {
+		return market.Decimal{}, d.fault("%s: %v", t, err)
 	}
 	return x, nil
 }
@@ -677,7 +746,7 @@ func (e *encoder) str(s string) { e.b = append(e.b, s...) }
 
 func (e *encoder) uint(n uint64) { e.b = strconv.AppendUint(e.b, n, 10) }
 
-func (e *encoder) decimal(x Decimal) { e.b = x.appendTo(e.b) }
+func (e *encoder) decimal(x market.Decimal) { e.b = x.AppendTo(e.b) }
 
 func (e *encoder) boolean(v bool) { e.b = strconv.AppendBool(e.b, v) }
 
@@ -691,7 +760,7 @@ func (e *encoder) write(v reflect.Value, s *shape) {
 	case opBool:
 		e.boolean(v.Bool())
 	case opDecimal:
-		e.decimal(*v.Addr().Interface().(*Decimal))
+		e.decimal(*v.Addr().Interface().(*market.Decimal))
 	case opCodec:
 		v.Addr().Interface().(codec).writeJSON(e)
 	case opRecord:
@@ -718,7 +787,7 @@ func writeInto[T any](e *encoder, p *T) {
 	switch q := any(p).(type) {
 	case *uint64:
 		e.uint(*q)
-	case *Decimal:
+	case *market.Decimal:
 		e.decimal(*q)
 	case *bool:
 		e.boolean(*q)

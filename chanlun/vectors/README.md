@@ -1,6 +1,7 @@
 # The vectors
 
-The conformance check's data (`make check`): what every form must read alike, the TypeScript, the Lean and the Go.
+The conformance check's data (`make check`): what every form must read alike, the TypeScript, the Lean and the Go. The
+K-lines in a run are market's (`../../market/SPEC.md`); its own vectors, the ongoing K-lines, are its (`../../market/vectors/`).
 
 | File | What it is | Every form must |
 |---|---|---|
@@ -11,9 +12,8 @@ The conformance check's data (`make check`): what every form must read alike, th
 | `massive/small.json` | `small.json` as Massive's run: `vw` and `n` on each K-line, made up by hand | decode it as Massive's run, and encode it to the same text |
 | `massive/edge.json` | `edge.json` as Massive's run, the largest `n` and the lowest `vw` among them | decode it as Massive's run, and encode it to the same text |
 | `massive/reject/*.json` | `massive/small.json` with one thing wrong, the file named by it, a K-line of the base and a part ending with an empty level among them | refuse it as Massive's run, as a fault of the contract |
-| `ongoing/` | `kline.json`, an ongoing K-line of the base: the bar after `small.json`'s last, half a minute in; `massive.json`, the same as Massive's; `reject/*.json`, `kline.json` with one thing wrong, the file named by it | decode `kline.json` and `massive.json` as ongoing K-lines, of the base and of Massive's, and encode each to the same text; refuse each reject case as an ongoing K-line of the base, as a fault of the contract |
-| `rules.json` | the rules of `../SPEC.md`, each with the reject vectors that break it and the TypeScript form's refusal of them (`../ts/test/rules.test.ts`): every rule has a vector, every reject vector names a rule | refuse each vector of a rule |
-| `cases.ts` | the generated cases: from each valid vector, copies changed by a fixed seed, a value (by one, to 0, negative, a seventh decimal, a sixteenth digit, an exponent, text, `null`, a boolean), a field dropped or added or named twice, a record or an entry dropped, doubled or moved, `confirmEnd` taken away or added, an empty level added at the end of a part by level; made by `make chanlun-cases`, a check of the flake, and kept in the Nix store by what they are made from, not in the repository | give each copy the same answer: all refuse it, or all read it and give back the same text |
+| `rules.json` | the rules of `../SPEC.md`, each with the reject vectors that break it and the TypeScript form's refusal of them (`../ts/test/rules.test.ts`): every rule has a vector, every reject vector names a rule; and, under `market`, the rules of market's contract that a vector here breaks, a K-line's and its JSON's, so that every rule of market's has a vector, of market's or here | refuse each vector of a rule |
+| `cases.ts` | the generated cases: from each valid vector, copies changed by a fixed seed, a value (by one, to 0, negative, a seventh decimal, a sixteenth digit, an exponent, text, `null`, a boolean), a field dropped or added or named twice, a record or an entry dropped, doubled or moved, `confirmEnd` taken away or added, an empty level added at the end of a part by level; made by `make chanlun-cases`, a check of the flake, and kept in the Nix store by what they are made from, not in the repository; the copies of the ongoing K-lines are market's (`../../market/vectors/cases.ts`) | give each copy the same answer: all refuse it, or all read it and give back the same text |
 
 `run.json`'s records were computed from the bars by the implementation of the algorithm at hand when they were made.
 The contract does not depend on how they were made.

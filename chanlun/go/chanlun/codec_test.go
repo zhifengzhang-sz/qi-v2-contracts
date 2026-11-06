@@ -9,6 +9,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/zhifengzhang-sz/qi-v2-contracts/market/go/market"
 )
 
 func small(t *testing.T) string { return string(read(t, "small.json")) }
@@ -54,26 +56,20 @@ func TestJSONRefused(t *testing.T) {
 }
 
 func TestRulesOfARecordMadeInGo(t *testing.T) {
-	d := func(s string) Decimal {
-		x, err := ParseDecimal(s)
+	d := func(s string) market.Decimal {
+		x, err := market.ParseDecimal(s)
 		if err != nil {
 			t.Fatal(err)
 		}
 		return x
 	}
-	k := KLine{Index: 0, Date: 1, Open: d("10"), High: d("11"), Low: d("9"), Close: d("10.5"), Volume: d("1")}
+	k := market.KLine{Index: 0, Date: 1, Open: d("10"), High: d("11"), Low: d("9"), Close: d("10.5"), Volume: d("1")}
 	if err := k.Check(); err != nil {
 		t.Fatal(err)
 	}
-	for name, broken := range map[string]KLine{
-		"a date past the bound": {Date: Bound + 1, Open: k.Open, High: k.High, Low: k.Low, Close: k.Close},
-		"a volume negative":     {Open: k.Open, High: k.High, Low: k.Low, Close: k.Close, Volume: d("-1")},
-		"close above high":      {Open: k.Open, High: k.High, Low: k.Low, Close: d("11.5")},
-		"open below low":        {Open: d("8"), High: k.High, Low: k.Low, Close: k.Close},
-	} {
-		if broken.Check() == nil {
-			t.Errorf("%s: not refused", name)
-		}
+	// a run's K-line held to market's rules
+	if _, err := EncodeRun(Run{Klines: ListOf(market.KLine{Open: k.Open, High: k.High, Low: k.Low, Close: d("11.5")})}); err == nil {
+		t.Error("a run of a K-line whose close is above its high written")
 	}
 	// a run made in Go is checked before it is written
 	run := Run{Klines: ListOf(k, k)}
@@ -82,9 +78,6 @@ func TestRulesOfARecordMadeInGo(t *testing.T) {
 	}
 	if _, err := EncodeRun(Run{}); err == nil {
 		t.Error("a run of no K-line written")
-	}
-	if _, err := EncodeOngoingKLine(OngoingKLine{Date: 2, AsOf: 1}); err == nil {
-		t.Error("an ongoing K-line whose asOf is before its date written")
 	}
 	text, err := EncodeRun(Run{Klines: ListOf(k)})
 	if err != nil {
@@ -102,7 +95,7 @@ func TestRefusedIsZero(t *testing.T) {
 	for _, c := range []struct {
 		dir  string
 		mode mode
-	}{{"reject", mode{}}, {"massive/reject", mode{massive: true}}, {"ongoing/reject", mode{ongoing: true}}} {
+	}{{"reject", mode{}}, {"massive/reject", mode{massive: true}}} {
 		names, err := filepath.Glob(filepath.Join(vectors, c.dir, "*.json"))
 		if err != nil || len(names) == 0 {
 			t.Fatalf("%s: no reject case", c.dir)
@@ -114,8 +107,6 @@ func TestRefusedIsZero(t *testing.T) {
 			}
 			var got any
 			switch {
-			case c.mode.ongoing:
-				got, err = DecodeOngoingKLine(data)
 			case c.mode.massive:
 				got, err = DecodeMassiveRun(data)
 			default:
@@ -181,7 +172,7 @@ func FuzzDecodeRun(f *testing.F) {
 		f.Add(data)
 	}
 	f.Fuzz(func(t *testing.T, data []byte) {
-		for _, m := range []mode{{}, {massive: true}, {ongoing: true}, {massive: true, ongoing: true}} {
+		for _, m := range []mode{{}, {massive: true}} {
 			text, err := giveBack(m, data)
 			if err != nil {
 				continue

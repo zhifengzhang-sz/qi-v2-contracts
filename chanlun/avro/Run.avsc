@@ -10,6 +10,7 @@
         "items": {
           "type": "record",
           "name": "KLine",
+          "namespace": "qi.market.v1",
           "fields": [
             {
               "name": "index",

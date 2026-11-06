@@ -1,35 +1,30 @@
-// A run's records as JSON (../SPEC.md, The JSON): how records cross from one project to another. Decoding is the run's
-// schema over the parsed text, every record's rules with it; encoding is the canonical text every form writes, so that
-// the conformance check compares them as texts: the run's parts in their order, a record a line, its fields in the
-// order of their names, a field not set left out.
+// A run's records as JSON (../SPEC.md, The JSON): how records cross from one project to another, under market's
+// JSON (../../market/SPEC.md, The JSON), read and written by market's decodeAs and encodeRecord. Decoding is the
+// run's schema over the parsed text, every record's rules with it; encoding is the canonical text every form writes, so
+// that the conformance check compares them as texts: the run's parts in their order, a record a line, its fields in
+// the order of their names, a field not set left out.
 
+import { decodeAs, encodeRecord, type KLine, type MassiveKLine } from "@qi/market";
 import { z } from "zod";
 import {
   type Consolidation,
   consolidationSchema,
-  decimal,
   type Fractal,
   fractalSchema,
-  type KLine,
   klinesSchema,
   type Line,
-  type MassiveKLine,
-  type MassiveOngoingKLine,
   type MergedBar,
   type Move,
   massiveKlinesSchema,
-  massiveOngoingKlineSchema,
   mergedBarSchema,
   moveSchema,
-  type OngoingKLine,
-  ongoingKlineSchema,
   type Segment,
   type Stroke,
   segmentSchema,
   strokeSchema,
 } from "./contracts.ts";
 
-// The run: its K-lines, of the base contract or of a data source's, merged bars, 分型, 笔 (strokes), and by level from
+// The run: its K-lines, market's, of the base contract or of a data source's, merged bars, 分型, 笔 (strokes), and by level from
 // 0 its 线段 (segments), 走势 (moves) and 中枢 (consolidations).
 // The run's own rules (SPEC.md, The run): the K-lines and merged bars numbered by their place; the 分型 strictly
 // increasing by `mIndex`; the 笔 and each level's 线段, 走势 and 中枢 strictly increasing by `start`; every position a
@@ -175,101 +170,19 @@ export const timeAt = (run: RunOf<{ readonly date: number }>, p: number): number
 export type Decoded<R = Run> =
   | { readonly ok: true; readonly run: R }
   | { readonly ok: false; readonly error: string };
-export type DecodedOngoing<K = OngoingKLine> =
-  | { readonly ok: true; readonly kline: K }
-  | { readonly ok: false; readonly error: string };
-
-const parsed = (text: string): { readonly ok: true; readonly value: unknown } | { readonly ok: false } => {
-  try {
-    return { ok: true, value: JSON.parse(text) };
-  } catch {
-    return { ok: false };
-  }
-};
-
-// Every number of the text written in digits, no exponent: a whole number of at most 16 digits, or a decimal of at most
-// 6 digits after the point and 15 from the first that is not 0, the last not 0 (a fraction is a price's or a
-// quantity's only, and they have no more); strings skipped. Checked on the text, before it is parsed, as the Lean form
-// checks it.
-const literals = (text: string): string | undefined =>
-  [...text.matchAll(/"(?:[^"\\]|\\.)*"|-?[0-9][-+0-9.eE]*/g)]
-    .map((m) => m[0])
-    .find(
-      (t) => !t.startsWith('"') && !/^-?(0|[1-9][0-9]{0,15})$/.test(t) && !(t.includes(".") && decimal(t)),
-    );
-
-// The first name given twice in one object of the text, if any; the text JSON. JSON.parse keeps the last of the two.
-const twice = (text: string): string | undefined => {
-  const names: (Set<string> | undefined)[] = [];
-  const tokens = [...text.matchAll(/"(?:[^"\\]|\\.)*"|[{}[\]:]/g)].map((m) => m[0]);
-  for (const [i, t] of tokens.entries()) {
-    if (t === "{") names.push(new Set());
-    else if (t === "[") names.push(undefined);
-    else if (t === "}" || t === "]") names.pop();
-    else if (t.startsWith('"') && tokens[i + 1] === ":") {
-      const name = JSON.parse(t) as string;
-      const here = names.at(-1);
-      if (here?.has(name)) return name;
-      here?.add(name);
-    }
-  }
-  return undefined;
-};
-
-// A JSON text as a value of `schema`; a fault as a value, its path and message.
-const fromText = <R>(
-  schema: z.ZodType<R>,
-  text: string,
-): { readonly ok: true; readonly value: R } | { readonly ok: false; readonly error: string } => {
-  const bad = literals(text);
-  if (bad !== undefined)
-    return {
-      ok: false,
-      error: `${bad}: a number in digits, a whole number of at most 16, a decimal of at most 6 after the point and 15 in all`,
-    };
-  const j = parsed(text);
-  if (!j.ok) return { ok: false, error: "not JSON" };
-  const name = twice(text);
-  if (name !== undefined) return { ok: false, error: `${name}: a name twice in one object` };
-  const r = schema.safeParse(j.value);
-  return r.success
-    ? { ok: true, value: r.data }
-    : {
-        ok: false,
-        error: r.error.issues
-          .map((i) => (i.path.length > 0 ? `${i.path.join(".")}: ${i.message}` : i.message))
-          .join("; "),
-      };
-};
 
 // A run's JSON as its records
 const decoder =
   <R>(schema: z.ZodType<R>) =>
   (text: string): Decoded<R> => {
-    const r = fromText(schema, text);
+    const r = decodeAs(schema, text);
     return r.ok ? { ok: true, run: r.value } : r;
   };
 export const decodeRun = decoder<Run>(runSchema);
 export const decodeMassiveRun = decoder<MassiveRun>(massiveRunSchema);
 
-// An ongoing K-line's JSON as its record
-const ongoingDecoder =
-  <K>(schema: z.ZodType<K>) =>
-  (text: string): DecodedOngoing<K> => {
-    const r = fromText(schema, text);
-    return r.ok ? { ok: true, kline: r.value } : r;
-  };
-export const decodeOngoingKLine = ongoingDecoder<OngoingKLine>(ongoingKlineSchema);
-export const decodeMassiveOngoingKLine = ongoingDecoder<MassiveOngoingKLine>(massiveOngoingKlineSchema);
-
-const record = (r: object): string =>
-  `{${Object.entries(r)
-    .filter(([, v]) => v !== undefined)
-    .toSorted(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-    .map(([k, v]) => `${JSON.stringify(k)}:${JSON.stringify(v)}`)
-    .join(",")}}`;
 const list = (lines: readonly string[]): string => (lines.length === 0 ? "[]" : `[\n${lines.join(",\n")}\n]`);
-const records = (rs: readonly object[]): string => list(rs.map(record));
+const records = (rs: readonly object[]): string => list(rs.map(encodeRecord));
 
 // A run's canonical JSON, of a run the contract allows (a decoder's, or one its run schema passes).
 export const encodeRun = (run: RunOf<object>): string =>
@@ -282,6 +195,3 @@ export const encodeRun = (run: RunOf<object>): string =>
     `"moves": ${list(run.moves.map(records))}`,
     `"consolidations": ${list(run.consolidations.map(records))}`,
   ].join(",\n")}\n}\n`;
-
-// An ongoing K-line's canonical JSON, of one the contract allows: its record, and a line break.
-export const encodeOngoingKLine = (kline: object): string => `${record(kline)}\n`;

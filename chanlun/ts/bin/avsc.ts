@@ -2,22 +2,20 @@
 // With --check, it instead compares what it would make with the files of a folder, ../avro if none is named, and has
 // an Avro implementation read each of them:
 //   bun bin/avsc.ts [--check [DIR]]
-// A fault goes to stderr, with exit 1.
+// The K-lines are market's (../../../market/avro), written out in its namespace in the run's schemas, and have no file
+// here. A fault goes to stderr, with exit 1.
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
+import { klineSchema, massiveKlineSchema } from "@qi/market";
 import avsc from "avsc";
 import { z } from "zod";
 import {
   consolidationSchema,
   fractalSchema,
-  klineSchema,
   lineSchema,
-  massiveKlineSchema,
-  massiveOngoingKlineSchema,
   massiveRunSchema,
   mergedBarSchema,
   moveSchema,
-  ongoingKlineSchema,
   runSchema,
   segmentSchema,
 } from "../src/index.ts";
@@ -25,12 +23,12 @@ import { avro, type Schema } from "./avro.ts";
 
 const home = join(import.meta.dirname, "..", "..", "avro");
 const namespace = "qi.chanlun.v1";
+// market's records, by their namespace
+const market = { KLine: "qi.market.v1", MassiveKLine: "qi.market.v1" };
 const records = z
   .registry<{ id: string }>()
   .add(klineSchema, { id: "KLine" })
   .add(massiveKlineSchema, { id: "MassiveKLine" })
-  .add(ongoingKlineSchema, { id: "OngoingKLine" })
-  .add(massiveOngoingKlineSchema, { id: "MassiveOngoingKLine" })
   .add(mergedBarSchema, { id: "MergedBar" })
   .add(fractalSchema, { id: "Fractal" })
   .add(lineSchema, { id: "Line" })
@@ -48,7 +46,7 @@ const fail = (error: string): never => {
 const schemas = z.toJSONSchema(records, { unrepresentable: "throw" }).schemas as {
   readonly [name: string]: Schema;
 };
-const made = avro(schemas, namespace);
+const made = avro(schemas, namespace, market);
 if (!made.ok) fail(made.error);
 else if (process.argv[2] === "--check") {
   const dir = resolve(process.argv[3] ?? home);

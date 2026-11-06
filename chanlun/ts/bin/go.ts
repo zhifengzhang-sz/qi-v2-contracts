@@ -1,21 +1,19 @@
 // 缠论's contract in Go (../../SPEC.md; ../../go/): the records' types, ../go/chanlun/records.go, made from the Zod
 // schemas of ../src, or, with --check, compared with the file, or with the file of a module named:
 //   bun bin/go.ts [--check [DIR]]
-// The rules and the JSON are the Go form's own, written by hand beside it. A fault to stderr, exit 1.
+// The rules and the JSON are the Go form's own, written by hand beside it. The K-lines, and a price's Decimal, are
+// market's Go form's (../../../market/go/market): named here, made there. A fault to stderr, exit 1.
 import { readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
+import { klineSchema, massiveKlineSchema } from "@qi/market";
 import { z } from "zod";
 import {
   consolidationSchema,
   fractalSchema,
-  klineSchema,
   lineSchema,
-  massiveKlineSchema,
-  massiveOngoingKlineSchema,
   massiveRunSchema,
   mergedBarSchema,
   moveSchema,
-  ongoingKlineSchema,
   runSchema,
   segmentSchema,
 } from "../src/index.ts";
@@ -27,8 +25,6 @@ const records = z
   .registry<{ id: string }>()
   .add(klineSchema, { id: "KLine" })
   .add(massiveKlineSchema, { id: "MassiveKLine" })
-  .add(ongoingKlineSchema, { id: "OngoingKLine" })
-  .add(massiveOngoingKlineSchema, { id: "MassiveOngoingKLine" })
   .add(mergedBarSchema, { id: "MergedBar" })
   .add(fractalSchema, { id: "Fractal" })
   .add(lineSchema, { id: "Line" })
@@ -37,14 +33,14 @@ const records = z
   .add(consolidationSchema, { id: "Consolidation" })
   .add(runSchema, { id: "Run" })
   .add(massiveRunSchema, { id: "MassiveRun" });
+// market's types: its K-lines, and its Decimal for a price
+const market = "github.com/zhifengzhang-sz/qi-v2-contracts/market/go/market";
+const uses = {
+  types: { KLine: "market.KLine", MassiveKLine: "market.MassiveKLine", Decimal: "market.Decimal" },
+  imports: [market],
+};
 // each record's line, after its name (SPEC.md, The records and The run)
 const docs = {
-  KLine: "a K-line, the base contract, a complete bar (SPEC.md, K-line). Its rule: KLine.Check.",
-  MassiveKLine:
-    "Massive's K-line: the base's fields, and vw and n of Massive's row (SPEC.md, Massive's K-line).",
-  OngoingKLine:
-    "the ongoing K-line of the base, a bar still going on, in no run (SPEC.md, The ongoing K-line).",
-  MassiveOngoingKLine: "Massive's ongoing K-line (SPEC.md, The ongoing K-line).",
   MergedBar: "包含's merged bar; ConfirmEnd not set while it is still merging (SPEC.md, Merged bar).",
   Fractal: "分型, at the merged bar MIndex (SPEC.md, Fractal).",
   Line: "a line, and 笔 (Stroke); ConfirmEnd not set while it is still going on (SPEC.md, Line).",
@@ -73,9 +69,14 @@ const header = [
 const schemas = z.toJSONSchema(records, { unrepresentable: "throw" }).schemas as {
   readonly [name: string]: Schema;
 };
-const made = golang(schemas, docs, "chanlun", header, [
-  ["Version", "the contract's version (SPEC.md), of which these types are.", version],
-]);
+const made = golang(
+  schemas,
+  docs,
+  "chanlun",
+  header,
+  [["Version", "the contract's version (SPEC.md), of which these types are.", version]],
+  uses,
+);
 if (!made.ok) fail(made.error);
 else if (process.argv[2] === "--check") {
   const out = join(resolve(process.argv[3] ?? home), file);

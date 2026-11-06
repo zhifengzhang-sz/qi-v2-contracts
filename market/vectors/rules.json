@@ -1,0 +1,136 @@
+{
+  "about": [
+    "The rules of ../SPEC.md, each with the reject vectors here that break it, checked by ../ts/test/rules.test.ts (make check).",
+    "A passage is where SPEC.md states rules: each row and paragraph of Units and The records (before its first record),",
+    "each Rule: paragraph of a record, and The JSON's first paragraph; its name is its heading and the row's first cell,",
+    "`paragraph N`, or `Rule`. Each passage's text is the rules listed for it and the text that states no rule (`no rule`:",
+    "a meaning, what is allowed, a rule's scope or reason), and nothing else but `,;:.()` and `and`: a rule added to SPEC.md",
+    "and not listed here fails the check. Every reject vector here is named by a rule, and the TypeScript form refuses each",
+    "vector of a rule with one of the rule's `refused`. A rule no vector here breaks (`vectors` empty) is broken in a run,",
+    "by the vectors of the contract built on this one: chanlun's ../../chanlun/vectors/rules.json lists them under",
+    "`market`, and its check holds every rule here to a vector, here or there."
+  ],
+  "passages": {
+    "Units, time": {
+      "rules": [
+        { "rule": "a whole number", "refused": [], "vectors": [] },
+        { "rule": "not negative", "refused": [], "vectors": [] }
+      ],
+      "no rule": ["milliseconds since 1970-01-01 00:00:00 UTC"]
+    },
+    "Units, position": {
+      "rules": [{ "rule": "from 0", "refused": [], "vectors": [] }],
+      "no rule": ["the position of a K-line in the run", "a K-line's `index`"]
+    },
+    "Units, price": {
+      "rules": [
+        { "rule": "at most 6 digits after the point", "refused": [], "vectors": [] },
+        { "rule": "at most 15 digits from the first that is not 0", "refused": [], "vectors": [] }
+      ],
+      "no rule": ["a decimal"]
+    },
+    "Units, quantity": {
+      "rules": [
+        { "rule": "a decimal as a price is", "refused": [], "vectors": [] },
+        { "rule": "not negative", "refused": [], "vectors": [] }
+      ],
+      "no rule": []
+    },
+    "Units, count": {
+      "rules": [
+        { "rule": "a whole number", "refused": [], "vectors": [] },
+        { "rule": "not negative", "refused": [], "vectors": [] }
+      ],
+      "no rule": []
+    },
+    "Units, paragraph 1": {
+      "rules": [
+        {
+          "rule": "A time, a position and a count are whole numbers from 0 to 2⁵³ − 1",
+          "refused": [],
+          "vectors": []
+        }
+      ],
+      "no rule": [
+        "which every JSON reader holds exactly",
+        "a price and a quantity are decimals as above, which every JSON reader gives back as the same digits"
+      ]
+    },
+    "Units, paragraph 2": {
+      "rules": [
+        {
+          "rule": "The six digits after the point bound a quantity as they bound a price",
+          "refused": [],
+          "vectors": []
+        },
+        { "rule": "such a volume is refused", "refused": [], "vectors": [] }
+      ],
+      "no rule": [
+        "Some venues give a volume with more digits",
+        "and the producer must bring it within the bound before it crosses"
+      ]
+    },
+    "The records, paragraph 1": {
+      "rules": [
+        { "rule": "none other", "refused": [], "vectors": [] },
+        {
+          "rule": "none missing",
+          "refused": ["received undefined"],
+          "vectors": ["ongoing/reject/as-of-missing.json"]
+        }
+      ],
+      "no rule": ["Each record has exactly its fields"]
+    },
+    "K-line, Rule": {
+      "rules": [
+        { "rule": "`low ≤ min(open, close)`", "refused": [], "vectors": [] },
+        { "rule": "`max(open, close) ≤ high`", "refused": [], "vectors": [] }
+      ],
+      "no rule": []
+    },
+    "The ongoing K-line, Rule": {
+      "rules": [
+        {
+          "rule": "`date ≤ asOf`",
+          "refused": ["an ongoing K-line's asOf not before its date"],
+          "vectors": ["ongoing/reject/as-of-before-date.json"]
+        }
+      ],
+      "no rule": []
+    },
+    "The JSON, paragraph 1": {
+      "rules": [
+        { "rule": "A record crosses as one JSON object of its fields", "refused": [], "vectors": [] },
+        { "rule": "an optional `-`, then `0` or a digit not `0` and more digits", "refused": [], "vectors": [] },
+        { "rule": "for a price or a quantity, optionally `.` and digits", "refused": [], "vectors": [] },
+        { "rule": "the last not `0`", "refused": [], "vectors": [] },
+        { "rule": "no exponent", "refused": [], "vectors": [] },
+        { "rule": "a number written otherwise", "refused": [], "vectors": [] },
+        { "rule": "or past the bound", "refused": [], "vectors": [] },
+        { "rule": "a name that is no field", "refused": [], "vectors": [] },
+        { "rule": "a name twice in one object", "refused": [], "vectors": [] },
+        { "rule": "text not UTF-8", "refused": [], "vectors": [] },
+        {
+          "rule": "a field missing",
+          "refused": ["received undefined"],
+          "vectors": ["ongoing/reject/as-of-missing.json"]
+        },
+        { "rule": "`null`", "refused": [], "vectors": [] },
+        { "rule": "a value of another kind", "refused": [], "vectors": [] },
+        {
+          "rule": "a negative number where a time, a position, a count or a quantity is",
+          "refused": [],
+          "vectors": []
+        },
+        { "rule": "a fraction where a time, a position or a count is", "refused": [], "vectors": [] }
+      ],
+      "no rule": [
+        "A number is written in digits",
+        "then,",
+        "so that every form reads the same number from the same text",
+        "Decoding refuses anything the records do not allow",
+        "and a broken rule"
+      ]
+    }
+  }
+}

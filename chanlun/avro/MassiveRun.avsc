@@ -10,6 +10,7 @@
         "items": {
           "type": "record",
           "name": "MassiveKLine",
+          "namespace": "qi.market.v1",
           "fields": [
             {
               "name": "index",

@@ -1,7 +1,8 @@
 package chanlun
 
-// encoding/json never writes a record, a run, a Decimal, a List or an Optional, nor reads one: each refuses it with
-// ErrEncodingJSON, which says what to use. Every type of records.go among them.
+// encoding/json never writes a record, a run, a List or an Optional, nor reads one: each refuses it with
+// ErrEncodingJSON, which says what to use, and a K-line and a Decimal, market's, with market's. Every type of
+// records.go among them.
 
 import (
 	"encoding/json"
@@ -13,6 +14,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/zhifengzhang-sz/qi-v2-contracts/market/go/market"
 )
 
 func TestNotByEncodingJSON(t *testing.T) {
@@ -20,22 +23,14 @@ func TestNotByEncodingJSON(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	k, err := DecodeOngoingKLine(read(t, "ongoing/kline.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
 	m, err := DecodeMassiveRun(read(t, "massive/small.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	mk, err := DecodeMassiveOngoingKLine(read(t, "ongoing/massive.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
 	given := []any{
-		r, m, k, mk, r.Klines.At(0), m.Klines.At(0), r.Merged.At(0), r.Fractals.At(0), r.Strokes.At(0),
-		r.Segments.At(0).At(0), r.Moves.At(0).At(0), r.Consolidations.At(0).At(0), r.Klines.At(0).High, r.Klines,
-		r.Merged.At(0).Extremes, r.Segments, r.Merged.At(0).ConfirmEnd, None[uint64](), Optional[Decimal]{},
+		r, m, r.Merged.At(0), r.Fractals.At(0), r.Strokes.At(0), r.Segments.At(0).At(0), r.Moves.At(0).At(0),
+		r.Consolidations.At(0).At(0), r.Klines, r.Merged.At(0).Extremes, r.Segments, r.Merged.At(0).ConfirmEnd,
+		None[uint64](), Optional[market.Decimal]{},
 	}
 	// every type records.go makes is one of them
 	file, err := parser.ParseFile(token.NewFileSet(), "records.go", nil, 0)
@@ -76,9 +71,15 @@ func TestNotByEncodingJSON(t *testing.T) {
 			t.Errorf("%s: json.Unmarshal changed it", name)
 		}
 	}
-	// a taker's own record holding a Decimal: refused, never {}
-	type mine struct{ Price Decimal }
-	if b, err := json.Marshal(mine{r.Klines.At(0).Open}); err == nil || !strings.Contains(err.Error(), "EncodeRun") {
-		t.Errorf("a Decimal in a record of a taker's: %q, %v", b, err)
+	// a run's K-line and its price, market's: refused by market's ErrEncodingJSON, never {}
+	for _, v := range []any{r.Klines.At(0), m.Klines.At(0), r.Merged.At(0).High} {
+		if b, err := json.Marshal(v); !errors.Is(err, market.ErrEncodingJSON) || b != nil {
+			t.Errorf("%T: json.Marshal gave %q, %v", v, b, err)
+		}
+	}
+	// a taker's own record holding a merged bar: refused, never {}
+	type mine struct{ Bar MergedBar }
+	if b, err := json.Marshal(mine{r.Merged.At(0)}); err == nil || !strings.Contains(err.Error(), "EncodeRun") {
+		t.Errorf("a merged bar in a record of a taker's: %q, %v", b, err)
 	}
 }

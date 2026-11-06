@@ -1,6 +1,6 @@
-// The Protobuf description's mapping (bin/protobuf.ts): what it writes for each kind of field, and what it refuses: a
-// field with no number, a number of a field gone and not reserved, a number twice, a name whose JSON name would differ,
-// a type with no Protobuf form.
+// The Protobuf description's mapping (bin/protobuf.ts): what it writes for each kind of field, a record of another
+// contract among them, and what it refuses: a field with no number, a number of a field gone and not reserved, a number
+// twice, a name whose JSON name would differ, a type with no Protobuf form.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -85,6 +85,31 @@ describe("the Protobuf description", () => {
       error: expect.stringContaining("URL"),
     });
   });
+  // a record of the contract this one is built on: Row, in the package o.v1 of other.proto
+  const external = { Row: { message: "o.v1.Row", file: "other.proto" } };
+  const flat = { type: "object", properties: { rows: run.properties.rows }, required: ["rows"] };
+  const runOnly = (fields: { readonly [f: string]: number }): Numbers => ({
+    package: "t.v1",
+    messages: { Run: { fields, reserved: {} } },
+  });
+  it("gives a record of another contract its message, its file imported, and no message here", () => {
+    const r = protobuf({ Row: record, Run: flat }, runOnly({ rows: 1 }), [], external);
+    if (!r.ok) expect.fail(r.error);
+    expect(r.text).toContain(
+      'package t.v1;\n\nimport "other.proto";\n\nmessage Run {\n  repeated o.v1.Row rows = 1;\n}',
+    );
+    expect(r.text).not.toContain("message Row");
+  });
+  it("refuses numbers for a record of another contract, and an array of arrays of one", () => {
+    expect(protobuf({ Row: record, Run: flat }, numbers(all), [], external)).toMatchObject({
+      ok: false,
+      error: expect.stringContaining("field numbers of no record: Row"),
+    });
+    expect(protobuf({ Row: record, Run: run }, runOnly({ rows: 1, levels: 2 }), [], external)).toMatchObject({
+      ok: false,
+      error: expect.stringContaining("an array of arrays of another contract's record"),
+    });
+  });
   it("refuses a type with no Protobuf form", () => {
     const row = { ...record, properties: { ...record.properties, when: { type: "null" } } };
     expect(made(numbers({ ...all, when: 7 }), row)).toMatchObject({
@@ -98,9 +123,6 @@ describe("the field numbers", () => {
   const file = join(import.meta.dirname, "..", "..", "proto", "fields.json");
   const { messages } = JSON.parse(readFileSync(file, "utf8")) as Numbers;
   it.each([
-    ["MassiveKLine", "KLine"],
-    ["OngoingKLine", "KLine"],
-    ["MassiveOngoingKLine", "MassiveKLine"],
     ["MassiveRun", "Run"],
     ["Segment", "Line"],
     ["Move", "Line"],

@@ -1,7 +1,7 @@
 {
   "type": "record",
-  "name": "KLine",
-  "namespace": "qi.chanlun.v1",
+  "name": "OngoingKLine",
+  "namespace": "qi.market.v1",
   "fields": [
     {
       "name": "index",
@@ -30,6 +30,10 @@
     {
       "name": "volume",
       "type": "double"
+    },
+    {
+      "name": "asOf",
+      "type": "long"
     }
   ]
 }

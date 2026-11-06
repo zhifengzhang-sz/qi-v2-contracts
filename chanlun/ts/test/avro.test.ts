@@ -1,6 +1,7 @@
-// The Avro schemas. First the mapping (bin/avro.ts): what it writes for each kind of field, and what it refuses. Then
-// the schemas of ../avro themselves, read by an Avro implementation: every run vector goes through Avro's binary format
-// and comes back as the same text, and what SPEC.md says about reading Massive's K-line holds.
+// The Avro schemas. First the mapping (bin/avro.ts): what it writes for each kind of field, a record of another
+// contract among them, and what it refuses. Then the schemas of ../avro themselves, read by an Avro implementation:
+// every run vector goes through Avro's binary format and comes back as the same text, and the K-line a run's schema
+// writes out is market's, as its own schema has it.
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import avsc from "avsc";
@@ -57,6 +58,22 @@ describe("the Avro mapping", () => {
     expect(r.fields[0]?.type).toMatchObject({ type: "array", items: { type: "record", name: "Row" } });
     expect(r.fields[1]?.type).toEqual({ type: "array", items: { type: "array", items: "Row" } });
   });
+  it("writes a record of another contract out in its namespace, names it by its full name after, and gives it no file", () => {
+    const pair = {
+      type: "object",
+      properties: { a: { $ref: "Row" }, b: { $ref: "Row" } },
+      required: ["a", "b"],
+    };
+    const r = avro({ Row: record, Run: pair }, "t.v1", { Row: "o.v1" });
+    if (!r.ok) expect.fail(r.error);
+    expect(Object.keys(r.files)).toEqual(["Run.avsc"]);
+    const s = JSON.parse(r.files["Run.avsc"] ?? "null") as {
+      readonly fields: readonly { readonly type: unknown }[];
+    };
+    expect(s.fields[0]?.type).toMatchObject({ type: "record", name: "Row", namespace: "o.v1" });
+    expect(s.fields[1]?.type).toBe("o.v1.Row");
+    expect(() => avsc.Type.forSchema(s as avsc.Schema)).not.toThrow();
+  });
   it("refuses a name Avro does not allow", () => {
     const row = { ...record, properties: { ...record.properties, "a-b": { type: "string" } } };
     expect(made(row)).toMatchObject({ ok: false, error: expect.stringContaining("Row.a-b") });
@@ -110,33 +127,12 @@ const long = avsc.types.LongType.__with({
 const typeOf = (s: object) => avsc.Type.forSchema(s as avsc.Schema, { registry: { long } });
 const type = (file: string) => typeOf(schema(file));
 
-const kline = {
-  index: 0,
-  date: 1767623400,
-  open: 10000,
-  high: 10010,
-  low: 9990,
-  close: 10005,
-  volume: 1000,
-};
-
 describe("the Avro schemas, read by an Avro implementation", () => {
-  it("are one for each record", () => {
+  it("are one for each record, market's K-lines but", () => {
     expect([...files].sort()).toEqual(
-      [
-        "Consolidation",
-        "Fractal",
-        "KLine",
-        "Line",
-        "MassiveKLine",
-        "MassiveOngoingKLine",
-        "MassiveRun",
-        "MergedBar",
-        "Move",
-        "OngoingKLine",
-        "Run",
-        "Segment",
-      ].map((r) => `${r}.avsc`),
+      ["Consolidation", "Fractal", "Line", "MassiveRun", "MergedBar", "Move", "Run", "Segment"].map(
+        (r) => `${r}.avsc`,
+      ),
     );
   });
   it.each(files)("reads %s", (file) => {
@@ -158,29 +154,13 @@ describe("the Avro schemas, read by an Avro implementation", () => {
     const plain = JSON.parse(JSON.stringify(back), (_, v) => (v === null ? undefined : v));
     expect(encodeRun(plain as RunOf<object>)).toBe(text);
   });
-  it("holds the base's fields in Massive's K-line, with only vw and n beyond them", () => {
-    const base = schema("KLine.avsc").fields;
-    const massive = schema("MassiveKLine.avsc").fields;
-    expect(massive.slice(0, base.length)).toEqual(base);
-    expect(massive.slice(base.length)).toEqual([
-      { name: "vw", type: "double" },
-      { name: "n", type: "long" },
-    ]);
-  });
-  it("matches fields by name: a base reader with its fields reversed reads Massive's K-line, given the alias", () => {
-    const writer = type("MassiveKLine.avsc");
-    const base = schema("KLine.avsc");
-    const reader = typeOf({
-      ...base,
-      aliases: ["MassiveKLine"],
-      fields: [...base.fields].reverse(),
-    });
-    const bytes = writer.toBuffer({ ...kline, vw: 10002, n: 120 });
-    expect({ ...reader.fromBuffer(bytes, reader.createResolver(writer)) }).toEqual(kline);
-  });
-  it("refuses Massive's K-line to the published base schema, which has no alias", () => {
-    const base = type("KLine.avsc");
-    const massive = type("MassiveKLine.avsc");
-    expect(() => base.createResolver(massive)).toThrow("no alias found");
+  it.each([
+    ["Run.avsc", "KLine.avsc"],
+    ["MassiveRun.avsc", "MassiveKLine.avsc"],
+  ])("writes out in %s market's %s, in its namespace", (run, kline) => {
+    const market = JSON.parse(
+      readFileSync(join(import.meta.dirname, "..", "..", "..", "market", "avro", kline), "utf8"),
+    ) as object;
+    expect(schema(run).fields[0].type.items).toEqual(market);
   });
 });

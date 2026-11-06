@@ -12,6 +12,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/zhifengzhang-sz/qi-v2-contracts/market/go/market"
 )
 
 // large: run.json's records copies times over, each copy's positions, bars and times moved past the one before; every
@@ -38,7 +40,7 @@ func large(tb testing.TB, copies int) Run {
 		}
 		return Some(end)
 	}
-	var ks []KLine
+	var ks []market.KLine
 	var ms []MergedBar
 	var fs []Fractal
 	var ss []Line

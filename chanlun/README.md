@@ -1,86 +1,121 @@
 # chanlun: 缠论's contract
 
 The records the algorithm of 缠论 gives over a run of bars, of whatever implementation gives them, and how they cross
-from one project to another as JSON: `SPEC.md`. Three forms, the same records: TypeScript (`ts/`, `@qi/chanlun`,
-Zod), Lean (`lean/`, the Lake package `chanlun`, no Mathlib) and Go (`go/`, the module
-`github.com/zhifengzhang-sz/qi-v2-contracts/chanlun/go`, the standard library only, its types made from the Zod
-schemas, its rules and JSON written by hand). The vectors (`vectors/`) are what every form reads alike, checked on
-every change (`make chanlun`): each vector by each form, every rule of `SPEC.md` with its reject vectors
-(`vectors/rules.json`), and changed copies of the vectors made by a fixed seed (`vectors/cases.ts`).
+from one project to another as JSON: `SPEC.md`. It is built on the market data contract (`../market/`): a run's bars
+are market's K-lines, and this contract defines no K-line of its own. Three forms, the same records, each on market's
+form of the same language: TypeScript (`ts/`, `@qi/chanlun`, Zod, on `@qi/market`), Lean (`lean/`, the Lake package
+`chanlun`, no Mathlib, on the Lake package `market`) and Go (`go/`, the module
+`github.com/zhifengzhang-sz/qi-v2-contracts/chanlun/go`, the standard library and market's module only, its types made
+from the Zod schemas, its rules and JSON written by hand). The vectors (`vectors/`) are what every form reads alike,
+checked on every change (`make chanlun`): each vector by each form, every rule of `SPEC.md` with its reject vectors, and
+every rule of market's that a run's K-line breaks (`vectors/rules.json`), and changed copies of the vectors made by a
+fixed seed (`vectors/cases.ts`).
 
 ## Taking it
 
 By the flake, pinned in the taker's `flake.lock` (`inputs.contracts.url =
-"github:zhifengzhang-sz/qi-v2-contracts?ref=chanlun-2.3.0";`):
+"github:zhifengzhang-sz/qi-v2-contracts?ref=chanlun-3.0.0";`), whose packages hold or name market's of the same
+revision:
 
-- `contracts.packages.${system}.chanlun-ts`: `node_modules/@qi/chanlun` and `zod`, as source; `import { decodeRun,
-  klineSchema } from "@qi/chanlun"`.
-- `contracts.packages.${system}.chanlun-lean`: the Lake package as source; `import Chanlun`.
+- `contracts.packages.${system}.chanlun-ts`: `node_modules/@qi/chanlun`, `@qi/market` and `zod`, as source; `import {
+  decodeRun, mergedBarSchema } from "@qi/chanlun"`, and the K-line from `@qi/market` (`import { klineSchema } from
+  "@qi/market"`).
+- `contracts.packages.${system}.chanlun-lean`: the Lake package as source at `chanlun/lean`, and market's at
+  `market/lean`, where its lakefile requires it (`path = "../../market/lean"`); a taker's Lake requires
+  `chanlun/lean` of a copy of it; `import Chanlun`, and `import Market` for the K-line.
 - `contracts.packages.${system}.chanlun-go`: the Go module as source, without its tests; `import
-  "github.com/zhifengzhang-sz/qi-v2-contracts/chanlun/go/chanlun"`.
-- `contracts.packages.${system}.chanlun-avro`: the Avro schemas, one `.avsc` file for each record, for other languages
-  and for schema registries.
-- `contracts.packages.${system}.chanlun-proto`: `chanlun.proto`, the same records for Protobuf. `SPEC.md` describes both
-  formats, and says why there are two.
+  "github.com/zhifengzhang-sz/qi-v2-contracts/chanlun/go/chanlun"`, with market's module (`market-go`) beside it.
+- `contracts.packages.${system}.chanlun-avro`: the Avro schemas, one `.avsc` file for each record, each complete,
+  market's K-line written out in a run's, for other languages and for schema registries.
+- `contracts.packages.${system}.chanlun-proto`: `chanlun.proto`, the same records for Protobuf, which imports
+  `market.proto` (`market-proto`): `protoc` reads it with both on its path. `SPEC.md` describes both formats, and says
+  why there are two.
 
 Or by the language's own lock: Lake, `[[require]]` with `name = "chanlun"`, `git =
-"https://github.com/zhifengzhang-sz/qi-v2-contracts"`, `rev = "chanlun-2.3.0"`, `subDir = "chanlun/lean"`.
+"https://github.com/zhifengzhang-sz/qi-v2-contracts"`, `rev = "chanlun-3.0.0"`, `subDir = "chanlun/lean"`: its `market`,
+required by path, is in the same checkout.
 
-A Go taker takes the Go form from the flake's package alone, pinned by its own `flake.lock`: never by `go get` (the
+A Go taker takes the Go forms from the flake's packages alone, pinned by its own `flake.lock`: never by `go get` (the
 module proxy's copy, which no `flake.lock` pins), and never by a sibling path (a checkout beside it, which moves on its
-own). Its `go.mod` requires the module at `v0.0.0`, and its flake writes the `replace` to the package's store path
-before Go builds, in a build's `postPatch` or in its shell's hook:
+own). Its `go.mod` requires both modules at `v0.0.0`, chanlun's and market's, since chanlun's requires market's and a
+`replace` of a module taken is not the taker's; its flake writes both `replace`s to the packages' store paths before Go
+builds, in a build's `postPatch` or in its shell's hook:
 
 ```
 go mod edit -require=github.com/zhifengzhang-sz/qi-v2-contracts/chanlun/go@v0.0.0 \
-  -replace=github.com/zhifengzhang-sz/qi-v2-contracts/chanlun/go=${contracts.packages.${system}.chanlun-go}
+  -require=github.com/zhifengzhang-sz/qi-v2-contracts/market/go@v0.0.0 \
+  -replace=github.com/zhifengzhang-sz/qi-v2-contracts/chanlun/go=${contracts.packages.${system}.chanlun-go} \
+  -replace=github.com/zhifengzhang-sz/qi-v2-contracts/market/go=${contracts.packages.${system}.market-go}
 ```
 
-The module needs nothing else, so Go fetches nothing (`GOPROXY=off` holds), and `go.sum` has no line for it. `make
-packages` takes it so: a module of its own, the `replace`, `GOPROXY=off`, the small runs decoded back to the same text.
+The modules need nothing else, so Go fetches nothing (`GOPROXY=off` holds), and `go.sum` has no line for them. `make
+packages` takes them so: a module of its own, the two `replace`s, `GOPROXY=off`, the small runs decoded back to the same
+text.
 
 ## Using it
 
 TypeScript: `decodeRun(text)` gives `{ ok: true, run }` or `{ ok: false, error }`, `decodeMassiveRun(text)` the same of
 a run of Massive's K-lines; `encodeRun(run)` the canonical JSON of either; `timeAt(run, p)` the time of the K-line at
-position `p`; `decodeOngoingKLine(text)` gives `{ ok: true, kline }` (an `OngoingKLine`) or `{ ok: false, error }`,
-`decodeMassiveOngoingKLine(text)` the same of Massive's ongoing K-line (a `MassiveOngoingKLine`);
-`encodeOngoingKLine(kline)` the canonical JSON of either; each record's schema (`klineSchema`, `massiveKlineSchema`,
-`ongoingKlineSchema`, `massiveOngoingKlineSchema`, …) for one record.
+position `p`; each record's schema (`mergedBarSchema`, `lineSchema`, `consolidationSchema`, …) for one record, and
+`klinesSchema` and `massiveKlinesSchema` for a run's K-lines. A K-line, its schema and its type are `@qi/market`'s, as
+is the ongoing K-line (`decodeOngoingKLine`).
 
 Lean: `Chanlun.decodeRun text : Except String Run`, `Chanlun.decodeMassiveRun text : Except String MassiveRun`,
-`Chanlun.encodeRun run : String`, `run.timeAt p : Option Nat`; `Chanlun.decodeOngoingKLine text : Except String
-OngoingKLine`, `Chanlun.decodeMassiveOngoingKLine text : Except String MassiveOngoingKLine`,
-`Chanlun.encodeOngoingKLine k : String`; the structures `KLine`, `MassiveKLine`, `MergedBar`,
-`Fractal`, `Line`, `Stroke`, `Segment`, `Move`, `Consolidation`, `RunOf K`, of which `Run` and `MassiveRun` are the two runs,
-and `OngoingOf K`, of which `OngoingKLine` and `MassiveOngoingKLine` are the two ongoing K-lines, with `ToJson` and
-`FromJson`.
+`Chanlun.encodeRun run : String`, `run.timeAt p : Option Nat`; the structures `MergedBar`, `Fractal`, `Line`, `Stroke`,
+`Segment`, `Move`, `Consolidation`, `RunOf K`, of which `Run` and `MassiveRun` are the two runs, with `ToJson` and
+`FromJson`. A K-line is `Market.KLine` or `Market.MassiveKLine`, a price `Market.Price`, the ongoing K-line
+`Market.OngoingOf K`.
 
-Go: `chanlun.DecodeRun(data) (Run, error)`, `chanlun.DecodeMassiveRun(data) (MassiveRun, error)`,
-`chanlun.DecodeOngoingKLine(data)` and `chanlun.DecodeMassiveOngoingKLine(data)`, of the text's bytes, UTF-8, each
-the zero value with its fault; `chanlun.EncodeRun(run) (string, error)` the canonical JSON of either run, and
-`chanlun.EncodeOngoingKLine(k)` of either ongoing K-line, each once the rules are checked; `run.TimeAt(p) (uint64,
-bool)`; each record's and each run's `Check() error`; the types `KLine`, `MassiveKLine`, `OngoingKLine`,
-`MassiveOngoingKLine`, `MergedBar`, `Fractal`, `Line`, `Segment`, `Move`, `Consolidation`, `Run` and `MassiveRun`,
-made from the Zod schemas (`go/chanlun/records.go`, `make chanlun-go-types`), and `Stroke`, a `Line`, written by hand
-beside them. Decoding reads the text straight into the records, with no tree of the whole text: a run as producers
-write it holds its records and its text, little more (a `List` is 24 bytes, so a text of many empty levels, each `[]`,
-costs some 8 times its size). A price and a quantity are a `Decimal`, 16 bytes, never a `float64`: `ParseDecimal` reads it from
-its digits, `DecimalOf(units, decimals)` from a whole number of units (millionths with 6, cents with 2), refusing a
-value past the bounds, never rounding it; `String` writes its digits, `Neg` gives its negation, `Cmp` and `==` compare
-values exactly; it holds the 15 digits before the point the contract allows, which a count of millionths in an `int64`
-does not. A whole number is a `uint64` from 0 to `Bound`. Not by `encoding/json`: every record, both runs, `Decimal`,
-`List` and `Optional` give `ErrEncodingJSON` from `MarshalJSON` and `UnmarshalJSON`, which says to use `EncodeRun`
-and `DecodeRun`, since `encoding/json` would write a second text of the one run, by Go's names, and read it without its
-rules. Nothing given out changes what another holder has: a record is a value, its fields numbers, booleans,
-`Decimal`s, `Optional`s (`Some`, `None`, `Get`) and `List`s, none an exported slice, map or pointer; a `List` keeps its
-items behind methods, `ListOf` copying them in, `Slice` copying them out, `Len`, `At`, `Last`, `All` and `Values` giving
-them as values.
+Go: `chanlun.DecodeRun(data) (Run, error)`, `chanlun.DecodeMassiveRun(data) (MassiveRun, error)`, of the text's bytes,
+UTF-8, each the zero value with its fault; `chanlun.EncodeRun(run) (string, error)` the canonical JSON of either run,
+once the rules are checked; `run.TimeAt(p) (uint64, bool)`; each record's and each run's `Check() error`; the types
+`MergedBar`, `Fractal`, `Line`, `Segment`, `Move`, `Consolidation`, `Run` and `MassiveRun`, made from the Zod schemas
+(`go/chanlun/records.go`, `make chanlun-go-types`), and `Stroke`, a `Line`, written by hand beside them. A run's K-lines
+are `market.KLine` or `market.MassiveKLine`, held to their rules by their `Check`, and a price is a `market.Decimal`
+(`../market/README.md`, Using it); the ongoing K-line is `market.OngoingKLine`. Decoding reads the text straight into
+the records, with no tree of the whole text: a run as producers write it holds its records and its text, little more (a
+`List` is 24 bytes, so a text of many empty levels, each `[]`, costs some 8 times its size). Not by `encoding/json`:
+every record, both runs, `List` and `Optional` give `ErrEncodingJSON` from `MarshalJSON` and `UnmarshalJSON`, which
+says to use `EncodeRun` and `DecodeRun`, since `encoding/json` would write a second text of the one run, by Go's names,
+and read it without its rules; a K-line and a `Decimal` give market's. Nothing given out changes what another holder
+has: a record is a value, its fields numbers, booleans, `Decimal`s, `Optional`s (`Some`, `None`, `Get`) and `List`s,
+none an exported slice, map or pointer; a `List` keeps its items behind methods, `ListOf` copying them in, `Slice`
+copying them out, `Len`, `At`, `Last`, `All` and `Values` giving them as values.
 
 A producer's output is mapped to the records by the producer or by its user, not by the contract.
 
 ## Changes
 
+- **3.0.0**: built on the market data contract, market 1.0.0 (`../market/`): the K-line records, the base's and
+  Massive's and the ongoing K-line of each, with their units, their rules, the rules of their JSON and their canonical
+  texts, are market's, a product of its own released on its own, and this contract defines no K-line of its own; each
+  form takes market's form of the same language for the K-line (TypeScript `@qi/market`, Lean the Lake package `market`,
+  Go market's module), the Avro schemas write market's K-line out in a run's, in its namespace `qi.market.v1`, and the
+  Protobuf description imports `market.proto` for it, its bytes the same. No record of this contract and no text
+  changes: every vector of 2.3.0 reads and writes the same text, byte for byte, and the ongoing K-lines are market's
+  vectors now (`../market/vectors/ongoing/`). Not backward-compatible for a taker's code where it names a K-line, which
+  is why 3.0.0: in TypeScript `klineSchema`, `massiveKlineSchema`, `ongoingKlineSchema`, `massiveOngoingKlineSchema`,
+  `KLine`, `MassiveKLine`, `OngoingKLine`, `MassiveOngoingKLine`, `DecodedOngoing`, `decodeOngoingKLine`,
+  `decodeMassiveOngoingKLine` and `encodeOngoingKLine` are `@qi/market`'s; in Lean `KLine`, `MassiveKLine`, `KLineOf`,
+  `OngoingOf`, `OngoingKLine`, `MassiveOngoingKLine`, `Price`, `Quantity`, `decimal`, `decimalLE`, `decimalEq`,
+  `KLine.rule`, `OngoingOf.check`, `decodeOngoingOf`, `decodeOngoingKLine`, `decodeMassiveOngoingKLine`,
+  `encodeOngoingKLine`, and the JSON's `namesOf`, `strict`, `literals`, `twice`, `bound`, `bounded` and `parsed`
+  are `Market.`'s, not `Chanlun.`'s; in Go `KLine`, `MassiveKLine`, `OngoingKLine`, `MassiveOngoingKLine`,
+  `Decimal`, `ParseDecimal`, `DecimalOf`, `Bound`, `DecodeOngoingKLine`, `DecodeMassiveOngoingKLine` and
+  `EncodeOngoingKLine` are `market.`'s, a merged bar's and a 中枢's prices are `market.Decimal`, and a K-line and a
+  `Decimal` give `market.ErrEncodingJSON` to `encoding/json`, not `chanlun.ErrEncodingJSON`, whose text no longer
+  names the ongoing K-line or `Decimal`. The Avro files of the K-lines and the Protobuf messages of the K-lines are
+  market's, in `qi.market.v1`: their fields and their bytes the same, their full names new, so an Avro reader of
+  2.3.0's `Run.avsc` and one of 3.0.0's do not read each other's data without an alias for the K-line, a schema
+  registry sees a new `Run`, and a Protobuf reader that names the K-line's type (an `Any`'s type URL) sees a new name.
+  Each form's `decode` reads runs alone (no `--ongoing`: market's reads the ongoing K-line). The packages: `chanlun-ts` holds `@qi/market`; `chanlun-lean` holds market's Lake package where its lakefile requires it;
+  a taker of `chanlun-go` requires and replaces market's module too (`market-go`); `chanlun-proto` needs `market-proto`
+  beside it. `SPEC.md`: Units names a position, a price and a count market's, and states the bar's bound, which 2.3.0
+  stated with theirs; the K-line is market's; The JSON is under
+  market's; the Avro, Protobuf and Why both sections name market's. The rules map lists, under `market`, market's rules
+  that a run here breaks, a K-line's and its JSON's, and its check holds every rule of market's to a vector, there or
+  here; the conformance reads 5 runs and 142 reject cases with the three forms; the generated cases are the 1,960 copies
+  of 2.3.0 of the runs, byte for byte, the ongoing K-lines' copies market's.
 - **2.3.0**: one canonical text for one run. A part by level (`segments`, `moves`, `consolidations`) ends with a level
   that is not empty: the levels it holds are 0 to its highest level with a record, an empty level below that stays
   allowed, and a part with no record is `[]`, never `[[]]`. 2.0.0 to 2.2.0 read `"moves": [[a]]` and

@@ -1,34 +1,34 @@
 // 缠论's contract as Protobuf (../../SPEC.md, The Protobuf description): ../proto/chanlun.proto made from the Zod
 // schemas of ../src and the field numbers of ../proto/fields.json, or, with --check, compared with the file:
 //   bun bin/proto.ts [--check]
-// A fault to stderr, exit 1.
+// The K-lines are market's messages (../../../market/proto/market.proto), which it imports. A fault to stderr, exit 1.
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { klineSchema, massiveKlineSchema } from "@qi/market";
 import { z } from "zod";
 import {
   consolidationSchema,
   fractalSchema,
-  klineSchema,
   lineSchema,
-  massiveKlineSchema,
-  massiveOngoingKlineSchema,
   massiveRunSchema,
   mergedBarSchema,
   moveSchema,
-  ongoingKlineSchema,
   runSchema,
   segmentSchema,
 } from "../src/index.ts";
 import { type Numbers, protobuf, type Schema } from "./protobuf.ts";
 
 const dir = join(import.meta.dirname, "..", "..", "proto");
+// market's records, by their messages and the file that has them
+const market = {
+  KLine: { message: "qi.market.v1.KLine", file: "market.proto" },
+  MassiveKLine: { message: "qi.market.v1.MassiveKLine", file: "market.proto" },
+};
 const out = join(dir, "chanlun.proto");
 const records = z
   .registry<{ id: string }>()
   .add(klineSchema, { id: "KLine" })
   .add(massiveKlineSchema, { id: "MassiveKLine" })
-  .add(ongoingKlineSchema, { id: "OngoingKLine" })
-  .add(massiveOngoingKlineSchema, { id: "MassiveOngoingKLine" })
   .add(mergedBarSchema, { id: "MergedBar" })
   .add(fractalSchema, { id: "Fractal" })
   .add(lineSchema, { id: "Line" })
@@ -59,7 +59,7 @@ const numbers = (await json(join(dir, "fields.json"))) as Numbers;
 const schemas = z.toJSONSchema(records, { unrepresentable: "throw" }).schemas as {
   readonly [name: string]: Schema;
 };
-const made = protobuf(schemas, numbers, header);
+const made = protobuf(schemas, numbers, header, market);
 if (!made.ok) fail(made.error);
 else if (process.argv[2] === "--check") {
   const now = await readFile(out, "utf8").catch(() => "");

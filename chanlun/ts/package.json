@@ -1,9 +1,9 @@
 {
   "name": "@qi/chanlun",
-  "version": "2.3.0",
+  "version": "3.0.0",
   "private": true,
   "type": "module",
-  "description": "缠论's contract (../SPEC.md): the algorithm's records as Zod schemas, and a run's records as JSON",
+  "description": "缠论's contract (../SPEC.md): the algorithm's records as Zod schemas, and a run's records as JSON; its K-line market's",
   "exports": {
     ".": "./src/index.ts"
   },
@@ -13,6 +13,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@qi/market": "file:../../market/ts",
     "zod": "4.1.12"
   },
   "devDependencies": {

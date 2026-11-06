@@ -1,4 +1,4 @@
-package chanlun
+package market
 
 import (
 	"errors"
@@ -7,10 +7,10 @@ import (
 
 // Decimal: a price or a quantity (SPEC.md, Units), held exactly as its digits say: at most 6 digits after the point
 // and at most 15 from the first that is not 0. Never a float64: ParseDecimal reads it from its digits, DecimalOf from a
-// whole number of units, String writes the digits back, and == and Cmp compare values exactly (one value, one Decimal:
-// -0 is 0). It is 16 bytes: its whole part in one word, and its millionths in another with its sign, since a count of
-// millionths in an int64 does not hold the 15 digits before the point that the contract allows. The zero Decimal is 0.
-// A value with no field a holder can reach: a copy is a Decimal of its own.
+// whole number of units, String writes the digits back and AppendTo appends them, and == and Cmp compare values
+// exactly (one value, one Decimal: -0 is 0). It is 16 bytes: its whole part in one word, and its millionths in another
+// with its sign, since a count of millionths in an int64 does not hold the 15 digits before the point that the
+// contract allows. The zero Decimal is 0. A value with no field a holder can reach: a copy is a Decimal of its own.
 type Decimal struct {
 	whole uint64 // the digits before the point, below 10^15
 	micro uint32 // the digits after the point, in millionths, below 10^6; and minus, below 0, never for 0
@@ -176,8 +176,9 @@ func figures(n uint64) int {
 	return c
 }
 
-// appendTo: the decimal's digits appended to b, as String writes them
-func (d Decimal) appendTo(b []byte) []byte {
+// AppendTo appends the decimal's digits to b, as String writes them, and gives the extended slice: how a writer of a
+// text holding many, a run of a contract built on this one among them, writes each with nothing allocated.
+func (d Decimal) AppendTo(b []byte) []byte {
 	if d.below0() {
 		b = append(b, '-')
 	}
@@ -201,7 +202,7 @@ func (d Decimal) appendTo(b []byte) []byte {
 // last digit after the point, no point for a whole number, - for a value below 0.
 func (d Decimal) String() string {
 	var b [24]byte
-	return string(d.appendTo(b[:0]))
+	return string(d.AppendTo(b[:0]))
 }
 
 // Cmp compares two decimals exactly: -1 if d is below e, 0 if they are the one value, 1 if d is above e.

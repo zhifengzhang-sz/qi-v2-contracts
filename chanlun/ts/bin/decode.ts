@@ -1,33 +1,24 @@
 // A run's JSON decoded and written again as its canonical JSON (the conformance check's TypeScript side), with
-// --massive a run of Massive's K-lines, with --ongoing an ongoing K-line, of the base or with --massive Massive's:
-//   bun bin/decode.ts [--massive] [--ongoing] FILE
+// --massive a run of Massive's K-lines (an ongoing K-line is market's, ../../../market/ts/bin/decode.ts):
+//   bun bin/decode.ts [--massive] FILE
 // The file's bytes are read as UTF-8, a byte that is not UTF-8 refused, not replaced. A fault to stderr, exit 1.
 // With --batch, every .json file of the folder IN, in the order of their names, decoded so in one process (the
 // generated cases, ../../vectors/cases.ts), each one's answer written to OUT under its name: its canonical text, or
 // the line `decode: ` and its fault:
-//   bun bin/decode.ts [--massive] [--ongoing] --batch IN OUT
+//   bun bin/decode.ts [--massive] --batch IN OUT
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import {
-  decodeMassiveOngoingKLine,
-  decodeMassiveRun,
-  decodeOngoingKLine,
-  decodeRun,
-  encodeOngoingKLine,
-  encodeRun,
-} from "../src/codec.ts";
+import { decodeMassiveRun, decodeRun, encodeRun } from "../src/codec.ts";
 
-const usage =
-  "usage: bun bin/decode.ts [--massive] [--ongoing] FILE | [--massive] [--ongoing] --batch IN OUT";
+const usage = "usage: bun bin/decode.ts [--massive] FILE | [--massive] --batch IN OUT";
 const fail = (error: string): never => {
   process.stderr.write(`decode: ${error}\n`);
   return process.exit(1);
 };
 const args = process.argv.slice(2);
 const massive = args.includes("--massive");
-const ongoing = args.includes("--ongoing");
 const batch = args.includes("--batch");
-const files = args.filter((a) => a !== "--massive" && a !== "--ongoing" && a !== "--batch");
+const files = args.filter((a) => a !== "--massive" && a !== "--batch");
 
 // A file's bytes as its answer: the canonical text, or its fault
 const answer = (
@@ -41,10 +32,8 @@ const answer = (
     }
   })();
   if (text === undefined) return { ok: false, error: "text not UTF-8" };
-  const r = ongoing
-    ? (massive ? decodeMassiveOngoingKLine : decodeOngoingKLine)(text)
-    : (massive ? decodeMassiveRun : decodeRun)(text);
-  return !r.ok ? r : { ok: true, text: "run" in r ? encodeRun(r.run) : encodeOngoingKLine(r.kline) };
+  const r = (massive ? decodeMassiveRun : decodeRun)(text);
+  return !r.ok ? r : { ok: true, text: encodeRun(r.run) };
 };
 
 if (batch) {

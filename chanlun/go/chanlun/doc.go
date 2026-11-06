@@ -3,18 +3,18 @@
 //
 // The records' types (records.go) are made from the TypeScript form's Zod schemas, not edited by hand; their rules
 // (rules.go) and their JSON (json.go, codec.go) are written by hand, every rule of SPEC.md, and held to the vectors
-// with the TypeScript and Lean forms (make check). The standard library only.
+// with the TypeScript and Lean forms (make check). The standard library only, and market's module: a run's K-lines
+// are market.KLine or market.MassiveKLine, held to their rules by their Check, and a price is a market.Decimal; this
+// package defines no K-line of its own (github.com/zhifengzhang-sz/qi-v2-contracts/market/go/market).
 //
-// DecodeRun and DecodeMassiveRun read a run's JSON, DecodeOngoingKLine and DecodeMassiveOngoingKLine an ongoing
-// K-line's, refusing what every form refuses: a number not written in digits or past the bound, a name that is no
+// DecodeRun and DecodeMassiveRun read a run's JSON, refusing what every form refuses: a number not written in digits or past the bound, a name that is no
 // field or part, a name twice in one object, text not UTF-8, a field missing that is not optional, null, a value of
 // another kind, and a broken rule; on a fault they give the zero value. They read the text straight into the records,
-// with no tree of the whole text. EncodeRun and EncodeOngoingKLine write the canonical text, once the rules
-// are checked. A price and a quantity are a Decimal, exact, never a float64 (ParseDecimal from its digits, DecimalOf
-// from a whole number of units, Neg its negation); a whole number is a uint64 up to Bound. Nothing goes through
-// encoding/json: each type's MarshalJSON and UnmarshalJSON give ErrEncodingJSON (encoding.go). A type a taker defines
-// on one of them (type Price chanlun.Decimal) has none of its methods, these among them, and encoding/json writes it
-// as {}: hold the package's own types.
+// with no tree of the whole text. EncodeRun writes the canonical text, once the rules are checked. A price and a
+// quantity are market's Decimal, exact, never a float64; a whole number is a uint64 up to market's Bound. Nothing goes
+// through encoding/json: each type's MarshalJSON and UnmarshalJSON give ErrEncodingJSON (encoding.go), market's
+// market.ErrEncodingJSON. A type a taker defines on one of them (type Bars chanlun.List[chanlun.MergedBar]) has none
+// of its methods, these among them, and encoding/json writes it as {}: hold the packages' own types.
 //
 // Nothing given out changes what another holder has. A record is a value: its fields are numbers, booleans, Decimals,
 // Optionals and Lists, each a value with no exported slice, map or pointer. A List keeps its items behind methods:

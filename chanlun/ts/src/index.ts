@@ -1,14 +1,10 @@
-// @qi/chanlun: 缠论's contract (../SPEC.md): the algorithm's records as Zod schemas, and a run's records as JSON, and an
-// ongoing K-line's.
+// @qi/chanlun: 缠论's contract (../SPEC.md): the algorithm's records as Zod schemas, and a run's records as JSON. Its
+// K-line is market's (@qi/market).
 
 export {
   type Decoded,
-  type DecodedOngoing,
-  decodeMassiveOngoingKLine,
   decodeMassiveRun,
-  decodeOngoingKLine,
   decodeRun,
-  encodeOngoingKLine,
   encodeRun,
   type MassiveRun,
   massiveRunSchema,
@@ -22,22 +18,14 @@ export {
   consolidationSchema,
   type Fractal,
   fractalSchema,
-  type KLine,
-  klineSchema,
   klinesSchema,
   type Line,
   lineSchema,
-  type MassiveKLine,
-  type MassiveOngoingKLine,
   type MergedBar,
   type Move,
-  massiveKlineSchema,
   massiveKlinesSchema,
-  massiveOngoingKlineSchema,
   mergedBarSchema,
   moveSchema,
-  type OngoingKLine,
-  ongoingKlineSchema,
   type Segment,
   type Stroke,
   segmentSchema,

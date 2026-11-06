@@ -1,8 +1,7 @@
 // 缠论's records (../SPEC.md, The records): the algorithm's records, of whatever implementation gives them, each a Zod
 // schema. The algorithm is a chain, and so are its records: each step's output is the next step's input.
 //
-//   the K-line (klineSchema; a data source's, massiveKlineSchema)       the input, the bars as read, each complete
-//   (a bar still going on: the ongoing K-line, ongoingKlineSchema, massiveOngoingKlineSchema, in no run)
+//   the K-line (market's klineSchema; a data source's, massiveKlineSchema)  the input, the bars as read, each complete
 //     → 包含 →  the merged bar (mergedBarSchema)
 //     → 分型 →  the fractal, a top or a bottom at a merged bar (fractalSchema)
 //     → 笔   →  the lowest level line of level 0 (strokeSchema, which is lineSchema)
@@ -14,87 +13,24 @@
 //     → 中枢 →  a consolidation of level L + 1 (consolidationSchema)
 //     → 走势 →  the highest level line of level L + 1 (moveSchema)
 //
-// A K-line's date is its begin time, milliseconds since 1970, UTC. Every configuration after 包含 is on merged bars, by
-// their number (a merged bar's `mIndex`): a 分型 its merged bar, a line its start and end merged bars, a 中枢 its start
-// and end merged bars. A price and a quantity are decimals. A configuration still going on, a merged bar still merging,
-// a line not yet ended, a 中枢 under construction, has no `confirmEnd`: one rule for the three, and in a run at most one
-// record of a part, or of a level, is going on, the last (codec.ts). Whether an implementation's values are right by the
-// lessons is not these contracts' to test: they say what a value is, not whether it is the lessons'.
+// The K-line is market's (@qi/market, ../../market/SPEC.md), and so are the units it shares with these records: a
+// position is a K-line's place in the run, and a price is a decimal. Every configuration after 包含 is on merged bars,
+// by their number (a merged bar's `mIndex`): a 分型 its merged bar, a line its start and end merged bars, a 中枢 its
+// start and end merged bars. A configuration still going on, a merged bar still merging, a line not yet ended, a 中枢
+// under construction, has no `confirmEnd`: one rule for the three, and in a run at most one record of a part, or of a
+// level, is going on, the last (codec.ts). Whether an implementation's values are right by the lessons is not these
+// contracts' to test: they say what a value is, not whether it is the lessons'.
 
+import {
+  klineSchema,
+  massiveKlineSchema,
+  positionSchema as position,
+  priceSchema as price,
+} from "@qi/market";
 import { z } from "zod";
 
-// a time: milliseconds since 1970, UTC
-const time = z.number().int().nonnegative();
-// a K-line's position in the series
-const position = z.number().int().nonnegative();
 // a merged bar's number (its `mIndex`)
 const bar = z.number().int().nonnegative();
-// a decimal as the contract writes it: at most 6 digits after the point, at most 15 from the first that is not 0. A
-// number with no more digits than that is given back as the same digits, which is how it is checked here.
-export const decimal = (digits: string): boolean => {
-  const m = /^-?(0|[1-9][0-9]*)(?:\.([0-9]*[1-9]))?$/.exec(digits);
-  const [, whole = "", fraction = ""] = m ?? [];
-  return m !== null && fraction.length <= 6 && `${whole}${fraction}`.replace(/^0+/, "").length <= 15;
-};
-const decimalMessage = "a decimal of at most 6 digits after the point and 15 from the first that is not 0";
-// a price, a decimal
-const price = z.number().refine((x) => decimal(String(x)), `a price ${decimalMessage}`);
-// a quantity, a decimal as a price is, not negative
-const quantity = z
-  .number()
-  .nonnegative()
-  .refine((x) => decimal(String(x)), `a quantity ${decimalMessage}`);
-
-// A K-line's rule, of the base and of every K-line derived from it
-const withinRange = (k: {
-  readonly open: number;
-  readonly high: number;
-  readonly low: number;
-  readonly close: number;
-}): boolean => k.low <= Math.min(k.open, k.close) && Math.max(k.open, k.close) <= k.high;
-const withinRangeMessage = "a K-line's open and close within its low and high";
-
-// The base contract of a K-line, 7 fields: each data source's contract derives from it by `.extend()` here, with the
-// base's rule; a plain object for that (a schema ending in `.readonly().refine(...)` has no `.extend`).
-const klineBase = z
-  .object({
-    // its place in the run, from 0
-    index: position,
-    // its begin time
-    date: time,
-    open: price,
-    high: price,
-    low: price,
-    close: price,
-    volume: quantity,
-  })
-  .strict();
-
-// a K-line
-export const klineSchema = klineBase.readonly().refine(withinRange, withinRangeMessage);
-
-// Massive's K-line, 9 fields: the base, and `vw` and `n` of Massive's row; its `date` the row's `t`
-const massiveKlineBase = klineBase.extend({
-  vw: price,
-  n: z.number().int().nonnegative(),
-});
-export const massiveKlineSchema = massiveKlineBase.readonly().refine(withinRange, withinRangeMessage);
-
-// The ongoing K-line of a data source, defined once over the source's K-line, as the run is: its K-line's fields and
-// rule, `index` the place it will take when complete, and `asOf`, when its values were last updated, not before its
-// `date`. A bar still going on, in no run. (Zod's types do not reach a field through the generic shape, hence the casts.)
-type Ongoing = KLine & { readonly asOf: number };
-const ongoingOf = <S extends typeof klineBase.shape>(kline: z.ZodObject<S, z.core.$strict>) =>
-  kline
-    .extend({ asOf: time })
-    .readonly()
-    .refine((k) => withinRange(k as Ongoing), withinRangeMessage)
-    .refine(
-      (k) => (k as Ongoing).date <= (k as Ongoing).asOf,
-      "an ongoing K-line's asOf not before its date",
-    );
-export const ongoingKlineSchema = ongoingOf(klineBase);
-export const massiveOngoingKlineSchema = ongoingOf(massiveKlineBase);
 
 // 包含's merged bar, number `mIndex`: from `start` to `end`, its first and last K-lines, up or down, its high and low;
 // `extremes` the K-lines of its extreme, of its high when it goes up, of its low when it goes down, each from `start`
@@ -186,7 +122,7 @@ export const consolidationSchema = z
     "a 中枢 from a merged bar to a later one, its band ZD to ZG within its range DD to GG",
   );
 
-// a run's K-lines: at least one, their times strictly increasing
+// a run's K-lines, market's: at least one, their times strictly increasing
 const inOrder = (ks: readonly { readonly date: number }[]): boolean =>
   ks.every((k, i) => i === 0 || (ks[i - 1]?.date ?? 0) < k.date);
 const inOrderMessage = "a run's K-lines in the order of their times, no time twice";
@@ -197,10 +133,6 @@ export const massiveKlinesSchema = z
   .readonly()
   .refine(inOrder, inOrderMessage);
 
-export type KLine = z.output<typeof klineSchema>;
-export type MassiveKLine = z.output<typeof massiveKlineSchema>;
-export type OngoingKLine = z.output<typeof ongoingKlineSchema>;
-export type MassiveOngoingKLine = z.output<typeof massiveOngoingKlineSchema>;
 export type MergedBar = z.output<typeof mergedBarSchema>;
 export type Fractal = z.output<typeof fractalSchema>;
 export type Line = z.output<typeof lineSchema>;

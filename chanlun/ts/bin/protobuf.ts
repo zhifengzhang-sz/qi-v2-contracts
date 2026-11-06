@@ -8,7 +8,9 @@
 // of whole constants `uint32`, or `int32` when
 // one is below 0; `bool`; `string`; a record its message; an array `repeated`; an array of arrays `repeated` of a
 // message `<Item>List` holding `repeated <Item> items = 1`; a field not required `optional`. A field's name in
-// snake_case, a letter first, whose JSON name by Protobuf's rule is the record's own. Anything else is refused.
+// snake_case, a letter first, whose JSON name by Protobuf's rule is the record's own. A record of another contract, the
+// one this contract is built on (`external`: its message's full name and the file that has it, by the record's name),
+// is that message, its file imported, and has no message here: its contract publishes it. Anything else is refused.
 
 // What Zod's JSON Schema gives for a record, of what the mapping reads
 export type Schema = {
@@ -56,9 +58,12 @@ const scalar = (s: Schema): string | undefined => {
   return undefined;
 };
 
-const element = (s: Schema): string | undefined => s.$ref ?? scalar(s);
+// A record of another contract: its message's full name, and the file that has it
+export type External = { readonly [record: string]: { readonly message: string; readonly file: string } };
 
-const field = (s: Schema): Field => {
+const field = (s: Schema, external: External): Field => {
+  const element = (e: Schema): string | undefined =>
+    e.$ref === undefined ? scalar(e) : (external[e.$ref]?.message ?? e.$ref);
   if (s.type !== "array") {
     const t = element(s);
     return t === undefined ? { error: "a type with no Protobuf form" } : { type: t, list: undefined };
@@ -73,13 +78,16 @@ const field = (s: Schema): Field => {
   const inner = item.items === undefined ? undefined : element(item.items);
   return inner === undefined || item.items?.$ref === undefined
     ? { error: "an array of arrays of anything but a record" }
-    : { type: `repeated ${inner}List`, list: inner };
+    : external[item.items.$ref] !== undefined
+      ? { error: "an array of arrays of another contract's record" }
+      : { type: `repeated ${inner}List`, list: inner };
 };
 
 const message = (
   name: string,
   s: Schema,
   numbers: Numbers["messages"][string] | undefined,
+  external: External,
 ): { readonly text: string; readonly lists: readonly string[] } | { readonly error: string } => {
   if (s.type !== "object" || s.properties === undefined) return { error: `${name}: not a record` };
   if (numbers === undefined) return { error: `${name}: no field numbers` };
@@ -105,7 +113,7 @@ const message = (
     ...(unnamed.length > 0 ? [`names with no snake_case of the same JSON name: ${unnamed.join(", ")}`] : []),
   ];
   if (faults.length > 0) return { error: `${name}: ${faults.join("; ")}` };
-  const fields = props.map(([f, fs]) => ({ f, n: numbers.fields[f] ?? 0, t: field(fs) }));
+  const fields = props.map(([f, fs]) => ({ f, n: numbers.fields[f] ?? 0, t: field(fs, external) }));
   const untyped = fields.flatMap((x) => ("error" in x.t ? [`${x.f} (${x.t.error})`] : []));
   if (untyped.length > 0) return { error: `${name}: ${untyped.join(", ")}` };
   const lines = [...fields]
@@ -128,19 +136,25 @@ const message = (
 };
 
 // The .proto text of the records `schemas` (z.toJSONSchema of a registry: its `schemas`, by name, in their order),
-// headed by `header`, a comment's lines
+// but those of `external`, records of the contract this one is built on; headed by `header`, a comment's lines
 export const protobuf = (
   schemas: { readonly [name: string]: Schema },
   numbers: Numbers,
   header: readonly string[],
+  external: External = {},
 ): Generated => {
-  const extra = Object.keys(numbers.messages).filter((m) => schemas[m] === undefined);
+  const extra = Object.keys(numbers.messages).filter(
+    (m) => schemas[m] === undefined || external[m] !== undefined,
+  );
   if (extra.length > 0) return { ok: false, error: `field numbers of no record: ${extra.join(", ")}` };
-  const made = Object.entries(schemas).map(([name, s]) => message(name, s, numbers.messages[name]));
+  const made = Object.entries(schemas)
+    .filter(([name]) => external[name] === undefined)
+    .map(([name, s]) => message(name, s, numbers.messages[name], external));
   const errors = made.flatMap((m) => ("error" in m ? [m.error] : []));
   if (errors.length > 0) return { ok: false, error: errors.join("\n") };
   const ok = made.flatMap((m) => ("error" in m ? [] : [m]));
   const lists = [...new Set(ok.flatMap((m) => m.lists))];
+  const imports = [...new Set(Object.values(external).map((e) => e.file))].sort();
   const clash = lists.filter((l) => schemas[`${l}List`] !== undefined);
   if (clash.length > 0)
     return {
@@ -154,6 +168,7 @@ export const protobuf = (
     'syntax = "proto3";',
     "",
     `package ${numbers.package};`,
+    ...(imports.length === 0 ? [] : ["", ...imports.map((f) => `import "${f}";`)]),
     "",
     [...ok.map((m) => m.text), ...listMessages].join("\n\n"),
     "",

@@ -1,7 +1,7 @@
 {
   "type": "record",
-  "name": "MassiveOngoingKLine",
-  "namespace": "qi.chanlun.v1",
+  "name": "MassiveKLine",
+  "namespace": "qi.market.v1",
   "fields": [
     {
       "name": "index",
@@ -37,10 +37,6 @@
     },
     {
       "name": "n",
-      "type": "long"
-    },
-    {
-      "name": "asOf",
       "type": "long"
     }
   ]

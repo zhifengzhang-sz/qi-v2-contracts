@@ -1,11 +1,13 @@
 // Every rule of SPEC.md has a reject vector that breaks it, and every reject vector names a rule
 // (../../vectors/rules.json, whose `about` says how): SPEC.md's passages that state rules are read from its headings,
 // tables and paragraphs; each is the rules listed for it and the text listed as no rule, and nothing else; each rule
-// has its vectors, and the TypeScript form refuses each of them with one of the rule's refusals.
+// has its vectors, and the TypeScript form refuses each of them with one of the rule's refusals. So too every rule of
+// market's, whose K-line and JSON a run holds (../../../market/vectors/rules.json): each has a vector, of market's or a
+// run here, and a run here that breaks one is refused for it.
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { decodeMassiveRun, decodeOngoingKLine, decodeRun } from "../src/codec.ts";
+import { decodeMassiveRun, decodeRun } from "../src/codec.ts";
 
 const V = join(import.meta.dirname, "..", "..", "vectors");
 type Rule = {
@@ -14,9 +16,14 @@ type Rule = {
   readonly vectors: readonly string[];
 };
 type Passage = { readonly rules: readonly Rule[]; readonly "no rule": readonly string[] };
-const { passages: listed } = JSON.parse(readFileSync(join(V, "rules.json"), "utf8")) as {
+const { passages: listed, market } = JSON.parse(readFileSync(join(V, "rules.json"), "utf8")) as {
   readonly passages: { readonly [name: string]: Passage };
+  readonly market: { readonly [name: string]: readonly Rule[] };
 };
+// market's rules, by its passages, and its vectors of each
+const { passages: marketListed } = JSON.parse(
+  readFileSync(join(V, "..", "..", "market", "vectors", "rules.json"), "utf8"),
+) as { readonly passages: { readonly [name: string]: Passage } };
 
 // SPEC.md's passages that state rules, by name: each row and paragraph of Units, The records (before its first record)
 // and The run, each `Rule:` paragraph of a record, and The JSON's first paragraph
@@ -72,15 +79,11 @@ const fault = (vector: string): string => {
   } catch {
     return "text not UTF-8";
   }
-  const r = vector.startsWith("massive/")
-    ? decodeMassiveRun(text)
-    : vector.startsWith("ongoing/")
-      ? decodeOngoingKLine(text)
-      : decodeRun(text);
+  const r = vector.startsWith("massive/") ? decodeMassiveRun(text) : decodeRun(text);
   return r.ok ? "" : r.error;
 };
 
-const rejects = ["reject", "massive/reject", "ongoing/reject"].flatMap((d) =>
+const rejects = ["reject", "massive/reject"].flatMap((d) =>
   readdirSync(join(V, d))
     .filter((f) => f.endsWith(".json"))
     .map((f) => `${d}/${f}`),
@@ -113,14 +116,41 @@ describe("every rule of SPEC.md has a reject vector", () => {
   it("every passage of vectors/rules.json is SPEC.md's", () => {
     expect(Object.keys(listed).filter((n) => !spec.has(n))).toEqual([]);
   });
+  it("every rule of market's named here is market's, and every rule of market's has a vector, of market's or here", () => {
+    const theirs = (name: string) => marketListed[name]?.rules ?? [];
+    expect(
+      Object.entries(market).flatMap(([name, rs]) =>
+        rs.filter((r) => !theirs(name).some((m) => m.rule === r.rule)).map((r) => `${name}: ${r.rule}`),
+      ),
+    ).toEqual([]);
+    expect(
+      Object.entries(marketListed).flatMap(([name, p]) =>
+        p.rules
+          .filter(
+            (m) =>
+              m.vectors.length === 0 &&
+              !(market[name] ?? []).some((r) => r.rule === m.rule && r.vectors.length > 0),
+          )
+          .map((m) => `${name}: ${m.rule}`),
+      ),
+    ).toEqual([]);
+  });
   it("every reject vector names a rule, and every vector named is a reject vector", () => {
-    const named = new Set(Object.values(listed).flatMap((p) => p.rules.flatMap((r) => r.vectors)));
+    const named = new Set([
+      ...Object.values(listed).flatMap((p) => p.rules.flatMap((r) => r.vectors)),
+      ...Object.values(market).flatMap((rs) => rs.flatMap((r) => r.vectors)),
+    ]);
     expect(rejects.filter((v) => !named.has(v))).toEqual([]);
     expect([...named].filter((v) => !rejects.includes(v))).toEqual([]);
   });
-  const cases = Object.entries(listed).flatMap(([name, p]) =>
-    p.rules.flatMap((r) => r.vectors.map((v) => [v, `${name}: ${r.rule}`, r.refused] as const)),
-  );
+  const cases = [
+    ...Object.entries(listed).flatMap(([name, p]) =>
+      p.rules.flatMap((r) => r.vectors.map((v) => [v, `${name}: ${r.rule}`, r.refused] as const)),
+    ),
+    ...Object.entries(market).flatMap(([name, rs]) =>
+      rs.flatMap((r) => r.vectors.map((v) => [v, `market's ${name}: ${r.rule}`, r.refused] as const)),
+    ),
+  ];
   it.each(cases)("%s is refused by the TypeScript form for %s", (vector, _, refused) => {
     const e = fault(vector);
     expect(e).not.toBe("");

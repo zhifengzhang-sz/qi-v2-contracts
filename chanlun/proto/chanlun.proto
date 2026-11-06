@@ -1,4 +1,4 @@
-// 缠论's contract, chanlun 2.3.0 (../SPEC.md): the records' fields and types, made from the Zod schemas of
+// 缠论's contract, chanlun 3.0.0 (../SPEC.md): the records' fields and types, made from the Zod schemas of
 // ../ts/src by ../ts/bin/proto.ts with the field numbers of fields.json; not edited by hand. The records' rules are
 // not here (SPEC.md, The records and The run): every reader checks them, and reads the vectors (../vectors/) alike.
 
@@ -6,54 +6,7 @@ syntax = "proto3";
 
 package qi.chanlun.v1;
 
-message KLine {
-  uint64 index = 1;
-  uint64 date = 14;
-  double open = 15;
-  double high = 16;
-  double low = 17;
-  double close = 18;
-  double volume = 19;
-  reserved 2, 3, 4, 5, 6, 7, 8, 9, 10, 11;
-  reserved "up", "confirm_rno", "confirm_date", "stored";
-}
-
-message MassiveKLine {
-  uint64 index = 1;
-  uint64 n = 13;
-  uint64 date = 14;
-  double open = 15;
-  double high = 16;
-  double low = 17;
-  double close = 18;
-  double volume = 19;
-  double vw = 20;
-  reserved 2, 4, 5, 6, 7, 8, 12;
-}
-
-message OngoingKLine {
-  uint64 index = 1;
-  uint64 date = 14;
-  double open = 15;
-  double high = 16;
-  double low = 17;
-  double close = 18;
-  double volume = 19;
-  uint64 as_of = 21;
-}
-
-message MassiveOngoingKLine {
-  uint64 index = 1;
-  uint64 n = 13;
-  uint64 date = 14;
-  double open = 15;
-  double high = 16;
-  double low = 17;
-  double close = 18;
-  double volume = 19;
-  double vw = 20;
-  uint64 as_of = 21;
-}
+import "market.proto";
 
 message MergedBar {
   uint64 m_index = 2;
@@ -111,7 +64,7 @@ message Consolidation {
 }
 
 message Run {
-  repeated KLine klines = 1;
+  repeated qi.market.v1.KLine klines = 1;
   repeated MergedBar merged = 2;
   repeated Fractal fractals = 3;
   repeated Line strokes = 4;
@@ -123,7 +76,7 @@ message Run {
 }
 
 message MassiveRun {
-  repeated MassiveKLine klines = 1;
+  repeated qi.market.v1.MassiveKLine klines = 1;
   repeated MergedBar merged = 2;
   repeated Fractal fractals = 3;
   repeated Line strokes = 4;

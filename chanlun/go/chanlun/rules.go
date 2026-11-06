@@ -3,20 +3,22 @@ package chanlun
 import (
 	"fmt"
 	"strconv"
+
+	"github.com/zhifengzhang-sz/qi-v2-contracts/market/go/market"
 )
 
 // The records' rules (SPEC.md, Units, The records and The run), written by hand, each Check giving the first rule
-// broken, nil if none is. Decoding checks every one; EncodeRun and EncodeOngoingKLine check them before they write,
-// since a holder can make a record or a run of its own. A whole number past Bound is refused here as in the JSON, so
-// that a record made in Go is held to the contract's bound too.
+// broken, nil if none is. Decoding checks every one; EncodeRun checks them before it writes, since a holder can make a
+// record or a run of its own. A whole number past market's Bound is refused here as in the JSON, so that a record made
+// in Go is held to the contract's bound too. A K-line's rules are market's, its Check.
 
 // Stroke: 笔, a line (SPEC.md, Line).
 type Stroke = Line
 
 func bounded(at string, ns ...uint64) error {
 	for _, n := range ns {
-		if n > Bound {
-			return fmt.Errorf("%s: %d: a number past %d", at, n, uint64(Bound))
+		if n > market.Bound {
+			return fmt.Errorf("%s: %d: a number past %d", at, n, uint64(market.Bound))
 		}
 	}
 	return nil
@@ -28,64 +30,6 @@ func (o Optional[T]) or(none T) T {
 	}
 	return none
 }
-
-// Check: a K-line's rules: low ≤ min(open, close) and max(open, close) ≤ high; its volume a quantity, not negative;
-// its index and date within Bound.
-func (k KLine) Check() error {
-	if err := bounded("a K-line", k.Index, k.Date); err != nil {
-		return err
-	}
-	if k.Volume.Sign() < 0 {
-		return fmt.Errorf("volume: %s: a quantity not negative", k.Volume)
-	}
-	if k.Low.Cmp(minDecimal(k.Open, k.Close)) > 0 || maxDecimal(k.Open, k.Close).Cmp(k.High) > 0 {
-		return fmt.Errorf("a K-line's open and close within its low and high")
-	}
-	return nil
-}
-
-// base: the K-line of the base contract a data source's K-line derives from
-func (k KLine) base() KLine { return k }
-
-func (k MassiveKLine) base() KLine {
-	return KLine{Index: k.Index, Date: k.Date, Open: k.Open, High: k.High, Low: k.Low, Close: k.Close, Volume: k.Volume}
-}
-
-// Check: Massive's K-line's rules: the base's, and n within Bound (vw is a price, any decimal).
-func (k MassiveKLine) Check() error {
-	if err := k.base().Check(); err != nil {
-		return err
-	}
-	return bounded("n", k.N)
-}
-
-func (k OngoingKLine) kline() KLine {
-	return KLine{Index: k.Index, Date: k.Date, Open: k.Open, High: k.High, Low: k.Low, Close: k.Close, Volume: k.Volume}
-}
-
-func (k MassiveOngoingKLine) kline() MassiveKLine {
-	return MassiveKLine{Index: k.Index, Date: k.Date, Open: k.Open, High: k.High, Low: k.Low, Close: k.Close,
-		Volume: k.Volume, Vw: k.Vw, N: k.N}
-}
-
-func ongoing(kline error, date, asOf uint64) error {
-	if kline != nil {
-		return fmt.Errorf("the ongoing K-line: %w", kline)
-	}
-	if err := bounded("asOf", asOf); err != nil {
-		return err
-	}
-	if asOf < date {
-		return fmt.Errorf("the ongoing K-line: its asOf not before its date")
-	}
-	return nil
-}
-
-// Check: the ongoing K-line's rules: its K-line's, and date ≤ asOf.
-func (k OngoingKLine) Check() error { return ongoing(k.kline().Check(), k.Date, k.AsOf) }
-
-// Check: Massive's ongoing K-line's rules: Massive's K-line's, and date ≤ asOf.
-func (k MassiveOngoingKLine) Check() error { return ongoing(k.kline().Check(), k.Date, k.AsOf) }
 
 // Check: a merged bar's rules: start ≤ end, low ≤ high, extremes at least one K-line, every one from start to end, in
 // ascending order with none twice, and index one of them.
@@ -167,10 +111,11 @@ type levelled interface {
 	span() (start, end uint64, confirmEnd Optional[uint64], level uint64)
 }
 
+// klineOf: a run's K-line, market's, of the base or of Massive's: its rules, and its base's index and date
 type klineOf interface {
-	KLine | MassiveKLine
+	market.KLine | market.MassiveKLine
 	Check() error
-	base() KLine
+	Base() market.KLine
 }
 
 // where: a part, or a level of a part by level, made its place's text (segments.2) only for a fault, so that a run of
@@ -239,10 +184,10 @@ func checkRun[K klineOf](klines List[K], merged List[MergedBar], fractals List[F
 		if err := k.Check(); err != nil {
 			return fmt.Errorf("klines.%d: %w", i, err)
 		}
-		switch base := k.base(); {
+		switch base := k.Base(); {
 		case base.Index != uint64(i):
 			return fmt.Errorf("klines.%d.index: a K-line's index its place in the run", i)
-		case i > 0 && klines.items[i-1].base().Date >= base.Date:
+		case i > 0 && klines.items[i-1].Base().Date >= base.Date:
 			return fmt.Errorf("klines.%d: a run's K-lines in the order of their times, no time twice", i)
 		}
 	}
@@ -333,5 +278,5 @@ func timeAt[K klineOf](klines List[K], p uint64) (uint64, bool) {
 	if p >= uint64(klines.Len()) {
 		return 0, false
 	}
-	return klines.items[p].base().Date, true
+	return klines.items[p].Base().Date, true
 }

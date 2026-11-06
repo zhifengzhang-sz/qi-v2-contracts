@@ -6,12 +6,14 @@ package chanlun
 import (
 	"reflect"
 	"testing"
+
+	"github.com/zhifengzhang-sz/qi-v2-contracts/market/go/market"
 )
 
 // overwrite: a taker writing over everything it is given: its copy of the run, each part, each record and list taken
 // out of it by every method, and, by reflection, every value reachable from its copy that can be set
 func overwrite(r Run) {
-	d, _ := ParseDecimal("-1")
+	d, _ := market.ParseDecimal("-1")
 	ks := r.Klines.Slice()
 	for i := range ks {
 		ks[i].Open, ks[i].Index = d, 99
@@ -63,7 +65,7 @@ func overwrite(r Run) {
 		}
 	}
 	walk(reflect.ValueOf(&r).Elem())
-	r.Klines, r.Merged, r.Fractals, r.Strokes = List[KLine]{}, List[MergedBar]{}, List[Fractal]{}, List[Line]{}
+	r.Klines, r.Merged, r.Fractals, r.Strokes = List[market.KLine]{}, List[MergedBar]{}, List[Fractal]{}, List[Line]{}
 	r.Segments, r.Moves, r.Consolidations = List[List[Segment]]{}, List[List[Move]]{}, List[List[Consolidation]]{}
 }
 
@@ -99,10 +101,8 @@ func TestNothingGivenOutIsShared(t *testing.T) {
 		return k == reflect.Slice || k == reflect.Map || k == reflect.Pointer || k == reflect.Chan || k == reflect.UnsafePointer
 	}
 	for _, typ := range []reflect.Type{
-		reflect.TypeFor[KLine](), reflect.TypeFor[MassiveKLine](), reflect.TypeFor[OngoingKLine](),
-		reflect.TypeFor[MassiveOngoingKLine](), reflect.TypeFor[MergedBar](), reflect.TypeFor[Fractal](),
-		reflect.TypeFor[Line](), reflect.TypeFor[Segment](), reflect.TypeFor[Move](), reflect.TypeFor[Consolidation](),
-		reflect.TypeFor[Run](), reflect.TypeFor[MassiveRun](), reflect.TypeFor[Decimal](),
+		reflect.TypeFor[MergedBar](), reflect.TypeFor[Fractal](), reflect.TypeFor[Line](), reflect.TypeFor[Segment](),
+		reflect.TypeFor[Move](), reflect.TypeFor[Consolidation](), reflect.TypeFor[Run](), reflect.TypeFor[MassiveRun](),
 		reflect.TypeFor[List[MergedBar]](), reflect.TypeFor[List[List[Segment]]](), reflect.TypeFor[Optional[uint64]](),
 	} {
 		for i := range typ.NumField() {
@@ -136,7 +136,7 @@ func TestListCopiesIn(t *testing.T) {
 	made := Run{Klines: ListOf(ks...), Merged: ListOf(ms...), Fractals: r.Fractals, Strokes: r.Strokes,
 		Segments: r.Segments, Moves: r.Moves, Consolidations: r.Consolidations}
 	// the slices it was made of written over after
-	d, _ := ParseDecimal("1")
+	d, _ := market.ParseDecimal("1")
 	ks[0].Open, ms[1].Up, es[0] = d, !ms[1].Up, 0
 	text, err := EncodeRun(made)
 	if err != nil {

@@ -4,10 +4,10 @@ import (
 	"reflect"
 )
 
-// A run's records as JSON, and an ongoing K-line's (SPEC.md, The JSON): decoding reads the text (json.go) into the
-// records' types (records.go), then checks every rule (rules.go); encoding checks the rules, then writes the
-// canonical text every form writes, which the conformance check compares: the run's parts in their order, a record a
-// line, its fields in the order of their names, a field not set left out.
+// A run's records as JSON (SPEC.md, The JSON): decoding reads the text (json.go) into the records' types
+// (records.go), then checks every rule (rules.go); encoding checks the rules, then writes the canonical text every form
+// writes, which the conformance check compares: the run's parts in their order, a record a line, its fields in the
+// order of their names, a field not set left out. An ongoing K-line is market's (market.DecodeOngoingKLine).
 
 // decodeAs: data as a T, every rule checked; on a fault the zero T, never a T half read or one that breaks a rule
 func decodeAs[T interface{ Check() error }](data []byte) (T, error) {
@@ -26,17 +26,6 @@ func DecodeRun(data []byte) (Run, error) { return decodeAs[Run](data) }
 
 // DecodeMassiveRun: a run of Massive's K-lines, its JSON, as its records; a fault as an error, and the zero MassiveRun.
 func DecodeMassiveRun(data []byte) (MassiveRun, error) { return decodeAs[MassiveRun](data) }
-
-// DecodeOngoingKLine: an ongoing K-line's JSON as its record; a fault as an error, and the zero OngoingKLine.
-func DecodeOngoingKLine(data []byte) (OngoingKLine, error) {
-	return decodeAs[OngoingKLine](data)
-}
-
-// DecodeMassiveOngoingKLine: Massive's ongoing K-line's JSON as its record; a fault as an error, and the zero
-// MassiveOngoingKLine.
-func DecodeMassiveOngoingKLine(data []byte) (MassiveOngoingKLine, error) {
-	return decodeAs[MassiveOngoingKLine](data)
-}
 
 // records: a part's records, a record a line
 func records[T any](e *encoder, l *List[T]) {
@@ -111,16 +100,4 @@ func writeParts(e *encoder, merged *List[MergedBar], fractals *List[Fractal], st
 	levels(e, moves)
 	e.str(",\n\"consolidations\": ")
 	levels(e, consolidations)
-}
-
-// EncodeOngoingKLine: an ongoing K-line's canonical JSON, of the base's or of Massive's, once its rules are checked: its
-// record, and a line break.
-func EncodeOngoingKLine[K OngoingKLine | MassiveOngoingKLine](kline K) (string, error) {
-	if err := any(kline).(interface{ Check() error }).Check(); err != nil {
-		return "", err
-	}
-	e := &encoder{}
-	writeInto(e, &kline)
-	e.str("\n")
-	return e.text(), nil
 }

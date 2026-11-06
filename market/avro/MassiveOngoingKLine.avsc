@@ -1,7 +1,7 @@
 {
   "type": "record",
-  "name": "OngoingKLine",
-  "namespace": "qi.chanlun.v1",
+  "name": "MassiveOngoingKLine",
+  "namespace": "qi.market.v1",
   "fields": [
     {
       "name": "index",
@@ -30,6 +30,14 @@
     {
       "name": "volume",
       "type": "double"
+    },
+    {
+      "name": "vw",
+      "type": "double"
+    },
+    {
+      "name": "n",
+      "type": "long"
     },
     {
       "name": "asOf",
