@@ -78,13 +78,14 @@ The canonical text, which every form writes and the conformance check compares:
 
 - a record: its fields in the order of their names (ASCII), no spaces; a number in its digits.
 
-A contract built on this one writes its own records under these rules, and its own text around them, and so does a
-taker of a record of its own, a source's K-line with fields of its own among them (K-line); each form gives it the
+A contract derived from this one writes its own records under these rules, and its own text around them, and so does
+a taker of a record of its own, a source's K-line with fields of its own among them (K-line); each form gives it the
 reading and the writing of a record for that: in TypeScript `decodeAs(schema, text)` and `encodeRecord(r)`, with the
 schemas of the units (`positionSchema`, `priceSchema`), in Lean `Market.parsed`, `Market.strict` and `Market.record`,
 with `KLineOf` and `OngoingOf` for a K-line of its own and its ongoing K-line. The Go form gives its records' types,
-their rules (`Check`) and a K-line's base (`Base`), and `Decimal` with `DecimalOf` and `AppendTo`, by which such a
-contract or taker reads and writes its own text of them.
+their rules (`Check`) and a K-line's base (`Base`), which a taker holds and checks in records of its own, and
+`Decimal` with `DecimalOf` and `AppendTo`, by which such a contract or taker reads and writes a decimal in its own
+text.
 
 ## The Avro schemas
 

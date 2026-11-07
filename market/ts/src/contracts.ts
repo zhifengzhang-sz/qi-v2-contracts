@@ -4,9 +4,10 @@
 //   the K-line (klineSchema)       the bars as read, each complete
 //   (a bar still going on: the ongoing K-line, ongoingKlineSchema, in no series yet)
 //
-// A K-line's date is its begin time, milliseconds since 1970, UTC. A price and a quantity are decimals. A contract built
-// on this one takes its K-line, and its units (positionSchema, priceSchema) for records of its own; so does a taker of
-// a record of its own, a source's K-line with fields of its own among them (../SPEC.md, K-line).
+// A K-line's date is its begin time, milliseconds since 1970, UTC. A price and a quantity are decimals. A contract
+// derived from this one takes its units (positionSchema, priceSchema) and its JSON (codec.ts), refers to its K-lines by
+// their positions, and holds none; a taker of a record of its own, a source's K-line with fields of its own among them,
+// takes the K-line and its units (../SPEC.md, K-line).
 
 import { z } from "zod";
 

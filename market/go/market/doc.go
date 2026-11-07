@@ -16,7 +16,8 @@
 // {}: hold the package's own types.
 //
 // A K-line is a value: its fields are numbers and Decimals, each a value with no exported slice, map or pointer, so a
-// holder that changes its copy changes nothing in anyone else's. A contract built on this one takes its K-line, its
-// rules (Check) and its base (Base), and Decimal for its own prices; so does a taker of a record of its own, a source's
-// K-line with fields of its own among them (SPEC.md, K-line).
+// holder that changes its copy changes nothing in anyone else's. A contract derived from this one takes its units and
+// its JSON, Decimal for its prices among them, refers to its K-lines by their positions, and holds none; a taker of a
+// record of its own, a source's K-line with fields of its own among them, takes the K-line, its rules (Check), its
+// base (Base) and Decimal (SPEC.md, K-line).
 package market

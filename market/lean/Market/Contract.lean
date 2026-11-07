@@ -8,8 +8,9 @@ The K-lines, of whatever source gives them (../SPEC.md, The records), the same a
 (`Market/Codec.lean`).
 
 A K-line's `date` is its begin time, milliseconds since 1970, UTC. A price and a quantity are decimals, held exactly. A
-contract built on this one takes its K-line and its units for records of its own; so does a taker of a record of its
-own, a source's K-line with fields of its own among them (`KLineOf`, `OngoingOf`).
+contract derived from this one takes its units and its JSON (`Market/Codec.lean`), refers to its K-lines by their
+positions, and holds none; a taker of a record of its own, a source's K-line with fields of its own among them, takes
+the K-line and its units (`KLineOf`, `OngoingOf`).
 -/
 namespace Market
 
@@ -69,8 +70,10 @@ structure KLine where
   volume : Quantity
   deriving Repr, BEq, Inhabited, ToJson, FromJson
 
-/-- What a contract built on this one needs of a K-line, the base contract's or a taker's own with fields of its own
-(../SPEC.md, K-line): the base's fields, and the names of its fields. -/
+/-- What the rules and the decoding of an ongoing K-line made over a K-line (`OngoingOf.check`, `decodeOngoingOf`)
+need of it, the base contract's or a taker's own with fields of its own (../SPEC.md, K-line): the base's fields, and
+the names of its fields. A contract derived from this one takes its units and its JSON, refers to its K-lines by
+their positions, and holds none: it needs none of this. -/
 class KLineOf (K : Type) where
   base : K → KLine
   fields : List String

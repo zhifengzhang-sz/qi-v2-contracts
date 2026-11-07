@@ -14,7 +14,8 @@ import (
 // ErrEncodingJSON: what MarshalJSON and UnmarshalJSON give, for every type of the package: the contract's JSON is
 // written and read by its own functions, not by encoding/json.
 var ErrEncodingJSON = errors.New("market: not by encoding/json: an ongoing K-line is written by EncodeOngoingKLine " +
-	"and read by DecodeOngoingKLine, a K-line by the contract built on this one that holds it, a Decimal by String " +
+	"and read by DecodeOngoingKLine, a K-line by its taker, in a text of its own (a contract derived from market " +
+	"takes its units and its JSON, refers to its K-lines by their positions, and holds none), a Decimal by String " +
 	"and ParseDecimal")
 
 // MarshalJSON: refused, ErrEncodingJSON: a Decimal's digits are String's.
@@ -29,8 +30,10 @@ func (OngoingKLine) MarshalJSON() ([]byte, error) { return nil, ErrEncodingJSON 
 // UnmarshalJSON: refused, ErrEncodingJSON: an ongoing K-line is read by DecodeOngoingKLine.
 func (*OngoingKLine) UnmarshalJSON([]byte) error { return ErrEncodingJSON }
 
-// MarshalJSON: refused, ErrEncodingJSON: a K-line is written by the contract built on this one that holds it.
+// MarshalJSON: refused, ErrEncodingJSON: a K-line is written by its taker, in a text of its own; a contract derived
+// from this one takes its units and its JSON, refers to its K-lines by their positions, and holds none.
 func (KLine) MarshalJSON() ([]byte, error) { return nil, ErrEncodingJSON }
 
-// UnmarshalJSON: refused, ErrEncodingJSON: a K-line is read by the contract built on this one that holds it.
+// UnmarshalJSON: refused, ErrEncodingJSON: a K-line is read by its taker, from a text of its own; a contract derived
+// from this one takes its units and its JSON, refers to its K-lines by their positions, and holds none.
 func (*KLine) UnmarshalJSON([]byte) error { return ErrEncodingJSON }

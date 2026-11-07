@@ -33,9 +33,10 @@ func (k KLine) Check() error {
 	return nil
 }
 
-// Base: the base contract's K-line, the base's fields of a K-line (SPEC.md, K-line): of a K-line, the K-line itself.
-// What a contract built on this one reads of a K-line, its index and its date; a taker's own K-line, the base's fields
-// and its own, gives its base by a Base of its own.
+// Base: the base contract's K-line, the base's fields of a K-line (SPEC.md, K-line): of a K-line, the K-line itself. A
+// taker's own K-line, the base's fields and its own, gives its base by a Base of its own, by which the taker reads it
+// as the base's. A contract derived from this one takes its units and its JSON, refers to its K-lines by their
+// positions, and holds none: it reads no K-line's base.
 func (k KLine) Base() KLine { return k }
 
 func (k OngoingKLine) kline() KLine {

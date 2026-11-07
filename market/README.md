@@ -8,10 +8,10 @@ the standard library only, its types made from the Zod schemas, its rules and JS
 rule of `SPEC.md` with a reject vector here that breaks it and every reject vector with the rule it breaks
 (`vectors/rules.json`), and changed copies of the vectors made by a fixed seed (`vectors/cases.ts`).
 
-A contract built on it takes its K-line, and defines none of its own. A K-line of a source with fields of its own is
-its taker's, not this contract's, held to its vectors for the base (`SPEC.md`, K-line). The vectors here are its own:
-the ongoing K-line of the base, and for every rule of `SPEC.md` at least one ongoing K-line with one thing wrong that
-breaks it.
+A contract derived from it takes its units and its JSON, refers to its K-lines by their positions, and holds none. A
+K-line of a source with fields of its own is its taker's, not this contract's, held to its vectors for the base
+(`SPEC.md`, K-line). The vectors here are its own: the ongoing K-line of the base, and for every rule of `SPEC.md` at
+least one ongoing K-line with one thing wrong that breaks it.
 
 ## Taking it
 
@@ -55,10 +55,10 @@ The JSON (`{ ok: true, value }` or `{ ok: false, error }`), and `encodeRecord(r)
 
 Lean: `Market.decodeOngoingKLine text : Except String OngoingKLine`, `Market.encodeOngoingKLine k : String`; the
 structures `KLine`, `Price` and `Quantity`, and `OngoingOf K`, the ongoing K-line made over a K-line, of which
-`OngoingKLine` is the base's, with `ToJson` and `FromJson`; `KLineOf K`, what a contract built on it needs of a K-line,
-the base's or a taker's own; `Market.KLine.rule`. For a contract built on it, or a taker's record of its own:
-`Market.parsed text`, a JSON text under the rules of The JSON, `Market.strict`, an object of only its fields and no
-`null`, and `Market.record`, a record's canonical text.
+`OngoingKLine` is the base's, with `ToJson` and `FromJson`; `KLineOf K`, what the rules and the decoding of an ongoing
+K-line made over a K-line need of it, the base's or a taker's own; `Market.KLine.rule`. For a contract built on it, or
+a taker's record of its own: `Market.parsed text`, a JSON text under the rules of The JSON, `Market.strict`, an object
+of only its fields and no `null`, and `Market.record`, a record's canonical text.
 
 Go: `market.DecodeOngoingKLine(data) (OngoingKLine, error)`, of the text's bytes, UTF-8, the zero value with its
 fault; `market.EncodeOngoingKLine(k) (string, error)` its canonical JSON, once the rules are checked; each record's
@@ -111,9 +111,13 @@ A source's output is mapped to the records by the source's reader or by its user
   this one holds: it takes this contract's units and its JSON, refers to its K-lines by their positions, and holds
   none, where it said that such a contract takes its K-line and says what it holds of them; and a change to the base's
   records changes it only where what it takes, a unit or the JSON, changes, where it said that the change was one to
-  every contract built on this one. 2.0.0 was tagged on `da08cac` and withdrawn unreleased, before anything took it:
-  this version is what it was, every record, rule, form and vector, under a minor version's number, with those two
-  passages of `SPEC.md`.
+  every contract built on this one. So does every other text here that had such a contract take, read or hold its
+  K-line: `README.md`; `SPEC.md`'s paragraph of The JSON on a contract's own records, whose Go form's `Check` and `Base`
+  are a taker's; in TypeScript `contracts.ts`; in Lean `Market/Contract.lean` and `KLineOf`; in Go `doc.go`, `Base`,
+  the K-line's `MarshalJSON` and `UnmarshalJSON`, and `ErrEncodingJSON`'s text, which says a K-line is read and
+  written by its taker, in a text of its own, no longer by the contract built on this one that holds it. 2.0.0 was
+  tagged on `da08cac` and withdrawn unreleased, before anything took it: this version is what it was, every record,
+  rule, test, form and vector, under a minor version's number, with those texts.
 - **1.0.0**: the market data contract, a product of its own: the K-line records of chanlun 2.3.0, the base K-line and
   Massive's and the ongoing K-line of each, with their rules, their units, the rules of their JSON and their canonical
   texts, and the ongoing K-line's readers and writers, as chanlun 2.3.0 has them. It is 1.0.0 because those records
