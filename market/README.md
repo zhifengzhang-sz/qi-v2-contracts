@@ -99,14 +99,14 @@ A source's output is mapped to the records by the source's reader or by its user
   The count is no longer a unit of this contract: `n` was its one field, so no record here has a count and no vector
   here could break its rules; Units, the bound of 2⁵³ − 1 and The JSON no longer name it, and chanlun 4.0.0, whose
   `level` is a count, states it. Versions no longer makes a new source's records a minor version. The Avro schemas'
-  section says that the vectors break each rule and that a form that checks the rules reads the vectors alike, where it
-  said that a reader in any language must check them itself. Not backward-compatible for a taker of Massive's records,
-  which is why 2.0.0; every base record, rule and canonical text is 1.0.0's: `vectors/ongoing/kline.json` reads and
-  writes the same text, and every reject case kept is refused, as before, and `KLine.avsc`, `OngoingKLine.avsc` and the
-  messages `KLine` and `OngoingKLine` are 1.0.0's, their field numbers too. The counts, 1.0.0 to 2.0.0: the rules of
-  `SPEC.md` 32 to 30, each with a vector here; the conformance 2 ongoing K-lines and 37 reject cases to 1 and 28; the
-  generated cases 400 (58 read, 342 refused) to 200 (24 read, 176 refused), 1.0.0's copies of the base's ongoing
-  K-line, byte for byte.
+  section, and the Protobuf description's header, say that the vectors break each rule and that a form that checks the
+  rules reads the vectors alike, where they said that every reader must check them itself. Not backward-compatible for
+  a taker of Massive's records, which is why 2.0.0; every base record, rule and canonical text is 1.0.0's:
+  `vectors/ongoing/kline.json` reads and writes the same text, and every reject case kept is refused, as before, and
+  `KLine.avsc`, `OngoingKLine.avsc` and the messages `KLine` and `OngoingKLine` are 1.0.0's, their field numbers too.
+  The counts, 1.0.0 to 2.0.0: the rules of `SPEC.md` 32 to 30, each with a vector here; the conformance 2 ongoing
+  K-lines and 37 reject cases to 1 and 28; the generated cases 400 (58 read, 342 refused) to 200 (24 read, 176
+  refused), 1.0.0's copies of the base's ongoing K-line, byte for byte.
 - **1.0.0**: the market data contract, a product of its own: the K-line records of chanlun 2.3.0, the base K-line and
   Massive's and the ongoing K-line of each, with their rules, their units, the rules of their JSON and their canonical
   texts, and the ongoing K-line's readers and writers, as chanlun 2.3.0 has them. It is 1.0.0 because those records

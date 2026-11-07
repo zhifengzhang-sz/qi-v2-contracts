@@ -300,9 +300,11 @@
               for c in ${part.lean} ${part.go}; do
                 [ "$(cat $c)" = "$r $o $n" ] || { echo "${product} conformance: the forms did not read the same vectors"; exit 1; }
               done
-              g=""; [ $r = 0 ] || g="$r runs"; [ $o = 0 ] || g="''${g:+$g and }$o ongoing K-lines"
+              # a count and its noun, in the singular where the count is 1
+              of() { if [ "$1" = 1 ]; then echo "$1 $2"; else echo "$1 $3"; fi; }
+              g=""; [ $r = 0 ] || g="$(of $r run runs)"; [ $o = 0 ] || g="''${g:+$g and }$(of $o "ongoing K-line" "ongoing K-lines")"
               mkdir $out
-              echo "${product} conformance: $g given back alike by three forms (ts, lean, go), $n reject cases refused by all three: PASS" > $out/report
+              echo "${product} conformance: $g given back alike by three forms (ts, lean, go), $(of $n "reject case" "reject cases") refused by all three: PASS" > $out/report
             '';
           market-conformance = conformanceOf "market" ./market marketVectors ''
             give --ongoing vectors/ongoing/kline.json

@@ -97,14 +97,15 @@ A producer's output is mapped to the records by the producer or by its user, not
   as is `klines-of-massive.json`, the base's run with Massive's K-lines, refused for a name that is no field as
   `kline-unknown-field.json` is. Every rule here keeps a vector of its own. The count, market's in 3.0.0, is this
   contract's (Units): a 线段's, a 走势's and a consolidation's `level`, from 0, a whole number to 2⁵³ − 1 as a bar is,
-  refused negative or a fraction (The JSON), the same rules as before; `consolidation-level-negative.json` breaks them,
-  and no vector here has a count with a fraction (3.0.0's was Massive's `n`). Versions no longer makes a new source's
-  K-line a minor version; the Avro schemas' section as market 2.0.0's. Not backward-compatible for a taker of Massive's
+  refused negative or a fraction (The JSON), the same rules as before; `consolidation-level-negative.json` breaks its
+  `from 0`, and `consolidation-level-with-a-fraction.json`, new, a level of 0.5, breaks its whole number, as Massive's
+  `n` with a fraction did in 3.0.0. Versions no longer makes a new source's K-line a minor version; the Avro schemas'
+  section and the Protobuf description's header as market 2.0.0's. Not backward-compatible for a taker of Massive's
   run, which is why 4.0.0; every other record, rule and canonical text is 3.0.0's: every vector kept reads and writes
   the same text, or is refused, as before, and the Avro schemas and Protobuf messages kept are 3.0.0's, their field
   numbers too. The counts, 3.0.0 to 4.0.0: the rules of `SPEC.md` 48 to 47 (Massive's run's 2 gone, the count's
   `from 0` stated here), each with a vector here; market's rules held to a vector here 31 to 28; the conformance 5 runs
-  and 142 reject cases to 3 and 122; the generated cases 1,960 (384 read, 1,576 refused) to 1,160 (222 read, 938
+  and 142 reject cases to 3 and 123; the generated cases 1,960 (384 read, 1,576 refused) to 1,160 (222 read, 938
   refused), 3.0.0's copies of the base's runs, byte for byte.
 - **3.0.0**: built on the market data contract, market 1.0.0 (`../market/`): the K-line records, the base's and
   Massive's and the ongoing K-line of each, with their units, their rules, the rules of their JSON and their canonical

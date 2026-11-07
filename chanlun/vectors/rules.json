@@ -59,6 +59,7 @@
           "vectors": [
             "reject/bar-with-a-fraction.json",
             "reject/fractal-index-negative.json",
+            "reject/consolidation-level-with-a-fraction.json",
             "reject/consolidation-level-negative.json"
           ]
         }
@@ -459,7 +460,8 @@
           "vectors": [
             "reject/fractal-index-negative.json",
             "reject/bar-with-a-fraction.json",
-            "reject/consolidation-level-negative.json"
+            "reject/consolidation-level-negative.json",
+            "reject/consolidation-level-with-a-fraction.json"
           ]
         },
         {
@@ -588,7 +590,8 @@
         "vectors": [
           "reject/number-with-fraction.json",
           "reject/position-with-a-fraction.json",
-          "reject/bar-with-a-fraction.json"
+          "reject/bar-with-a-fraction.json",
+          "reject/consolidation-level-with-a-fraction.json"
         ]
       },
       {

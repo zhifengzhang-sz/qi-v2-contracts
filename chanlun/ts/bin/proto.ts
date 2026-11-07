@@ -47,7 +47,8 @@ const { version } = (await json(join(import.meta.dirname, "..", "package.json"))
 const header = [
   `缠论's contract, chanlun ${version} (../SPEC.md): the records' fields and types, made from the Zod schemas of`,
   "../ts/src by ../ts/bin/proto.ts with the field numbers of fields.json; not edited by hand. The records' rules are",
-  "not here (SPEC.md, The records and The run): every reader checks them, and reads the vectors (../vectors/) alike.",
+  "not here: they are in SPEC.md (The records and The run), and the vectors (../vectors/) break each of them; a form",
+  "that checks the rules reads the vectors alike.",
 ];
 
 const numbers = (await json(join(dir, "fields.json"))) as Numbers;
