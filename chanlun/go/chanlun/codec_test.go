@@ -162,7 +162,7 @@ func TestLastLevelNotEmpty(t *testing.T) {
 }
 
 func FuzzDecodeRun(f *testing.F) {
-	for _, n := range []string{"small.json", "edge.json", "reject/merged-ongoing-twice.json",
+	for _, n := range []string{"small.json", "edge.json", "bounds.json", "reject/merged-ongoing-twice.json",
 		"reject/consolidation-zg-as-text.json", "reject/merged-extremes-not-a-list.json"} {
 		data, err := readVector(n)
 		if err != nil {

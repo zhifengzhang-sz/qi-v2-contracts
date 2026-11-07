@@ -312,7 +312,7 @@
             for v in vectors/ongoing/reject/*.json; do refuse --ongoing $v; done
           '';
           chanlun-conformance = conformanceOf "chanlun" ./chanlun chanlunVectors ''
-            for v in vectors/run.json vectors/small.json vectors/edge.json; do give "" $v; done
+            for v in vectors/run.json vectors/small.json vectors/edge.json vectors/bounds.json; do give "" $v; done
             for v in vectors/reject/*.json; do refuse "" $v; done
           '';
 

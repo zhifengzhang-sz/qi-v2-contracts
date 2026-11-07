@@ -126,25 +126,37 @@ A producer's output is mapped to the records by the producer or by its user, not
   records unchanged (`edge.json` without the largest volume and the smallest above 0, which were its K-lines'); the 28
   reject cases whose one fault was in a run's K-lines, or in its positions against them, removed: 26 of them read
   without their K-lines as `small.json` (`kline-*.json` and `klines-*.json`, 14, a K-line's rules and the K-lines';
-  `number-*.json`, `price-*.json`, `quantity-*.json` and `text-not-utf-8.json`, 12, market's rules of a number, a
-  price, a quantity or the text, broken in a K-line) and 2 as a run every rule here allows
-  (`merged-end-past-klines.json` and `merged-confirm-end-past-klines.json`, a position past the K-lines). Every rule of
-  this contract keeps a vector of its own here, and every rule of market's one there; `rules.json` names under
-  `market` the 6 of market's rules a run here still breaks. The rules of a number and of the text that those 12 broke
-  hold for this contract's records too: the TypeScript and Lean forms read them by market's means, which market's
-  vectors hold, and the Go form's reader, its own, is held to each by its tests, on a merged bar's fields where they
-  used a K-line's, a leading 0 and a price of 16 digits added. Not the same text: a
-  run of 3.0.0's is refused here for its part `klines`, a name that is no part, and one of this version's is refused by
-  3.0.0 for that part missing: its producer leaves the K-lines out, and its taker reads them as market's records. In
-  Avro, a reader of this `Run.avsc` reads data written with 3.0.0's, skipping `klines`, and a reader of 3.0.0's refuses
-  this one's, which has none; in Protobuf, a reader of this description reads 3.0.0's data, its field 1 an unknown
-  field, and one of 3.0.0's reads this one's with no K-line. Every other Avro schema and Protobuf message is 3.0.0's, its field numbers too, and
-  every vector kept reads and writes its 3.0.0 text without `klines`, or is refused, as before.
+  `number-*.json`, `price-*.json`, `quantity-*.json` and `text-not-utf-8.json`, 12, market's rules of a number, a price,
+  a quantity or the text, broken in a K-line) and 2 as a run every rule here allows (`merged-end-past-klines.json` and
+  `merged-confirm-end-past-klines.json`, a position past the K-lines). The rules of a number and of the text hold for
+  this contract's records too, and its own vectors hold the three forms to them: 10 of the 28 are made again on a merged
+  bar's field, a price where the rule is a price's and a position where it is a position's, by their names but
+  `merged-high-twice.json`, `kline-high-twice.json`'s, a name twice in one object: `number-with-exponent.json` and
+  `number-with-a-huge-exponent.json` its high with an exponent, `number-with-a-leading-0.json` its index `01`,
+  `number-past-2-53.json` and `number-of-17-digits.json` its `confirmEnd` past the bound,
+  `price-ending-in-0-after-the-point.json`, `price-of-16-digits.json` and `price-with-7-digits-after-the-point.json` its
+  high with a 0 last after the point, of 16 digits, or of 7 after the point, and `text-not-utf-8.json` a byte not UTF-8
+  in a name of it. Not made again: `quantity-of-16-digits.json` and `quantity-with-7-digits-after-the-point.json`, a
+  quantity's, which no record here has, its digits bound as a price's are, which the two price cases break; and
+  `number-with-fraction.json`, a fraction where a time is, which no record here has, a fraction where a position is
+  being `position-with-a-fraction.json`'s. New: `consolidation-level-past-2-53.json`, a level of 2⁵³, a count past the
+  bound, which no vector broke before; and `bounds.json`, a run with prices at their bounds, a merged bar's low
+  0.000001, 6 digits after the point, and another's high 999999999999999, 15 digits from the first that is not 0, read
+  and written back alike by the three forms, and a vector of the generated cases. Every rule of this contract keeps a
+  vector of its own here, and every rule of market's one there; `rules.json` names under `market` the 16 of market's
+  rules a run here breaks, each vector under every one it breaks. The Go form's tests also hold its reader to those
+  rules on a merged bar's fields. Not the same text: a run of 3.0.0's is refused here for its part `klines`, a name that
+  is no part, and one of this version's is refused by 3.0.0 for that part missing: its producer leaves the K-lines out,
+  and its taker reads them as market's records. In Avro, a reader of this `Run.avsc` reads data written with 3.0.0's,
+  skipping `klines`, and a reader of 3.0.0's refuses this one's, which has none; in Protobuf, a reader of this
+  description reads 3.0.0's data, its field 1 an unknown field, and one of 3.0.0's reads this one's with no K-line.
+  Every other Avro schema and Protobuf message is 3.0.0's, its field numbers too, and every vector kept reads and writes
+  its 3.0.0 text without `klines`, or is refused, as before.
 
   The counts, 3.0.0 to 3.1.0: the rules of `SPEC.md` 48 to 41 (Massive's run's 2 and the K-lines' 6 gone, the count's
-  `from 0` stated here), each with a vector here; market's rules held to a vector here 31 to 6; the conformance 5 runs
-  and 142 reject cases to 3 and 95; the generated cases 1,960 (384 read, 1,576 refused) to 1,160 (237 read, 923
-  refused), made by the same seed from the runs without their K-lines.
+  `from 0` stated here), each with a vector here; market's rules held to a vector here 31 to 16; the conformance 5 runs
+  and 142 reject cases to 4 and 106; the generated cases 1,960 (384 read, 1,576 refused) to 1,560 (327 read, 1,233
+  refused), made by the same seed from the runs without their K-lines and from `bounds.json`.
 - **3.0.0**: built on the market data contract, market 1.0.0 (`../market/`): the K-line records, the base's and
   Massive's and the ongoing K-line of each, with their units, their rules, the rules of their JSON and their canonical
   texts, are market's, a product of its own released on its own, and this contract defines no K-line of its own; each

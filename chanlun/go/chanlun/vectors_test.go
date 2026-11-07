@@ -33,7 +33,7 @@ func giveBack(data []byte) (string, error) {
 }
 
 func TestVectorsGivenBack(t *testing.T) {
-	for _, file := range []string{"run.json", "small.json", "edge.json"} {
+	for _, file := range []string{"run.json", "small.json", "edge.json", "bounds.json"} {
 		t.Run(file, func(t *testing.T) {
 			data := read(t, file)
 			text, err := giveBack(data)

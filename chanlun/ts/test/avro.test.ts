@@ -139,6 +139,7 @@ describe("the Avro schemas, read by an Avro implementation", () => {
     ["run.json", "Run.avsc", decodeRun],
     ["small.json", "Run.avsc", decodeRun],
     ["edge.json", "Run.avsc", decodeRun],
+    ["bounds.json", "Run.avsc", decodeRun],
   ] as const)("gives %s back as the same text through Avro's binary format", (vector, file, decode) => {
     const text = readFileSync(join(vectors, vector), "utf8");
     const r = decode(text);

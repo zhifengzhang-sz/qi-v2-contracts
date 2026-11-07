@@ -8,9 +8,9 @@ capitalized (`KLine`, `DecodeOngoingKLine`, `EncodeOngoingKLine`); its Avro sche
 (`proto/market.proto`) are made from the TypeScript, for every other language and for a schema registry. The vectors
 (`vectors/`) are what every form must read alike.
 
-A K-line is one bar of a series of them, at its place in the series, its `index`. A contract built on this one takes
-its K-line, its units and its JSON, and defines no K-line of its own: this contract says what a K-line is; that one
-what it holds of them.
+A K-line is one bar of a series of them, at its place in the series, its `index`. A contract derived from this one
+takes its units and its JSON, refers to its K-lines by their positions, and holds none: this contract says what a
+K-line is; that one what is made from them.
 
 ## Units
 
@@ -165,5 +165,5 @@ that skips the serializer leaves Avro readers without the schema.
 ## Versions
 
 A change to the records is a new version of this contract, in its forms, its Avro schemas, its Protobuf description and the vectors
-together; a source's output changing is not, until the contract does. A change to the base's records is a major one,
-and a change to every contract built on it.
+together; a source's output changing is not, until the contract does. A change to the base's records is a major one;
+it changes a contract derived from this one only where what that one takes, a unit or the JSON, changes.

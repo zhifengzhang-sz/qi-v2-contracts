@@ -26,6 +26,7 @@ const vectors: readonly {
   { file: "run.json", name: "run", group: "run", copies: 60 },
   { file: "small.json", name: "small", group: "run", copies: 700 },
   { file: "edge.json", name: "edge", group: "run", copies: 400 },
+  { file: "bounds.json", name: "bounds", group: "run", copies: 400 },
 ];
 export const groups = ["run"] as const;
 

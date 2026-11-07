@@ -36,7 +36,12 @@ const fault = (
 };
 
 describe("the vectors", () => {
-  it.each(["run.json", "small.json", "edge.json"])("%s decodes, and encodes to the same text", (n) => {
+  it.each([
+    "run.json",
+    "small.json",
+    "edge.json",
+    "bounds.json",
+  ])("%s decodes, and encodes to the same text", (n) => {
     const r = decodeRun(text(n));
     if (!r.ok) expect.fail(r.error);
     expect(encodeRun(r.run)).toBe(text(n));

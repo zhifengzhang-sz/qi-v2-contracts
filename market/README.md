@@ -107,9 +107,13 @@ A source's output is mapped to the records by the source's reader or by its user
   before, and `KLine.avsc`, `OngoingKLine.avsc` and the messages `KLine` and `OngoingKLine` are 1.0.0's, their field
   numbers too. The counts, 1.0.0 to 1.1.0: the rules of `SPEC.md` 32 to 30, each with a vector here; the conformance 2
   ongoing K-lines and 37 reject cases to 1 and 28; the generated cases 400 (58 read, 342 refused) to 200 (24 read, 176
-  refused), 1.0.0's copies of the base's ongoing K-line, byte for byte. 2.0.0 was tagged on `da08cac` and withdrawn
-  unreleased, before anything took it: this version is what it was, every record, rule, text, form and vector, under
-  a minor version's number, which is all that differs.
+  refused), 1.0.0's copies of the base's ongoing K-line, byte for byte. `SPEC.md` says what a contract derived from
+  this one holds: it takes this contract's units and its JSON, refers to its K-lines by their positions, and holds
+  none, where it said that such a contract takes its K-line and says what it holds of them; and a change to the base's
+  records changes it only where what it takes, a unit or the JSON, changes, where it said that the change was one to
+  every contract built on this one. 2.0.0 was tagged on `da08cac` and withdrawn unreleased, before anything took it:
+  this version is what it was, every record, rule, form and vector, under a minor version's number, with those two
+  passages of `SPEC.md`.
 - **1.0.0**: the market data contract, a product of its own: the K-line records of chanlun 2.3.0, the base K-line and
   Massive's and the ongoing K-line of each, with their rules, their units, the rules of their JSON and their canonical
   texts, and the ongoing K-line's readers and writers, as chanlun 2.3.0 has them. It is 1.0.0 because those records

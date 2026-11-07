@@ -8,7 +8,8 @@
     "a rule added to SPEC.md and not listed here fails the check. Every rule has a vector, every reject vector is named",
     "by a rule, and the TypeScript form refuses each vector of a rule with one of the rule's `refused`. `market` lists",
     "the rules of market's contract (../../market/vectors/rules.json, by its passages) that vectors here break in a run,",
-    "a position's and its JSON's, which every record here crosses under: every rule there has a vector, there or here."
+    "a position's, a price's and its JSON's, which every record here crosses under: every rule there has a vector, there",
+    "or here."
   ],
   "passages": {
     "Units, position": {
@@ -55,12 +56,13 @@
       "rules": [
         {
           "rule": "A bar and a count are whole numbers from 0 to 2⁵³ − 1",
-          "refused": ["expected int, received number", "Too small: expected number to be >=0"],
+          "refused": ["expected int, received number", "Too small: expected number to be >=0", "Too big: expected int"],
           "vectors": [
             "reject/bar-with-a-fraction.json",
             "reject/fractal-index-negative.json",
             "reject/consolidation-level-with-a-fraction.json",
-            "reject/consolidation-level-negative.json"
+            "reject/consolidation-level-negative.json",
+            "reject/consolidation-level-past-2-53.json"
           ]
         }
       ],
@@ -462,11 +464,35 @@
         ]
       }
     ],
+    "Units, price": [
+      {
+        "rule": "at most 6 digits after the point",
+        "refused": ["a number in digits"],
+        "vectors": ["reject/price-with-7-digits-after-the-point.json"]
+      },
+      {
+        "rule": "at most 15 digits from the first that is not 0",
+        "refused": ["a price a decimal of at most 6 digits after the point and 15 from the first that is not 0"],
+        "vectors": ["reject/price-of-16-digits.json"]
+      }
+    ],
+    "Units, paragraph 1": [
+      {
+        "rule": "A time and a position are whole numbers from 0 to 2⁵³ − 1",
+        "refused": ["Too big: expected int", "a number in digits"],
+        "vectors": ["reject/number-past-2-53.json", "reject/number-of-17-digits.json"]
+      }
+    ],
     "The JSON, paragraph 1": [
       {
         "rule": "A record crosses as one JSON object of its fields",
         "refused": ["expected object, received number"],
         "vectors": ["reject/fractal-not-an-object.json"]
+      },
+      {
+        "rule": "an optional `-`, then `0` or a digit not `0` and more digits",
+        "refused": ["a number in digits"],
+        "vectors": ["reject/number-with-a-leading-0.json"]
       },
       {
         "rule": "for a price or a quantity, optionally `.` and digits",
@@ -476,6 +502,45 @@
           "reject/bar-with-a-fraction.json",
           "reject/consolidation-level-with-a-fraction.json"
         ]
+      },
+      {
+        "rule": "the last not `0`",
+        "refused": ["a number in digits"],
+        "vectors": ["reject/price-ending-in-0-after-the-point.json"]
+      },
+      {
+        "rule": "no exponent",
+        "refused": ["a number in digits"],
+        "vectors": ["reject/number-with-exponent.json", "reject/number-with-a-huge-exponent.json"]
+      },
+      {
+        "rule": "a number written otherwise",
+        "refused": ["a number in digits"],
+        "vectors": [
+          "reject/number-with-exponent.json",
+          "reject/number-with-a-huge-exponent.json",
+          "reject/number-with-a-leading-0.json",
+          "reject/price-ending-in-0-after-the-point.json"
+        ]
+      },
+      {
+        "rule": "or past the bound",
+        "refused": ["Too big: expected int", "a number in digits"],
+        "vectors": [
+          "reject/number-past-2-53.json",
+          "reject/number-of-17-digits.json",
+          "reject/consolidation-level-past-2-53.json"
+        ]
+      },
+      {
+        "rule": "a name twice in one object",
+        "refused": ["a name twice in one object"],
+        "vectors": ["reject/merged-high-twice.json"]
+      },
+      {
+        "rule": "text not UTF-8",
+        "refused": ["text not UTF-8"],
+        "vectors": ["reject/text-not-utf-8.json"]
       },
       {
         "rule": "`null`",
