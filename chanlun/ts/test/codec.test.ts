@@ -44,8 +44,8 @@ describe("the vectors", () => {
   it("run.json holds every kind of record, 走势 of level 0, a 中枢 of level 1, a 中枢 under construction and a 笔, a 线段 and a 走势 still going on", () => {
     const r = decodeRun(text("run.json"));
     if (!r.ok) expect.fail(r.error);
-    const { klines, merged, fractals, strokes, segments, moves, consolidations } = r.run;
-    expect([klines, merged, fractals, strokes, segments].every((x) => x.length > 0)).toBe(true);
+    const { merged, fractals, strokes, segments, moves, consolidations } = r.run;
+    expect([merged, fractals, strokes, segments].every((x) => x.length > 0)).toBe(true);
     expect(moves[0]?.length).toBeGreaterThan(0);
     expect(consolidations[1]?.length).toBeGreaterThan(0);
     expect(consolidations.flat().some((c) => c.confirmEnd === undefined)).toBe(true);
@@ -54,6 +54,13 @@ describe("the vectors", () => {
     expect(segments[0]?.at(-1)?.confirmEnd).toBeUndefined();
     expect(moves[0]?.at(-1)?.confirmEnd).toBeUndefined();
     expect(strokes.slice(0, -1).every((s) => s.confirmEnd !== undefined)).toBe(true);
+  });
+  it("a run of no record, each of its six parts [], decodes, and encodes to the same text", () => {
+    const none =
+      '{\n"merged": [],\n"fractals": [],\n"strokes": [],\n"segments": [],\n"moves": [],\n"consolidations": []\n}\n';
+    const r = decodeRun(none);
+    if (!r.ok) expect.fail(r.error);
+    expect(encodeRun(r.run)).toBe(none);
   });
   it.each(readdirSync(join(V, "reject")))("reject/%s is refused", (n) => {
     expect(fault(join("reject", n), decodeRun)).not.toBe("");

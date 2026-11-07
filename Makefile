@@ -59,7 +59,7 @@ ts-key = $(shell r=$$(sed -n '/^define $(1)-ts-run$$/,/^endef$$/p; /^$(1)-ts-ins
 market-ts-reads = market/ts market/SPEC.md market/avro market/proto market/go/market/records.go
 chanlun-ts-reads = chanlun/ts chanlun/SPEC.md chanlun/avro chanlun/proto chanlun/go/chanlun/records.go \
 	market/ts/src market/ts/package.json market/ts/bin/avro.ts market/ts/bin/protobuf.ts market/ts/bin/golang.ts \
-	market/vectors/rules.json market/avro market/proto
+	market/vectors/rules.json
 market-ts-key := $(call ts-key,market,$(market-ts-reads),market/vectors)
 chanlun-ts-key := $(call ts-key,chanlun,$(chanlun-ts-reads),chanlun/vectors)
 $(if $(and $(market-ts-key),$(chanlun-ts-key)),,$(error the TypeScript forms' keys: no recipe market-ts-run or chanlun-ts-run in the Makefile, or no key made of it))
@@ -91,7 +91,7 @@ cd chanlun/ts && $(chanlun-ts-install) && biome check . && ./node_modules/.bin/t
 cd chanlun/ts && bun bin/avsc.ts --check
 cd chanlun/ts && bun bin/proto.ts --check
 cd chanlun/ts && bun bin/go.ts --check
-protoc --proto_path=chanlun/proto --proto_path=market/proto --descriptor_set_out=/dev/null chanlun.proto
+protoc --proto_path=chanlun/proto --descriptor_set_out=/dev/null chanlun.proto
 endef
 
 FORCE:
@@ -99,13 +99,13 @@ FORCE:
 market-avro: ## market's Avro schemas, market/avro/*.avsc, made again from the Zod schemas
 	cd market/ts && bun bin/avsc.ts
 
-chanlun-avro: ## chanlun's Avro schemas, chanlun/avro/*.avsc, made again from the Zod schemas, market's K-line written out in a run's
+chanlun-avro: ## chanlun's Avro schemas, chanlun/avro/*.avsc, made again from the Zod schemas
 	cd chanlun/ts && $(chanlun-ts-install) && bun bin/avsc.ts
 
 market-proto: ## market's Protobuf description, market/proto/market.proto, made again from the Zod schemas and market/proto/fields.json (a new field: its number added there first)
 	cd market/ts && bun bin/proto.ts
 
-chanlun-proto: ## chanlun's Protobuf description, chanlun/proto/chanlun.proto, made again from the Zod schemas and chanlun/proto/fields.json, importing market.proto
+chanlun-proto: ## chanlun's Protobuf description, chanlun/proto/chanlun.proto, made again from the Zod schemas and chanlun/proto/fields.json
 	cd chanlun/ts && $(chanlun-ts-install) && bun bin/proto.ts
 
 market-go-types: ## market's Go types, market/go/market/records.go, made again from the Zod schemas
@@ -138,7 +138,7 @@ market-cases: ## market's generated cases: from each valid vector, changed copie
 chanlun-cases: ## chanlun's generated cases: the same, of its runs (chanlun/vectors/cases.ts) (a check of the flake)
 	@$(call nix-checks,$@,chanlun market)
 
-packages: ## the flake's packages built, and each taken as a taker takes it: the TypeScript ones imported by Bun, the Lean ones built by Lake, chanlun's beside market's where its lakefile names it, the Go ones built by Go in a module of its own by a replace to each one's store path, chanlun's and market's both, nothing fetched; each decoding market's ongoing K-line, or chanlun's small run, to the same text; the Avro ones what the schemas make, read by an Avro implementation; the Protobuf ones read by protoc, chanlun's with market's beside it
+packages: ## the flake's packages built, and each taken as a taker takes it: the TypeScript ones imported by Bun, the Lean ones built by Lake, chanlun's beside market's where its lakefile names it, the Go ones built by Go in a module of its own by a replace to each one's store path, chanlun's and market's both, nothing fetched; each decoding market's ongoing K-line, or chanlun's small run, to the same text; the Avro ones what the schemas make, read by an Avro implementation; the Protobuf ones read by protoc
 	@t=$$(mktemp -d) && trap 'rm -rf $$t' EXIT && \
 	k=$$PWD/market/vectors/ongoing/kline.json && \
 	v=$$PWD/chanlun/vectors/small.json && mkdir $$t/market $$t/chanlun && \
@@ -189,8 +189,8 @@ packages: ## the flake's packages built, and each taken as a taker takes it: the
 	mproto=$$(nix build .#market-proto --no-link --print-out-paths) && \
 	protoc --proto_path=$$mproto --descriptor_set_out=/dev/null market.proto && echo "packages: $$mproto read by protoc: PASS" && \
 	proto=$$(nix build .#chanlun-proto --no-link --print-out-paths) && \
-	protoc --proto_path=$$proto --proto_path=$$mproto --descriptor_set_out=/dev/null chanlun.proto && \
-	echo "packages: $$proto read by protoc, with $$mproto: PASS"
+	protoc --proto_path=$$proto --descriptor_set_out=/dev/null chanlun.proto && \
+	echo "packages: $$proto read by protoc: PASS"
 
 products-check: ## whether PRODUCTS.md states what the project has (the kit's kit products)
 	@kit=$$($(call nix-build,"$(KIT)")) && $$kit/bin/kit products --root .

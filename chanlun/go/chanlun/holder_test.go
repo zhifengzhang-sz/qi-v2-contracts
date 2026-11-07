@@ -14,26 +14,21 @@ import (
 // out of it by every method, and, by reflection, every value reachable from its copy that can be set
 func overwrite(r Run) {
 	d, _ := market.ParseDecimal("-1")
-	ks := r.Klines.Slice()
-	for i := range ks {
-		ks[i].Open, ks[i].Index = d, 99
-	}
-	for _, k := range r.Klines.All() {
-		k.Close = d
-	}
-	for k := range r.Klines.Values() {
-		k.High = d
-	}
-	k := r.Klines.At(0)
-	k.Low = d
 	ms := r.Merged.Slice()
 	for i := range ms {
+		ms[i].High, ms[i].Index = d, 99
 		es := ms[i].Extremes.Slice()
 		for j := range es {
 			es[j] = 99
 		}
 		ms[i].Extremes = ListOf[uint64]()
 		ms[i].ConfirmEnd = Some[uint64](99)
+	}
+	for _, m := range r.Merged.All() {
+		m.Low = d
+	}
+	for m := range r.Merged.Values() {
+		m.High = d
 	}
 	m, _ := r.Merged.Last()
 	m.ConfirmEnd, m.Up = None[uint64](), !m.Up
@@ -65,7 +60,7 @@ func overwrite(r Run) {
 		}
 	}
 	walk(reflect.ValueOf(&r).Elem())
-	r.Klines, r.Merged, r.Fractals, r.Strokes = List[market.KLine]{}, List[MergedBar]{}, List[Fractal]{}, List[Line]{}
+	r.Merged, r.Fractals, r.Strokes = List[MergedBar]{}, List[Fractal]{}, List[Line]{}
 	r.Segments, r.Moves, r.Consolidations = List[List[Segment]]{}, List[List[Move]]{}, List[List[Consolidation]]{}
 }
 
@@ -129,15 +124,14 @@ func TestListCopiesIn(t *testing.T) {
 		t.Fatal(err)
 	}
 	before, _ := EncodeRun(r)
-	ks := r.Klines.Slice()
 	ms := r.Merged.Slice()
 	es := ms[0].Extremes.Slice()
 	ms[0].Extremes = ListOf(es...)
-	made := Run{Klines: ListOf(ks...), Merged: ListOf(ms...), Fractals: r.Fractals, Strokes: r.Strokes,
-		Segments: r.Segments, Moves: r.Moves, Consolidations: r.Consolidations}
+	made := Run{Merged: ListOf(ms...), Fractals: r.Fractals, Strokes: r.Strokes, Segments: r.Segments, Moves: r.Moves,
+		Consolidations: r.Consolidations}
 	// the slices it was made of written over after
 	d, _ := market.ParseDecimal("1")
-	ks[0].Open, ms[1].Up, es[0] = d, !ms[1].Up, 0
+	ms[0].High, ms[1].Up, es[0] = d, !ms[1].Up, 0
 	text, err := EncodeRun(made)
 	if err != nil {
 		t.Fatal(err)

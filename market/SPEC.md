@@ -1,6 +1,6 @@
 # The market data contract: the K-lines
 
-Version 2.0.0. The records of the market data, the K-lines, of whatever source gives them, and how they cross from one
+Version 1.1.0. The records of the market data, the K-lines, of whatever source gives them, and how they cross from one
 project to another as JSON. It is written in TypeScript (`ts/`, Zod schemas); Lean (`lean/`, structures with a JSON
 codec) is a second form of it, and Go (`go/`, one module of the standard library only, its types made from the Zod
 schemas, its rules and its JSON written by hand) a third, whose types and functions have the TypeScript's names,

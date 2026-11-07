@@ -1,38 +1,37 @@
 # chanlun: 缠论's contract
 
-The records the algorithm of 缠论 gives over a run of bars, of whatever implementation gives them, and how they cross
-from one project to another as JSON: `SPEC.md`. It is built on the market data contract (`../market/`): a run's bars
-are market's base K-lines, and this contract defines no K-line of its own. Three forms, the same records, each on
+What the algorithm of 缠论 makes beyond the K-line, of whatever implementation makes it: the merged bar, the 分型, the
+lines (笔, 线段 and 走势), the 中枢, and the run that holds them for a series; and how they cross from one project to
+another as JSON: `SPEC.md`. Its records are derived from the market data contract's K-line (`../market/`), whose
+units and JSON they take: the K-line is market's, and this contract holds none. Three forms, the same records, each on
 market's form of the same language: TypeScript (`ts/`, `@qi/chanlun`, Zod, on `@qi/market`), Lean (`lean/`, the Lake
 package `chanlun`, no Mathlib, on the Lake package `market`) and Go (`go/`, the module
 `github.com/zhifengzhang-sz/qi-v2-contracts/chanlun/go`, the standard library and market's module only, its types made
 from the Zod schemas, its rules and JSON written by hand). The vectors (`vectors/`) are what every form reads alike,
 checked on every change (`make chanlun`): each vector by each form, every rule of `SPEC.md` with its reject vectors, and
-every rule of market's that a run's K-line breaks (`vectors/rules.json`), and changed copies of the vectors made by a
+every rule of market's that a run here breaks (`vectors/rules.json`), and changed copies of the vectors made by a
 fixed seed (`vectors/cases.ts`).
 
 ## Taking it
 
 By the flake, pinned in the taker's `flake.lock` (`inputs.contracts.url =
-"github:zhifengzhang-sz/qi-v2-contracts?ref=chanlun-4.0.0";`), whose packages hold or name market's of the same
+"github:zhifengzhang-sz/qi-v2-contracts?ref=chanlun-3.1.0";`), whose packages hold or name market's of the same
 revision:
 
 - `contracts.packages.${system}.chanlun-ts`: `node_modules/@qi/chanlun`, `@qi/market` and `zod`, as source; `import {
-  decodeRun, mergedBarSchema } from "@qi/chanlun"`, and the K-line from `@qi/market` (`import { klineSchema } from
-  "@qi/market"`).
+  decodeRun, mergedBarSchema } from "@qi/chanlun"`, and a K-line, market's, from `@qi/market`.
 - `contracts.packages.${system}.chanlun-lean`: the Lake package as source at `chanlun/lean`, and market's at
   `market/lean`, where its lakefile requires it (`path = "../../market/lean"`); a taker's Lake requires
   `chanlun/lean` of a copy of it; `import Chanlun`, and `import Market` for the K-line.
 - `contracts.packages.${system}.chanlun-go`: the Go module as source, without its tests; `import
   "github.com/zhifengzhang-sz/qi-v2-contracts/chanlun/go/chanlun"`, with market's module (`market-go`) beside it.
 - `contracts.packages.${system}.chanlun-avro`: the Avro schemas, one `.avsc` file for each record, each complete,
-  market's K-line written out in a run's, for other languages and for schema registries.
+  none of market's, for other languages and for schema registries.
 - `contracts.packages.${system}.chanlun-proto`: `chanlun.proto`, the same records for Protobuf, which imports
-  `market.proto` (`market-proto`): `protoc` reads it with both on its path. `SPEC.md` describes both formats, and says
-  why there are two.
+  nothing: `protoc` reads it alone. `SPEC.md` describes both formats, and says why there are two.
 
 Or by the language's own lock: Lake, `[[require]]` with `name = "chanlun"`, `git =
-"https://github.com/zhifengzhang-sz/qi-v2-contracts"`, `rev = "chanlun-4.0.0"`, `subDir = "chanlun/lean"`: its `market`,
+"https://github.com/zhifengzhang-sz/qi-v2-contracts"`, `rev = "chanlun-3.1.0"`, `subDir = "chanlun/lean"`: its `market`,
 required by path, is in the same checkout.
 
 A Go taker takes the Go forms from the flake's packages alone, pinned by its own `flake.lock`: never by `go get` (the
@@ -55,26 +54,26 @@ text.
 ## Using it
 
 TypeScript: `decodeRun(text)` gives `{ ok: true, run }` or `{ ok: false, error }`; `encodeRun(run)` its canonical JSON;
-`timeAt(run, p)` the time of the K-line at position `p`; each record's schema (`mergedBarSchema`, `lineSchema`,
-`consolidationSchema`, …) for one record, and `klinesSchema` for a run's K-lines. A K-line, its schema and its type are
-`@qi/market`'s, as is the ongoing K-line (`decodeOngoingKLine`).
+each record's schema (`mergedBarSchema`, `lineSchema`, `consolidationSchema`, …) for one record, and `runSchema` for a
+run. A K-line, its schema and its type are `@qi/market`'s, as is the ongoing K-line (`decodeOngoingKLine`), and so
+are a position's and a price's schemas (`positionSchema`, `priceSchema`).
 
-Lean: `Chanlun.decodeRun text : Except String Run`, `Chanlun.encodeRun run : String`, `run.timeAt p : Option Nat`; the
-structures `MergedBar`, `Fractal`, `Line`, `Stroke`, `Segment`, `Move`, `Consolidation`, `RunOf K`, of which `Run` is
-the run, of the base's K-lines, with `ToJson` and `FromJson`. A K-line is `Market.KLine`, a price `Market.Price`, the
-ongoing K-line `Market.OngoingOf K`.
+Lean: `Chanlun.decodeRun text : Except String Run`, `Chanlun.encodeRun run : String`, `run.check : Except String
+Unit`; the structures `MergedBar`, `Fractal`, `Line`, `Stroke`, `Segment`, `Move`, `Consolidation` and `Run`, with
+`ToJson` and `FromJson`. A price is `Market.Price`; a K-line is market's, `Market.KLine`, and so is the ongoing K-line,
+`Market.OngoingOf K`.
 
 Go: `chanlun.DecodeRun(data) (Run, error)`, of the text's bytes, UTF-8, the zero value with its fault;
-`chanlun.EncodeRun(run) (string, error)` its canonical JSON, once the rules are checked; `run.TimeAt(p) (uint64, bool)`;
-each record's and the run's `Check() error`; the types `MergedBar`, `Fractal`, `Line`, `Segment`, `Move`,
+`chanlun.EncodeRun(run) (string, error)` its canonical JSON, once the rules are checked; each record's and the run's
+`Check() error`; the types `MergedBar`, `Fractal`, `Line`, `Segment`, `Move`,
 `Consolidation` and `Run`, made from the Zod schemas (`go/chanlun/records.go`, `make chanlun-go-types`), and `Stroke`, a
-`Line`, written by hand beside them. A run's K-lines are `market.KLine`, held to their rules by their `Check`, and a
-price is a `market.Decimal` (`../market/README.md`, Using it); the ongoing K-line is `market.OngoingKLine`. Decoding
+`Line`, written by hand beside them. A price is a `market.Decimal` (`../market/README.md`, Using it); a K-line is
+market's, `market.KLine`, and so is the ongoing K-line, `market.OngoingKLine`. Decoding
 reads the text straight into the records, with no tree of the whole text: a run as producers write it holds its records
 and its text, little more (a `List` is 24 bytes, so a text of many empty levels, each `[]`, costs some 8 times its
 size). Not by `encoding/json`: every record, the run, `List` and `Optional` give `ErrEncodingJSON` from `MarshalJSON`
 and `UnmarshalJSON`, which says to use `EncodeRun` and `DecodeRun`, since `encoding/json` would write a second text of
-the one run, by Go's names, and read it without its rules; a K-line and a `Decimal` give market's. Nothing given out
+the one run, by Go's names, and read it without its rules; a `Decimal` gives market's. Nothing given out
 changes what another holder has: a record is a value, its fields numbers, booleans, `Decimal`s, `Optional`s (`Some`,
 `None`, `Get`) and `List`s, none an exported slice, map or pointer; a `List` keeps its items behind methods, `ListOf`
 copying them in, `Slice` copying them out, `Len`, `At`, `Last`, `All` and `Values` giving them as values.
@@ -83,30 +82,69 @@ A producer's output is mapped to the records by the producer or by its user, not
 
 ## Changes
 
-- **4.0.0**: on market 2.0.0, no vendor's record. Massive's run is gone from every form and from everything made from
-  it: in TypeScript `massiveRunSchema`, `MassiveRun`, `decodeMassiveRun` and `massiveKlinesSchema`; in Lean `MassiveRun`
-  and `decodeMassiveRun`; in Go `MassiveRun`, `DecodeMassiveRun` and their methods, and `EncodeRun` is of a `Run`, no
+- **3.1.0**: corrections, on market 1.1.0: no vendor's record, and no record of market's. A minor version: removing
+  what never belonged to a contract corrects it, and changes nothing of its language; the six records, their rules and
+  their canonical texts are 3.0.0's, byte for byte. 4.0.0 was tagged on `da08cac` and withdrawn unreleased, before
+  anything took it: this version holds what it held, under a minor version's number, and the run without its K-lines.
+
+  No vendor's record. Massive's run is gone from every form and from everything made from it: in TypeScript
+  `massiveRunSchema`, `MassiveRun`, `decodeMassiveRun` and `massiveKlinesSchema`; in Lean `MassiveRun` and
+  `decodeMassiveRun`; in Go `MassiveRun`, `DecodeMassiveRun` and their methods, and `EncodeRun` is of a `Run`, no
   longer generic; the Avro schema `MassiveRun.avsc`; the Protobuf message `MassiveRun` and its field numbers in
   `proto/fields.json`; each form's `decode --massive`; the vectors of Massive's runs, `vectors/massive/` (2 runs and 19
-  reject cases), and `vectors/reject/klines-of-massive.json`; the generated cases of Massive's runs; the checks of them.
-  A run holds base K-lines (`SPEC.md`, K-line): a K-line of a source with fields of its own is its taker's, and a run
-  holds its base. Why: as market 2.0.0's (`../market/README.md`, Changes). No run of Massive's is made a run of the base
-  K-lines: without `vw` and `n`, each is byte for byte a vector here already (`small.json`, `edge.json`, and for 13 of
-  the reject cases the one of the same name in `vectors/reject/`), and the other 6 broke a rule of Massive's alone (its
-  `vw` missing or text, its `n` missing, negative or a fraction, and a run of the base read as Massive's), gone with it,
-  as is `klines-of-massive.json`, the base's run with Massive's K-lines, refused for a name that is no field as
-  `kline-unknown-field.json` is. Every rule here keeps a vector of its own. The count, market's in 3.0.0, is this
-  contract's (Units): a 线段's, a 走势's and a consolidation's `level`, from 0, a whole number to 2⁵³ − 1 as a bar is,
-  refused negative or a fraction (The JSON), the same rules as before; `consolidation-level-negative.json` breaks its
-  `from 0`, and `consolidation-level-with-a-fraction.json`, new, a level of 0.5, breaks its whole number, as Massive's
-  `n` with a fraction did in 3.0.0. Versions no longer makes a new source's K-line a minor version; the Avro schemas'
-  section and the Protobuf description's header as market 2.0.0's. Not backward-compatible for a taker of Massive's
-  run, which is why 4.0.0; every other record, rule and canonical text is 3.0.0's: every vector kept reads and writes
-  the same text, or is refused, as before, and the Avro schemas and Protobuf messages kept are 3.0.0's, their field
-  numbers too. The counts, 3.0.0 to 4.0.0: the rules of `SPEC.md` 48 to 47 (Massive's run's 2 gone, the count's
-  `from 0` stated here), each with a vector here; market's rules held to a vector here 31 to 28; the conformance 5 runs
-  and 142 reject cases to 3 and 123; the generated cases 1,960 (384 read, 1,576 refused) to 1,160 (222 read, 938
-  refused), 3.0.0's copies of the base's runs, byte for byte.
+  reject cases), and `vectors/reject/klines-of-massive.json`; the generated cases of Massive's runs; the checks of
+  them. Why: as market 1.1.0's (`../market/README.md`, Changes). No run of Massive's is made a run of the base K-lines:
+  without `vw` and `n`, each was byte for byte a vector here already (`small.json`, `edge.json`, and for 13 of the
+  reject cases the one of the same name in `vectors/reject/`), and the other 6 broke a rule of Massive's alone (its
+  `vw` missing or text, its `n` missing, negative or a fraction, and a run of the base read as Massive's), gone with
+  it, as is `klines-of-massive.json`, the base's run with Massive's K-lines, refused for a name that is no field as a
+  K-line's unknown field was. The count, market's in 3.0.0, is this contract's (Units): a 线段's, a 走势's and a
+  consolidation's `level`, from 0, a whole number to 2⁵³ − 1 as a bar is, refused negative or a fraction (The JSON),
+  the same rules as before; `consolidation-level-negative.json` breaks its `from 0`, and
+  `consolidation-level-with-a-fraction.json`, new, a level of 0.5, breaks its whole number, as Massive's `n` with a
+  fraction did in 3.0.0. Versions no longer makes a new source's K-line a minor version; the Avro schemas' section and
+  the Protobuf description's header as market 1.1.0's.
+
+  No record of market's. Three things are apart: market's contract, which defines the K-line; what the algorithm makes
+  from K-lines, K-lines among it; and this contract, only what the algorithm makes beyond the K-line, its records
+  derived from market's K-line: a position is a K-line's place in its series, a price is market's unit, and the JSON is
+  read and written by market's means, as before. A K-line is defined once, in market, and a contract that holds
+  another's records changes whenever that one does. So the run's part `klines` is gone from every form and from
+  everything made from it: in TypeScript `klinesSchema`, the run's `klines`, `RunOf` and `timeAt`, `runSchema` and
+  `Run` of six parts; in Lean the run's `klines`, `RunOf`, `RunOf.timeAt` and `decodeOf`, `Run` a structure of its
+  own, of which are `Run.check`, `decodeRun` and `encodeRun`; in Go `Run.Klines`, `Run.TimeAt`, and the reading of a
+  K-line's fields by market's tags; in `Run.avsc` the field `klines` and market's K-line written out in it; in the
+  Protobuf description `Run`'s field `klines`, its number 1 and its name reserved in `proto/fields.json`, and the
+  import of `market.proto`, whose message it named: `chanlun-proto` needs no `market-proto` beside it, and `protoc`
+  reads `chanlun.proto` alone; in `SPEC.md` the K-line's section, and a time and a quantity in Units and in the Avro
+  and Protobuf tables. With them go the run's rules that need its K-lines in hand: at least one K-line, in the order
+  of their times, no time twice, each one's `index` its place, and every position below the number of K-lines; and the
+  time of a position, which a taker reads from market's records, the K-line at that place. A run need hold no record
+  (`SPEC.md`, The run): each of its six parts may be empty. `SPEC.md`, `ts/src/contracts.ts` and
+  `lean/Chanlun/Contract.lean` say what this contract is, with no chain of the algorithm's steps and no K-line among
+  its records. The vectors: `run.json`, `small.json`, `edge.json` and every reject case kept, without `klines`, their
+  records unchanged (`edge.json` without the largest volume and the smallest above 0, which were its K-lines'); the 28
+  reject cases whose one fault was in a run's K-lines, or in its positions against them, removed: 26 of them read
+  without their K-lines as `small.json` (`kline-*.json` and `klines-*.json`, 14, a K-line's rules and the K-lines';
+  `number-*.json`, `price-*.json`, `quantity-*.json` and `text-not-utf-8.json`, 12, market's rules of a number, a
+  price, a quantity or the text, broken in a K-line) and 2 as a run every rule here allows
+  (`merged-end-past-klines.json` and `merged-confirm-end-past-klines.json`, a position past the K-lines). Every rule of
+  this contract keeps a vector of its own here, and every rule of market's one there; `rules.json` names under
+  `market` the 6 of market's rules a run here still breaks. The rules of a number and of the text that those 12 broke
+  hold for this contract's records too: the TypeScript and Lean forms read them by market's means, which market's
+  vectors hold, and the Go form's reader, its own, is held to each by its tests, on a merged bar's fields where they
+  used a K-line's, a leading 0 and a price of 16 digits added. Not the same text: a
+  run of 3.0.0's is refused here for its part `klines`, a name that is no part, and one of this version's is refused by
+  3.0.0 for that part missing: its producer leaves the K-lines out, and its taker reads them as market's records. In
+  Avro, a reader of this `Run.avsc` reads data written with 3.0.0's, skipping `klines`, and a reader of 3.0.0's refuses
+  this one's, which has none; in Protobuf, a reader of this description reads 3.0.0's data, its field 1 an unknown
+  field, and one of 3.0.0's reads this one's with no K-line. Every other Avro schema and Protobuf message is 3.0.0's, its field numbers too, and
+  every vector kept reads and writes its 3.0.0 text without `klines`, or is refused, as before.
+
+  The counts, 3.0.0 to 3.1.0: the rules of `SPEC.md` 48 to 41 (Massive's run's 2 and the K-lines' 6 gone, the count's
+  `from 0` stated here), each with a vector here; market's rules held to a vector here 31 to 6; the conformance 5 runs
+  and 142 reject cases to 3 and 95; the generated cases 1,960 (384 read, 1,576 refused) to 1,160 (237 read, 923
+  refused), made by the same seed from the runs without their K-lines.
 - **3.0.0**: built on the market data contract, market 1.0.0 (`../market/`): the K-line records, the base's and
   Massive's and the ongoing K-line of each, with their units, their rules, the rules of their JSON and their canonical
   texts, are market's, a product of its own released on its own, and this contract defines no K-line of its own; each

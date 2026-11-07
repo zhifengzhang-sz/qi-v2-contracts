@@ -1,7 +1,7 @@
 package chanlun
 
 // What reading and writing a large run costs: run.json's records 50 times over, each copy moved past the one before, a
-// run of 200,000 K-lines and 43.6 MB of text. Its time, the memory it allocates, and the most heap it holds at once
+// run over 200,000 K-lines and 22.2 MB of text. Its time, the memory it allocates, and the most heap it holds at once
 // above what was held before (peak-MB, sampled), against the size of the text (peak/text). Reported, not a gate:
 //
 //	go test -run '^$' -bench . -benchmem ./chanlun
@@ -12,11 +12,9 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
-
-	"github.com/zhifengzhang-sz/qi-v2-contracts/market/go/market"
 )
 
-// large: run.json's records copies times over, each copy's positions, bars and times moved past the one before; every
+// large: run.json's records copies times over, each copy's positions and bars moved past the one before; every
 // record going on in a copy but the last confirmed at its end, so that only the last of a part or a level is going on
 func large(tb testing.TB, copies int) Run {
 	data, err := readVector("run.json")
@@ -27,10 +25,9 @@ func large(tb testing.TB, copies int) Run {
 	if err != nil {
 		tb.Fatal(err)
 	}
-	n, b := uint64(r.Klines.Len()), uint64(r.Merged.Len())
-	first, _ := r.TimeAt(0)
-	last, _ := r.TimeAt(n - 1)
-	span := last - first + 60_000
+	// the positions of a copy: those of the K-lines run.json is made from, to its last merged bar's end
+	last, _ := r.Merged.Last()
+	n, b := last.End+1, uint64(r.Merged.Len())
 	ended := func(o Optional[uint64], by, end uint64, lastCopy bool) Optional[uint64] {
 		if e, ok := o.Get(); ok {
 			return Some(e + by)
@@ -40,7 +37,6 @@ func large(tb testing.TB, copies int) Run {
 		}
 		return Some(end)
 	}
-	var ks []market.KLine
 	var ms []MergedBar
 	var fs []Fractal
 	var ss []Line
@@ -49,11 +45,7 @@ func large(tb testing.TB, copies int) Run {
 	consolidations := make([][]Consolidation, r.Consolidations.Len())
 	for c := range copies {
 		lastCopy := c == copies-1
-		dk, dm, dt := uint64(c)*n, uint64(c)*b, uint64(c)*span
-		for k := range r.Klines.Values() {
-			k.Index, k.Date = k.Index+dk, k.Date+dt
-			ks = append(ks, k)
-		}
+		dk, dm := uint64(c)*n, uint64(c)*b
 		for m := range r.Merged.Values() {
 			m.Index, m.MIndex, m.Start, m.End = m.Index+dk, m.MIndex+dm, m.Start+dk, m.End+dk
 			m.ConfirmEnd = ended(m.ConfirmEnd, dk, m.End, lastCopy)
@@ -113,8 +105,8 @@ func large(tb testing.TB, copies int) Run {
 		}
 		return l
 	}
-	return Run{Klines: ListOf(ks...), Merged: ListOf(ms...), Fractals: ListOf(fs...), Strokes: ListOf(ss...),
-		Segments: ListOf(ls(segments)...), Moves: ListOf(lm(moves)...), Consolidations: ListOf(lc(consolidations)...)}
+	return Run{Merged: ListOf(ms...), Fractals: ListOf(fs...), Strokes: ListOf(ss...), Segments: ListOf(ls(segments)...),
+		Moves: ListOf(lm(moves)...), Consolidations: ListOf(lc(consolidations)...)}
 }
 
 // heap: the bytes of the heap's objects, live and not yet swept

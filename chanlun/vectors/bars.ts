@@ -1,7 +1,8 @@
-// The bars of the vectors' run (run.json's K-lines): one-minute bars made up, not of any market, so that the vectors
-// can be public. A price is worked out in hundredths and written as a decimal, a volume in thousandths and written as
-// a decimal: waves of four sizes and a little noise from a fixed seed, so every run gives the same bars. Writes them to
-// stdout, a bar a line: date (milliseconds, UTC), open, high, low, close, volume.
+// The bars the vectors' run is made from (run.json's records are over them; it holds no K-line): one-minute bars made
+// up, not of any market, so that the vectors can be public. A price is worked out in hundredths and written as a
+// decimal, a volume in thousandths and written as a decimal: waves of four sizes and a little noise from a fixed seed,
+// so every run gives the same bars. Writes them to stdout, a bar a line: date (milliseconds, UTC), open, high, low,
+// close, volume.
 //   bun chanlun/vectors/bars.ts 4000
 const n = Number(process.argv[2] ?? "600");
 const start = 1767623400000; // 2026-01-05 14:30:00 UTC

@@ -2,11 +2,10 @@
 // With --check, it instead compares what it would make with the files of a folder, ../avro if none is named, and has
 // an Avro implementation read each of them:
 //   bun bin/avsc.ts [--check [DIR]]
-// The K-line is market's (../../../market/avro), written out in its namespace in the run's schema, and has no file
-// here. A fault goes to stderr, with exit 1.
+// No record here is market's: a K-line is market's (../../../market/avro), and none is written out here. A fault goes
+// to stderr, with exit 1.
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import { klineSchema } from "@qi/market";
 import avsc from "avsc";
 import { z } from "zod";
 import {
@@ -22,11 +21,8 @@ import { avro, type Schema } from "./avro.ts";
 
 const home = join(import.meta.dirname, "..", "..", "avro");
 const namespace = "qi.chanlun.v1";
-// market's records, by their namespace
-const market = { KLine: "qi.market.v1" };
 const records = z
   .registry<{ id: string }>()
-  .add(klineSchema, { id: "KLine" })
   .add(mergedBarSchema, { id: "MergedBar" })
   .add(fractalSchema, { id: "Fractal" })
   .add(lineSchema, { id: "Line" })
@@ -43,7 +39,7 @@ const fail = (error: string): never => {
 const schemas = z.toJSONSchema(records, { unrepresentable: "throw" }).schemas as {
   readonly [name: string]: Schema;
 };
-const made = avro(schemas, namespace, market);
+const made = avro(schemas, namespace);
 if (!made.ok) fail(made.error);
 else if (process.argv[2] === "--check") {
   const dir = resolve(process.argv[3] ?? home);

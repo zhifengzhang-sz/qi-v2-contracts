@@ -8,14 +8,14 @@
     "a rule added to SPEC.md and not listed here fails the check. Every rule has a vector, every reject vector is named",
     "by a rule, and the TypeScript form refuses each vector of a rule with one of the rule's `refused`. `market` lists",
     "the rules of market's contract (../../market/vectors/rules.json, by its passages) that vectors here break in a run,",
-    "a K-line's and its JSON's, which every record here crosses under: every rule there has a vector, there or here."
+    "a position's and its JSON's, which every record here crosses under: every rule there has a vector, there or here."
   ],
   "passages": {
     "Units, position": {
       "rules": [],
       "no rule": [
-        "the position of a K-line in the run, market's (`../market/SPEC.md`, Units)",
-        "a K-line's `index` and a merged bar's `index`, `start`, `end`, `confirmEnd` and each of its `extremes`"
+        "the position of a K-line in its series, market's (`../market/SPEC.md`, Units)",
+        "a merged bar's `index`, `start`, `end`, `confirmEnd` and each of its `extremes`"
       ]
     },
     "Units, bar": {
@@ -65,8 +65,8 @@
         }
       ],
       "no rule": [
-        "A time and a quantity are market's units too, and the rules of a position and a price are market's",
-        "as a time and a position are",
+        "The rules of a position and a price are market's",
+        "as a position is",
         "which every JSON reader holds exactly"
       ]
     },
@@ -94,12 +94,7 @@
           ]
         },
         {
-          "rule": "Every position is a K-line's of the run",
-          "refused": ["a position past the run's K-lines"],
-          "vectors": ["reject/merged-end-past-klines.json", "reject/merged-confirm-end-past-klines.json"]
-        },
-        {
-          "rule": "every bar a merged bar's",
+          "rule": "Every bar is a merged bar's of the run",
           "refused": ["a merged bar past the run's merged bars"],
           "vectors": [
             "reject/bar-past-merged.json",
@@ -113,7 +108,7 @@
         "The three records with `confirmEnd`, the merged bar, the line and the 中枢, leave it out under one rule: a configuration still going on, a merged bar still merging, a line not yet ended, a 中枢 under construction, has none",
         "(The run)",
         "(The run)",
-        "so the time of any position is the time of the K-line at it (`timeAt` in TypeScript, `RunOf.timeAt` in Lean, `Run.TimeAt` in Go): no other time is kept"
+        "A position is the place of a K-line in the series the run is made from, and the run holds no K-line: no record holds a time, and the time of a position is that K-line's, market's"
       ]
     },
     "The records, paragraph 1": {
@@ -224,31 +219,6 @@
       ],
       "no rule": []
     },
-    "The run, `klines`": {
-      "rules": [
-        {
-          "rule": "at least one",
-          "refused": ["expected array to have >=1 items"],
-          "vectors": ["reject/klines-none.json"]
-        },
-        {
-          "rule": "in the order of their times",
-          "refused": ["a run's K-lines in the order of their times"],
-          "vectors": ["reject/klines-out-of-order.json"]
-        },
-        {
-          "rule": "no time twice",
-          "refused": ["a run's K-lines in the order of their times, no time twice"],
-          "vectors": ["reject/klines-time-twice.json"]
-        },
-        {
-          "rule": "each one's `index` its place among them, from 0",
-          "refused": ["a K-line's index its place in the run"],
-          "vectors": ["reject/kline-index-not-its-place.json"]
-        }
-      ],
-      "no rule": ["its K-lines, market's"]
-    },
     "The run, `merged`": {
       "rules": [
         {
@@ -327,11 +297,6 @@
     "The run, paragraph 1": {
       "rules": [
         {
-          "rule": "every position of every record below the number of K-lines",
-          "refused": ["a position past the run's K-lines"],
-          "vectors": ["reject/merged-end-past-klines.json", "reject/merged-confirm-end-past-klines.json"]
-        },
-        {
           "rule": "every bar (a merged bar's and a 分型's `mIndex`, a line's `start`, `end` and `confirmEnd`, a consolidation's `start`, `end` and `confirmEnd`) below the number of merged bars",
           "refused": ["a merged bar past the run's merged bars"],
           "vectors": [
@@ -399,6 +364,13 @@
         "So one run has one canonical text: `\"moves\": [[a]]` and `\"moves\": [[a], []]` would be one run, and the second is refused"
       ]
     },
+    "The run, paragraph 3": {
+      "rules": [],
+      "no rule": [
+        "A run need hold no record: each of its six parts may be empty, and a run of no record, every part `[]`, conforms",
+        "It holds no K-line: the K-lines it is made from are market's records, and a position names one by its place in their series (Units)"
+      ]
+    },
     "The JSON, paragraph 1": {
       "rules": [
         {
@@ -407,7 +379,7 @@
           "vectors": ["reject/not-json.json", "reject/run-not-an-object.json"]
         },
         {
-          "rule": "its seven parts its names",
+          "rule": "its six parts its names",
           "refused": ["received undefined", "Unrecognized key"],
           "vectors": ["reject/run-part-missing.json", "reject/moves-missing.json", "reject/run-unknown-part.json"]
         },
@@ -479,98 +451,15 @@
     }
   },
   "market": {
-    "Units, time": [
-      {
-        "rule": "a whole number",
-        "refused": ["expected int, received number"],
-        "vectors": ["reject/number-with-fraction.json"]
-      },
-      {
-        "rule": "not negative",
-        "refused": ["Too small: expected number to be >=0"],
-        "vectors": ["reject/kline-time-negative.json"]
-      }
-    ],
     "Units, position": [
       {
         "rule": "from 0",
         "refused": ["Too small: expected number to be >=0"],
         "vectors": [
           "reject/position-negative.json",
-          "reject/kline-index-negative.json",
           "reject/merged-index-negative.json",
           "reject/merged-extremes-negative.json"
         ]
-      }
-    ],
-    "Units, price": [
-      {
-        "rule": "at most 6 digits after the point",
-        "refused": ["a number in digits"],
-        "vectors": ["reject/price-with-7-digits-after-the-point.json"]
-      },
-      {
-        "rule": "at most 15 digits from the first that is not 0",
-        "refused": ["a price a decimal of at most 6 digits after the point and 15 from the first that is not 0"],
-        "vectors": ["reject/price-of-16-digits.json"]
-      }
-    ],
-    "Units, quantity": [
-      {
-        "rule": "a decimal as a price is",
-        "refused": [
-          "a number in digits",
-          "a quantity a decimal of at most 6 digits after the point and 15 from the first that is not 0"
-        ],
-        "vectors": ["reject/quantity-with-7-digits-after-the-point.json", "reject/quantity-of-16-digits.json"]
-      },
-      {
-        "rule": "not negative",
-        "refused": ["Too small: expected number to be >=0"],
-        "vectors": ["reject/kline-volume-negative.json"]
-      }
-    ],
-    "Units, paragraph 1": [
-      {
-        "rule": "A time and a position are whole numbers from 0 to 2⁵³ − 1",
-        "refused": ["Too big: expected int", "a number in digits"],
-        "vectors": ["reject/number-past-2-53.json", "reject/number-of-17-digits.json"]
-      }
-    ],
-    "Units, paragraph 2": [
-      {
-        "rule": "The six digits after the point bound a quantity as they bound a price",
-        "refused": ["a number in digits"],
-        "vectors": ["reject/quantity-with-7-digits-after-the-point.json"]
-      },
-      {
-        "rule": "such a volume is refused",
-        "refused": ["a number in digits"],
-        "vectors": ["reject/quantity-with-7-digits-after-the-point.json"]
-      }
-    ],
-    "The records, paragraph 1": [
-      {
-        "rule": "none other",
-        "refused": ["Unrecognized key"],
-        "vectors": ["reject/kline-unknown-field.json"]
-      },
-      {
-        "rule": "none missing",
-        "refused": ["received undefined"],
-        "vectors": ["reject/kline-field-missing.json"]
-      }
-    ],
-    "K-line, Rule": [
-      {
-        "rule": "`low ≤ min(open, close)`",
-        "refused": ["a K-line's open and close within its low and high"],
-        "vectors": ["reject/kline-open-below-low.json", "reject/kline-close-below-low.json"]
-      },
-      {
-        "rule": "`max(open, close) ≤ high`",
-        "refused": ["a K-line's open and close within its low and high"],
-        "vectors": ["reject/kline-open-above-high.json", "reject/kline-close-above-high.json"]
       }
     ],
     "The JSON, paragraph 1": [
@@ -580,53 +469,13 @@
         "vectors": ["reject/fractal-not-an-object.json"]
       },
       {
-        "rule": "an optional `-`, then `0` or a digit not `0` and more digits",
-        "refused": ["a number in digits"],
-        "vectors": ["reject/number-with-a-leading-0.json"]
-      },
-      {
         "rule": "for a price or a quantity, optionally `.` and digits",
         "refused": ["expected int, received number"],
         "vectors": [
-          "reject/number-with-fraction.json",
           "reject/position-with-a-fraction.json",
           "reject/bar-with-a-fraction.json",
           "reject/consolidation-level-with-a-fraction.json"
         ]
-      },
-      {
-        "rule": "the last not `0`",
-        "refused": ["a number in digits"],
-        "vectors": ["reject/price-ending-in-0-after-the-point.json"]
-      },
-      {
-        "rule": "no exponent",
-        "refused": ["a number in digits"],
-        "vectors": ["reject/number-with-exponent.json", "reject/number-with-a-huge-exponent.json"]
-      },
-      {
-        "rule": "a number written otherwise",
-        "refused": ["a number in digits"],
-        "vectors": [
-          "reject/number-with-exponent.json",
-          "reject/number-with-a-leading-0.json",
-          "reject/price-ending-in-0-after-the-point.json"
-        ]
-      },
-      {
-        "rule": "or past the bound",
-        "refused": ["Too big: expected int", "a number in digits"],
-        "vectors": ["reject/number-past-2-53.json", "reject/number-of-17-digits.json"]
-      },
-      {
-        "rule": "a name twice in one object",
-        "refused": ["a name twice in one object"],
-        "vectors": ["reject/kline-high-twice.json"]
-      },
-      {
-        "rule": "text not UTF-8",
-        "refused": ["text not UTF-8"],
-        "vectors": ["reject/text-not-utf-8.json"]
       },
       {
         "rule": "`null`",
@@ -634,28 +483,14 @@
         "vectors": ["reject/merged-null-for-unset.json", "reject/consolidation-null-for-unset.json"]
       },
       {
-        "rule": "a name that is no field",
-        "refused": ["Unrecognized key"],
-        "vectors": ["reject/kline-unknown-field.json"]
-      },
-      {
-        "rule": "a field missing",
-        "refused": ["received undefined"],
-        "vectors": ["reject/kline-field-missing.json"]
-      },
-      {
         "rule": "a negative number where a time, a position or a quantity is",
         "refused": ["Too small: expected number to be >=0"],
-        "vectors": [
-          "reject/kline-time-negative.json",
-          "reject/position-negative.json",
-          "reject/kline-volume-negative.json"
-        ]
+        "vectors": ["reject/position-negative.json"]
       },
       {
         "rule": "a fraction where a time or a position is",
         "refused": ["expected int, received number"],
-        "vectors": ["reject/number-with-fraction.json", "reject/position-with-a-fraction.json"]
+        "vectors": ["reject/position-with-a-fraction.json"]
       }
     ]
   }

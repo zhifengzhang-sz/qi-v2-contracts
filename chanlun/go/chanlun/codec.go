@@ -64,27 +64,20 @@ func EncodeRun(run Run) (string, error) {
 	if err := run.Check(); err != nil {
 		return "", err
 	}
+	// the parts in their order, each its name and its value, separated by , and a line break
 	e := &encoder{}
-	e.str("{\n\"klines\": ")
-	records(e, &run.Klines)
-	writeParts(e, &run.Merged, &run.Fractals, &run.Strokes, &run.Segments, &run.Moves, &run.Consolidations)
+	e.str("{\n\"merged\": ")
+	records(e, &run.Merged)
+	e.str(",\n\"fractals\": ")
+	records(e, &run.Fractals)
+	e.str(",\n\"strokes\": ")
+	records(e, &run.Strokes)
+	e.str(",\n\"segments\": ")
+	levels(e, &run.Segments)
+	e.str(",\n\"moves\": ")
+	levels(e, &run.Moves)
+	e.str(",\n\"consolidations\": ")
+	levels(e, &run.Consolidations)
 	e.str("\n}\n")
 	return e.text(), nil
-}
-
-// writeParts: the parts after klines, in their order, each after `,`, a line break and its name
-func writeParts(e *encoder, merged *List[MergedBar], fractals *List[Fractal], strokes *List[Line],
-	segments *List[List[Segment]], moves *List[List[Move]], consolidations *List[List[Consolidation]]) {
-	e.str(",\n\"merged\": ")
-	records(e, merged)
-	e.str(",\n\"fractals\": ")
-	records(e, fractals)
-	e.str(",\n\"strokes\": ")
-	records(e, strokes)
-	e.str(",\n\"segments\": ")
-	levels(e, segments)
-	e.str(",\n\"moves\": ")
-	levels(e, moves)
-	e.str(",\n\"consolidations\": ")
-	levels(e, consolidations)
 }

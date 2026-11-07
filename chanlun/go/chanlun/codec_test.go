@@ -18,25 +18,30 @@ func small(t *testing.T) string { return string(read(t, "small.json")) }
 func TestJSONRefused(t *testing.T) {
 	s := small(t)
 	for name, text := range map[string]string{
-		"a name twice":              strings.Replace(s, `"index":0,`, `"index":0,"index":0,`, 1),
-		"a name twice, escaped":     strings.Replace(s, `"index":0,`, `"index":0,"\u0069ndex":0,`, 1),
+		"a name twice":              strings.Replace(s, `"index":1,`, `"index":1,"index":1,`, 1),
+		"a name twice, escaped":     strings.Replace(s, `"index":1,`, `"index":1,"\u0069ndex":1,`, 1),
 		"a part twice":              strings.Replace(s, `"fractals": [`, `"fractals": [], "fractals": [`, 1),
-		"an exponent":               strings.Replace(s, `"open":100,`, `"open":1e2,`, 1),
-		"a huge exponent":           strings.Replace(s, `"open":100,`, `"open":1e999999999,`, 1),
-		"a field it does not know":  strings.Replace(s, `"open":100,`, `"open":100,"extra":1,`, 1),
-		"a part it does not know":   strings.Replace(s, `"klines": [`, `"extra": [], "klines": [`, 1),
+		"an exponent":               strings.Replace(s, `"high":100.3,`, `"high":1e2,`, 1),
+		"a huge exponent":           strings.Replace(s, `"high":100.3,`, `"high":1e999999999,`, 1),
+		"a field it does not know":  strings.Replace(s, `"high":100.3,`, `"high":100.3,"extra":1,`, 1),
+		"a part it does not know":   strings.Replace(s, `"merged": [`, `"extra": [], "merged": [`, 1),
 		"null for a field not set":  strings.Replace(s, `{"end":5,`, `{"confirmEnd":null,"end":5,`, 1),
-		"a text where a number is":  strings.Replace(s, `"open":100,`, `"open":"100",`, 1),
+		"a text where a number is":  strings.Replace(s, `"high":100.3,`, `"high":"100.3",`, 1),
 		"a number where a boolean":  strings.Replace(s, `"up":true`, `"up":1`, 1),
-		"a fraction where a whole":  strings.Replace(s, `"index":0,`, `"index":0.5,`, 1),
-		"a whole number negative":   strings.Replace(s, `"index":0,`, `"index":-1,`, 1),
-		"a whole past the bound":    strings.Replace(s, `"date":1767623700000`, `"date":9007199254740992`, 1),
-		"17 digits":                 strings.Replace(s, `"date":1767623700000`, `"date":10000000000000000`, 1),
+		"a fraction where a whole":  strings.Replace(s, `"index":1,`, `"index":1.5,`, 1),
+		"a whole number negative":   strings.Replace(s, `"index":1,`, `"index":-1,`, 1),
+		"a whole past the bound":    strings.Replace(s, `"confirmEnd":4,`, `"confirmEnd":9007199254740992,`, 1),
+		"17 digits":                 strings.Replace(s, `"confirmEnd":4,`, `"confirmEnd":10000000000000000,`, 1),
+		"a leading 0":               strings.Replace(s, `"confirmEnd":4,`, `"confirmEnd":04,`, 1),
+		"a price of 16 digits":      strings.Replace(s, `"high":100.3,`, `"high":1000000000000000,`, 1),
 		"a byte order mark":         "\ufeff" + s,
 		"text after the value":      s + "{}",
-		"a seventh decimal":         strings.Replace(s, `"high":100.1,`, `"high":100.1000001,`, 1),
-		"a 0 after the point, last": strings.Replace(s, `"high":100.1,`, `"high":100.10,`, 1),
+		"a seventh decimal":         strings.Replace(s, `"high":100.3,`, `"high":100.3000001,`, 1),
+		"a 0 after the point, last": strings.Replace(s, `"high":100.3,`, `"high":100.30,`, 1),
 	} {
+		if text == s {
+			t.Errorf("%s: small.json not changed", name)
+		}
 		if _, err := DecodeRun([]byte(text)); err == nil {
 			t.Errorf("%s: not refused", name)
 		}
@@ -46,7 +51,10 @@ func TestJSONRefused(t *testing.T) {
 		t.Errorf("text not UTF-8: %v", err)
 	}
 	// -0 is 0, given back as 0
-	r, err := DecodeRun([]byte(strings.Replace(s, `"index":0,`, `"index":-0,`, 1)))
+	if !strings.Contains(s, `"start":0,`) {
+		t.Fatal("small.json: no start 0")
+	}
+	r, err := DecodeRun([]byte(strings.Replace(s, `"start":0,`, `"start":-0,`, 1)))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,28 +71,30 @@ func TestRulesOfARecordMadeInGo(t *testing.T) {
 		}
 		return x
 	}
-	k := market.KLine{Index: 0, Date: 1, Open: d("10"), High: d("11"), Low: d("9"), Close: d("10.5"), Volume: d("1")}
-	if err := k.Check(); err != nil {
+	m := MergedBar{Up: true, High: d("11"), Low: d("9"), Extremes: ListOf[uint64](0)}
+	if err := m.Check(); err != nil {
 		t.Fatal(err)
 	}
-	// a run's K-line held to market's rules
-	if _, err := EncodeRun(Run{Klines: ListOf(market.KLine{Open: k.Open, High: k.High, Low: k.Low, Close: d("11.5")})}); err == nil {
-		t.Error("a run of a K-line whose close is above its high written")
+	// a run's merged bar held to its rules
+	if _, err := EncodeRun(Run{Merged: ListOf(MergedBar{High: d("9"), Low: d("11"), Extremes: ListOf[uint64](0)})}); err == nil {
+		t.Error("a run of a merged bar whose low is above its high written")
 	}
 	// a run made in Go is checked before it is written
-	run := Run{Klines: ListOf(k, k)}
+	run := Run{Merged: ListOf(m, m)}
 	if _, err := EncodeRun(run); err == nil {
-		t.Error("a run of two K-lines at one place written")
+		t.Error("a run of two merged bars numbered 0 written")
 	}
-	if _, err := EncodeRun(Run{}); err == nil {
-		t.Error("a run of no K-line written")
+	// a run need hold no record: each of its six parts []
+	none := "{\n\"merged\": [],\n\"fractals\": [],\n\"strokes\": [],\n\"segments\": [],\n\"moves\": [],\n\"consolidations\": []\n}\n"
+	if text, err := EncodeRun(Run{}); err != nil || text != none {
+		t.Errorf("a run of no record: %v\n%s", err, text)
 	}
-	text, err := EncodeRun(Run{Klines: ListOf(k)})
+	text, err := EncodeRun(Run{Merged: ListOf(m)})
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "{\n\"klines\": [\n{\"close\":10.5,\"date\":1,\"high\":11,\"index\":0,\"low\":9,\"open\":10,\"volume\":1}\n],\n" +
-		"\"merged\": [],\n\"fractals\": [],\n\"strokes\": [],\n\"segments\": [],\n\"moves\": [],\n\"consolidations\": []\n}\n"
+	want := "{\n\"merged\": [\n{\"end\":0,\"extremes\":[0],\"high\":11,\"index\":0,\"low\":9,\"mIndex\":0,\"start\":0,\"up\":true}\n],\n" +
+		"\"fractals\": [],\n\"strokes\": [],\n\"segments\": [],\n\"moves\": [],\n\"consolidations\": []\n}\n"
 	if text != want {
 		t.Errorf("not the canonical text:\n%s", text)
 	}
@@ -153,7 +163,7 @@ func TestLastLevelNotEmpty(t *testing.T) {
 
 func FuzzDecodeRun(f *testing.F) {
 	for _, n := range []string{"small.json", "edge.json", "reject/merged-ongoing-twice.json",
-		"reject/number-with-exponent.json", "reject/kline-high-twice.json"} {
+		"reject/consolidation-zg-as-text.json", "reject/merged-extremes-not-a-list.json"} {
 		data, err := readVector(n)
 		if err != nil {
 			f.Fatal(err)

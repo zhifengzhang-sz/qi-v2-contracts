@@ -1,19 +1,19 @@
 name = "chanlun"
-version = "4.0.0"
+version = "3.1.0"
 defaultTargets = ["Chanlun", "decode"]
 
 [leanOptions]
 autoImplicit = false
 relaxedAutoImplicit = false
 
-# The market data contract, whose K-line a run holds (../../market/SPEC.md): its Lake package, beside this one in the
-# repository, and in a git require of it.
+# The market data contract, whose units and JSON the records take (../../market/SPEC.md): its Lake package, beside
+# this one in the repository, and in a git require of it.
 [[require]]
 name = "market"
 path = "../../market/lean"
 
-# 缠论's contract (../SPEC.md): the algorithm's records as structures (Chanlun/Contract.lean), and a run's records as
-# JSON, decoded with every rule and encoded as the canonical text (Chanlun/Codec.lean). No Mathlib.
+# 缠论's contract (../SPEC.md): what the algorithm makes beyond the K-line as structures (Chanlun/Contract.lean), and a
+# run's records as JSON, decoded with every rule and encoded as the canonical text (Chanlun/Codec.lean). No Mathlib.
 [[lean_lib]]
 name = "Chanlun"
 

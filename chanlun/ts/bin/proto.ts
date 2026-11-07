@@ -1,10 +1,10 @@
 // 缠论's contract as Protobuf (../../SPEC.md, The Protobuf description): ../proto/chanlun.proto made from the Zod
 // schemas of ../src and the field numbers of ../proto/fields.json, or, with --check, compared with the file:
 //   bun bin/proto.ts [--check]
-// The K-line is market's message (../../../market/proto/market.proto), which it imports. A fault to stderr, exit 1.
+// No message here is market's, and nothing is imported: a K-line is market's (../../../market/proto/market.proto). A
+// fault to stderr, exit 1.
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { klineSchema } from "@qi/market";
 import { z } from "zod";
 import {
   consolidationSchema,
@@ -18,14 +18,9 @@ import {
 import { type Numbers, protobuf, type Schema } from "./protobuf.ts";
 
 const dir = join(import.meta.dirname, "..", "..", "proto");
-// market's records, by their messages and the file that has them
-const market = {
-  KLine: { message: "qi.market.v1.KLine", file: "market.proto" },
-};
 const out = join(dir, "chanlun.proto");
 const records = z
   .registry<{ id: string }>()
-  .add(klineSchema, { id: "KLine" })
   .add(mergedBarSchema, { id: "MergedBar" })
   .add(fractalSchema, { id: "Fractal" })
   .add(lineSchema, { id: "Line" })
@@ -56,7 +51,7 @@ const numbers = (await json(join(dir, "fields.json"))) as Numbers;
 const schemas = z.toJSONSchema(records, { unrepresentable: "throw" }).schemas as {
   readonly [name: string]: Schema;
 };
-const made = protobuf(schemas, numbers, header, market);
+const made = protobuf(schemas, numbers, header);
 if (!made.ok) fail(made.error);
 else if (process.argv[2] === "--check") {
   const now = await readFile(out, "utf8").catch(() => "");

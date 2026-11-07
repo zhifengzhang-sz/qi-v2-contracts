@@ -10,7 +10,7 @@ import (
 // The records' rules (SPEC.md, Units, The records and The run), written by hand, each Check giving the first rule
 // broken, nil if none is. Decoding checks every one; EncodeRun checks them before it writes, since a holder can make a
 // record or a run of its own. A whole number past market's Bound is refused here as in the JSON, so that a record made
-// in Go is held to the contract's bound too. A K-line's rules are market's, its Check.
+// in Go is held to the contract's bound too.
 
 // Stroke: 笔, a line (SPEC.md, Line).
 type Stroke = Line
@@ -166,38 +166,17 @@ func (s stroke) span() (uint64, uint64, Optional[uint64], uint64) {
 	return s.Start, s.End, s.ConfirmEnd, 0
 }
 
-func checkRun(klines List[market.KLine], merged List[MergedBar], fractals List[Fractal], strokes List[Line],
-	segments List[List[Segment]], moves List[List[Move]], consolidations List[List[Consolidation]]) error {
-	n, b := uint64(klines.Len()), uint64(merged.Len())
-	// klines: at least one, in the order of their times, no time twice, each one's index its place
-	if n == 0 {
-		return fmt.Errorf("klines: a run has at least one K-line")
-	}
-	for i, k := range klines.items {
-		if err := k.Check(); err != nil {
-			return fmt.Errorf("klines.%d: %w", i, err)
-		}
-		switch {
-		case k.Index != uint64(i):
-			return fmt.Errorf("klines.%d.index: a K-line's index its place in the run", i)
-		case i > 0 && klines.items[i-1].Date >= k.Date:
-			return fmt.Errorf("klines.%d: a run's K-lines in the order of their times, no time twice", i)
-		}
-	}
-	// merged: each one's mIndex its place, every position below the number of K-lines, every one confirmed but the last
+func checkRun(merged List[MergedBar], fractals List[Fractal], strokes List[Line], segments List[List[Segment]],
+	moves List[List[Move]], consolidations List[List[Consolidation]]) error {
+	b := uint64(merged.Len())
+	// merged: each one's mIndex its place, every one confirmed but the last
 	for i, m := range merged.items {
 		if err := m.Check(); err != nil {
 			return fmt.Errorf("merged.%d: %w", i, err)
 		}
-		past := m.Index >= n || m.Start >= n || m.End >= n || m.ConfirmEnd.or(0) >= n
-		for _, p := range m.Extremes.items {
-			past = past || p >= n
-		}
 		switch {
 		case m.MIndex != uint64(i):
 			return fmt.Errorf("merged.%d.mIndex: a merged bar's number its place among the merged bars", i)
-		case past:
-			return fmt.Errorf("merged.%d: a position past the run's K-lines", i)
 		case !m.ConfirmEnd.IsSet() && i < merged.Len()-1:
 			return fmt.Errorf("merged.%d: a run's merged bars every one confirmed but the last", i)
 		}
@@ -252,14 +231,5 @@ func checkRun(klines List[market.KLine], merged List[MergedBar], fractals List[F
 
 // Check: the run's rules (SPEC.md, The run), each record's among them.
 func (r Run) Check() error {
-	return checkRun(r.Klines, r.Merged, r.Fractals, r.Strokes, r.Segments, r.Moves, r.Consolidations)
-}
-
-// TimeAt: the time of the K-line at the position p, and false past the run's K-lines (SPEC.md, Units): how a position
-// is turned back into a time.
-func (r Run) TimeAt(p uint64) (uint64, bool) {
-	if p >= uint64(r.Klines.Len()) {
-		return 0, false
-	}
-	return r.Klines.items[p].Date, true
+	return checkRun(r.Merged, r.Fractals, r.Strokes, r.Segments, r.Moves, r.Consolidations)
 }

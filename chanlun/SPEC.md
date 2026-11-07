@@ -1,34 +1,20 @@
-# 缠论's contract: the algorithm's records
+# 缠论's contract: what the algorithm makes beyond the K-line
 
-Version 4.0.0. The records the algorithm of 缠论 gives over a run of bars, of whatever implementation gives them, and
-how they cross from one project to another as JSON. It is written in TypeScript (`ts/`, Zod schemas); Lean (`lean/`,
+Version 3.1.0. The records the algorithm of 缠论 makes beyond the K-line, of whatever implementation makes them: the
+merged bar, the 分型, the lines (笔, 线段 and 走势), the 中枢, and the run that holds them for a series; and how they
+cross from one project to another as JSON. It is written in TypeScript (`ts/`, Zod schemas); Lean (`lean/`,
 structures with a JSON codec) is a second form of it, and Go (`go/`, one module of the standard library and market's
 module only, its types made from the Zod schemas, its rules and its JSON written by hand) a third, whose types and
-functions have the TypeScript's names, capitalized (`MergedBar`, `DecodeRun`, `EncodeRun`, `Run.TimeAt`); its Avro
+functions have the TypeScript's names, capitalized (`MergedBar`, `DecodeRun`, `EncodeRun`, `Run.Check`); its Avro
 schemas (`avro/`) and Protobuf description (`proto/chanlun.proto`) are made from the TypeScript, for every other
 language and for a schema registry. The vectors (`vectors/`) are what every form must read alike.
 
-It is built on the market data contract, market's (`../market/SPEC.md`): the bars, the K-lines, are its, with their
-units, their rules and their JSON, and this contract defines no K-line of its own. Each form of this one takes
-market's form of the same language for the K-line: in TypeScript `@qi/market`, in Lean the Lake package `market`, in
-Go the module `github.com/zhifengzhang-sz/qi-v2-contracts/market/go`; the Avro schemas write market's K-line out in a
-run's, and the Protobuf description imports `market.proto`.
-
-The algorithm is a chain, and so are its records: each step's output is the next step's input.
-
-```
-the K-line (market's)      the bars, as read
-  → 包含 →  the merged bar
-  → 分型 →  the fractal: a top or a bottom at a merged bar
-  → 笔   →  the lowest level line of level 0
-  → 线段 →  a line of level 0
-  → 中枢 →  a consolidation of level 0
-  → 走势 →  the highest level line of level 0
-the 走势 of level L          the input of level L + 1
-  → 线段 →  a line of level L + 1
-  → 中枢 →  a consolidation of level L + 1
-  → 走势 →  the highest level line of level L + 1
-```
+Its records are derived from the market data contract's K-line, market's (`../market/SPEC.md`): a position is a
+K-line's place in its series and a price a decimal, market's units, and its JSON is under market's. The K-line is
+defined there, once, and this contract holds none: what the algorithm makes that market defines is market's. Each
+form of this one takes market's form of the same language for what it takes: in TypeScript `@qi/market`, in Lean the
+Lake package `market`, in Go the module `github.com/zhifengzhang-sz/qi-v2-contracts/market/go`; its Avro schemas and
+its Protobuf description hold no record of market's.
 
 Whether an implementation's values are right by the lessons is not the contract's to say: it says what a value is.
 
@@ -36,30 +22,24 @@ Whether an implementation's values are right by the lessons is not the contract'
 
 | Kind | What it is |
 |---|---|
-| position | the position of a K-line in the run, market's (`../market/SPEC.md`, Units): a K-line's `index` and a merged bar's `index`, `start`, `end`, `confirmEnd` and each of its `extremes` |
+| position | the position of a K-line in its series, market's (`../market/SPEC.md`, Units): a merged bar's `index`, `start`, `end`, `confirmEnd` and each of its `extremes` |
 | bar | the number of a merged bar (its `mIndex`, a 分型's `mIndex`, a line's `start`, `end` and `confirmEnd`, a consolidation's `start`, `end` and `confirmEnd`), from 0 |
 | price | a decimal, market's: a merged bar's `high` and `low`, and a consolidation's `zg`, `zd`, `gg` and `dd` |
 | count | a 线段's, a 走势's and a consolidation's `level`, from 0 |
 
-A time and a quantity are market's units too, and the rules of a position and a price are market's. A bar and a count
-are whole numbers from 0 to 2⁵³ − 1, as a time and a position are, which every JSON reader holds exactly.
+The rules of a position and a price are market's. A bar and a count are whole numbers from 0 to 2⁵³ − 1, as a
+position is, which every JSON reader holds exactly.
 
 A field that may be not set (marked ?) is left out when it is not set; it is never `null`. The three records with
 `confirmEnd`, the merged bar, the line and the 中枢, leave it out under one rule: a configuration still going on, a merged
 bar still merging, a line not yet ended, a 中枢 under construction, has none; in a run at most one record of a part, or
-of a level, is going on, the last (The run). Every position is a
-K-line's of the run, and every bar a merged bar's (The run), so the time of any position is the time of the K-line at
-it (`timeAt` in TypeScript, `RunOf.timeAt` in Lean, `Run.TimeAt` in Go): no other time is kept.
+of a level, is going on, the last (The run). Every bar is a merged bar's of the run (The run). A position is the place
+of a K-line in the series the run is made from, and the run holds no K-line: no record holds a time, and the time of a
+position is that K-line's, market's.
 
 ## The records
 
 Each record has exactly its fields: none other, none missing but an optional one (marked ?).
-
-### K-line
-
-The K-line is market's (`../market/SPEC.md`, K-line): the base's, 7 fields, with its rule. A run holds base K-lines
-(The run): a K-line of a source with fields of its own is its taker's, and a run holds its base; a bar still going on
-is an ongoing K-line, market's too, in no run. This contract defines no K-line of its own.
 
 ### Merged bar (包含)
 
@@ -131,7 +111,6 @@ Rule: `start < end` and `dd ≤ zd ≤ zg ≤ gg`.
 
 | Part | Holds |
 |---|---|
-| `klines` | its K-lines, market's: at least one, in the order of their times, no time twice, each one's `index` its place among them, from 0 |
 | `merged` | its merged bars, each one's `mIndex` its place among them, from 0 |
 | `fractals` | its 分型, strictly increasing by `mIndex` |
 | `strokes` | its 笔, strictly increasing by `start` |
@@ -139,14 +118,19 @@ Rule: `start < end` and `dd ≤ zd ≤ zg ≤ gg`.
 | `moves` | its 走势, by level: the array at L the 走势 of level L, from 0, every record's `level` L, each level strictly increasing by `start` |
 | `consolidations` | its 中枢, by level: the array at L the 中枢 of level L, from 0, every record's `level` L, each level strictly increasing by `start` |
 
-Rules, every one checked: what the table says of each part; every position of every record below the number of
-K-lines; every bar (a merged bar's and a 分型's `mIndex`, a line's `start`, `end` and `confirmEnd`, a consolidation's `start`, `end` and `confirmEnd`) below the number of merged bars; in `merged`, in `strokes` and in each level of `segments`, `moves` and
-`consolidations`, at most one record with no `confirmEnd`, and if one, the last: the configuration still going on. A run
-of confirmed records alone conforms; the one going on is allowed, not required.
+Rules, every one checked: what the table says of each part; every bar (a merged bar's and a 分型's `mIndex`, a line's
+`start`, `end` and `confirmEnd`, a consolidation's `start`, `end` and `confirmEnd`) below the number of merged bars; in
+`merged`, in `strokes` and in each level of `segments`, `moves` and `consolidations`, at most one record with no
+`confirmEnd`, and if one, the last: the configuration still going on. A run of confirmed records alone conforms; the
+one going on is allowed, not required.
 
 A part by level, `segments`, `moves` or `consolidations`, ends with a level that is not empty: the levels it holds are 0
 to its highest level with a record, a level below its highest may be empty, and a part with no record is `[]`. So one
 run has one canonical text: `"moves": [[a]]` and `"moves": [[a], []]` would be one run, and the second is refused.
+
+A run need hold no record: each of its six parts may be empty, and a run of no record, every part `[]`, conforms. It
+holds no K-line: the K-lines it is made from are market's records, and a position names one by its place in their
+series (Units).
 
 ## Reading the records
 
@@ -161,12 +145,13 @@ algorithm. From the records alone:
 - A line from the merged bar `start` to the merged bar `end` goes up when `end`'s extreme is above `start`'s, and down
   when it is below. Its high and low are the extremes of its two ends, the greater its high and the lesser its low, taken
   from those merged bars' `high`, `low` and `up`; it runs from the K-line merged bar `start`'s `index` to the K-line
-  merged bar `end`'s `index`, whose times are its times (`timeAt`).
-- A record with no `confirmEnd` is the one still going on: its `end` is where it stands at the run's last K-line.
+  merged bar `end`'s `index`, whose times, those K-lines', are its times.
+- A record with no `confirmEnd` is the one still going on: its `end` is where it stands at the last K-line the run is
+  made from.
 
 ## The JSON
 
-A run crosses as one JSON object, its seven parts its names, each record an object of its fields, under the rules of
+A run crosses as one JSON object, its six parts its names, each record an object of its fields, under the rules of
 market's JSON (`../market/SPEC.md`, The JSON), how a number is written among them. Decoding refuses anything the
 records do not allow: what market's JSON refuses, a name that is no field or part, a field missing that is not
 optional, `null`, a value of another kind (a negative number or a fraction where a bar or a count is, a number where
@@ -187,8 +172,7 @@ The canonical text, which every form writes and the conformance check compares:
 The records are also published as Avro schemas, for other languages and for messages on Kafka and Redpanda topics.
 `avro/` has one file for each record: `MergedBar.avsc`, `Fractal.avsc`, `Line.avsc`, `Segment.avsc`, `Move.avsc`,
 `Consolidation.avsc` and `Run.avsc`, all in the namespace `qi.chanlun.v1`. 笔 is `Line`. Each file is complete, with
-every record it uses written out inside it: a run's K-line is market's (`../market/avro/`), written out as it is there,
-in its namespace, `qi.market.v1`, which `ts/test/avro.test.ts` checks.
+every record it uses written out inside it, and none is market's.
 
 The files are generated from the Zod schemas by `make chanlun-avro`. `make check` fails if they no longer match the Zod
 schemas or an Avro implementation cannot read them, and it runs every run vector through Avro's binary format and back.
@@ -196,7 +180,7 @@ schemas or an Avro implementation cannot read them, and it runs every run vector
 | In the contract | In Avro |
 |---|---|
 | a whole number | `long` |
-| a price, a quantity | `double` |
+| a price | `double` |
 | a boolean | `boolean` |
 | a record | `record` |
 | an array | `array` |
@@ -218,15 +202,14 @@ types alone, and read and write the JSON above.
 
 `proto/chanlun.proto` (package `qi.chanlun.v1`) describes the same records as Protobuf messages: `MergedBar`,
 `Fractal`, `Line`, `Segment`, `Move`, `Consolidation` and `Run`, with `SegmentList`, `MoveList` and
-`ConsolidationList` for a part by level. A run's K-line is market's message, `qi.market.v1.KLine`, of `market.proto`
-(`../market/proto/`), which it imports: `protoc` reads it with both folders on its path. It is generated from the Zod
-schemas and the field numbers in `proto/fields.json` by `make chanlun-proto`. `make check` fails if it no longer
-matches them or `protoc` cannot read it.
+`ConsolidationList` for a part by level. None is market's, and it imports nothing: `protoc` reads it alone. It is
+generated from the Zod schemas and the field numbers in `proto/fields.json` by `make chanlun-proto`. `make check`
+fails if it no longer matches them or `protoc` cannot read it.
 
 | In the contract | In Protobuf |
 |---|---|
 | a whole number | `uint64`, or `int64` where it may be below 0 |
-| a price, a quantity | `double` |
+| a price | `double` |
 | a boolean | `bool` |
 | a record | its `message` |
 | an array | `repeated` |
@@ -254,5 +237,5 @@ same Zod schemas, and `ts/test/protobuf.test.ts` checks that they hold the same 
 
 A change to the records is a new version of this contract, in its forms, its Avro schemas, its Protobuf description and the vectors
 together; an implementation's output changing is not, until the contract does. Market's contract has versions of its
-own (`../market/SPEC.md`, Versions): one that changes what a run holds is a version of this one too, a change to the
-base's K-line a major one.
+own (`../market/SPEC.md`, Versions): one that changes a position, a price or the JSON, which this one takes from it,
+is a version of this one too.

@@ -70,19 +70,12 @@ func TestRunHoldsEveryKind(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if r.Klines.Len() != 4000 || r.Merged.Len() == 0 || r.Fractals.Len() == 0 || r.Strokes.Len() == 0 ||
+	if r.Merged.Len() == 0 || r.Fractals.Len() == 0 || r.Strokes.Len() == 0 ||
 		r.Segments.Len() == 0 || r.Moves.Len() == 0 || r.Consolidations.Len() < 2 {
 		t.Fatal("run.json lacks a kind of record")
 	}
 	last, _ := r.Strokes.Last()
 	if last.ConfirmEnd.IsSet() {
 		t.Fatal("run.json's last 笔 is confirmed")
-	}
-	k := r.Klines.At(3)
-	if at, ok := r.TimeAt(3); !ok || at != k.Date {
-		t.Fatal("TimeAt is not the K-line's date")
-	}
-	if _, ok := r.TimeAt(4000); ok {
-		t.Fatal("TimeAt past the K-lines")
 	}
 }

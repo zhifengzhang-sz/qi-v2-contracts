@@ -21,11 +21,9 @@ import (
 // is gone over a few times at most, never more than its types are deep; no tree of the whole text is built, so
 // reading a run holds the text and the run, little more. It refuses what is not JSON and what the contract does not allow of any JSON (text not UTF-8,
 // a name twice in one object, a number not written in digits), a name that is no field, a field missing that is not
-// optional, null, and a value of another kind. The rules come after (rules.go). A K-line is market's: read and written
-// here by its fields, tagged `market`, as every record is by its own, a price and a quantity as market's Decimal,
-// made by DecimalOf and written by AppendTo, and held to market's rules by its Check (rules.go). Market's own reader
-// reads market's records alone, of numbers; a run holds lists, booleans and fields that may be not set, which it reads
-// here, under the same rules of the JSON.
+// optional, null, and a value of another kind. The rules come after (rules.go). A price is market's Decimal, made by
+// DecimalOf and written by AppendTo. Market's own reader reads market's records alone, of numbers; a run holds lists,
+// booleans and fields that may be not set, which it reads here, under the same rules of the JSON.
 
 // A record's fields, by their tags, and how each is read and written; a type's, how a value of it is read and written
 type op uint8
@@ -91,11 +89,8 @@ func shapeOf(t reflect.Type) *shape {
 	if s.op == opRecord {
 		for i := range t.NumField() {
 			sf := t.Field(i)
-			// a field of a record of this contract by its tag, of a K-line by market's
+			// a field of a record by its tag
 			name, ok := sf.Tag.Lookup("chanlun")
-			if !ok {
-				name, ok = sf.Tag.Lookup("market")
-			}
 			if !ok {
 				continue
 			}
@@ -125,7 +120,7 @@ type codec interface {
 	written() bool
 }
 
-// A place in the JSON as the TypeScript form names it: the names and places from the top, joined by ., klines.5.date;
+// A place in the JSON as the TypeScript form names it: the names and places from the top, joined by ., merged.5.high;
 // the top itself "the JSON". Kept as steps while reading, and made a text only for a fault.
 type step struct {
 	name  string // a field's or a part's name, or "" for a place in an array

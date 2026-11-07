@@ -2,16 +2,16 @@
 
 The contracts shared by the qi-v2 projects, each defined once: a folder a contract, each with its spec (`SPEC.md`),
 its forms, its vectors, and its own version, released on its own and tagged `<contract>-<version>`. A contract may be
-built on another, and take its records: each of its forms takes the other's form of the same language, and defines
-none of those records of its own.
+built on another, and take what that one defines, its records, its units or its JSON: each of its forms takes the
+other's form of the same language, and defines none of it again.
 
 | Contract | What it states | Built on | Forms | Version | Tags |
 |---|---|---|---|---|---|
-| [`market/`](market/README.md) | the market data: the base K-line and its ongoing K-line | | TypeScript (Zod), Lean, Go; Avro and Protobuf, made from the TypeScript | 2.0.0 | `market-<version>` |
-| [`chanlun/`](chanlun/README.md) | 缠论's records: the merged bar, 分型, the lines, 中枢, and the run that holds them with its K-lines | `market` | TypeScript (Zod), Lean, Go; Avro and Protobuf, made from the TypeScript | 4.0.0 | `chanlun-<version>` |
+| [`market/`](market/README.md) | the market data: the base K-line and its ongoing K-line | | TypeScript (Zod), Lean, Go; Avro and Protobuf, made from the TypeScript | 1.1.0 | `market-<version>` |
+| [`chanlun/`](chanlun/README.md) | 缠论's records beyond the K-line: the merged bar, 分型, the lines, 中枢, and the run that holds them for a series | `market` | TypeScript (Zod), Lean, Go; Avro and Protobuf, made from the TypeScript | 3.1.0 | `chanlun-<version>` |
 
 A narrower contract changes less often, and so does whatever takes it: the K-lines, released alone, stay put while 缠论's
-structure moves. A new version of `chanlun` that takes the same K-lines leaves `market` as it is.
+structure moves. A new version of `chanlun` on the same K-line leaves `market` as it is.
 
 ## How a contract is written
 

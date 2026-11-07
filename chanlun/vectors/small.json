@@ -1,12 +1,4 @@
 {
-"klines": [
-{"close":100.05,"date":1767623400000,"high":100.1,"index":0,"low":99.9,"open":100,"volume":1},
-{"close":100.25,"date":1767623460000,"high":100.3,"index":1,"low":100,"open":100.05,"volume":1.001},
-{"close":99.85,"date":1767623520000,"high":100.28,"index":2,"low":99.8,"open":100.25,"volume":1.002},
-{"close":99.6,"date":1767623580000,"high":99.9,"index":3,"low":99.5,"open":99.85,"volume":1.003},
-{"close":100.35,"date":1767623640000,"high":100.4,"index":4,"low":99.55,"open":99.6,"volume":1.004},
-{"close":100.45,"date":1767623700000,"high":100.5,"index":5,"low":100.2,"open":100.35,"volume":1.005}
-],
 "merged": [
 {"confirmEnd":2,"end":1,"extremes":[1],"high":100.3,"index":1,"low":99.9,"mIndex":0,"start":0,"up":true},
 {"confirmEnd":4,"end":3,"extremes":[3],"high":100.28,"index":3,"low":99.5,"mIndex":1,"start":2,"up":false},

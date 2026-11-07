@@ -3,20 +3,22 @@ import Market
 /-!
 # 缠论's records
 
-The algorithm's records, of whatever implementation gives them (../SPEC.md, The records), the same as the TypeScript
-form's `contracts.ts`. The algorithm is a chain, and so are its records: the K-line, market's (`Market.KLine`, the
-Lake package `market`), then 包含's merged bar, 分型 at a merged bar, the lines (笔, 线段, and 走势 of level L), and 中枢 of
-level L. They cross from one project to another as JSON (`Chanlun/Codec.lean`).
+What the algorithm of 缠论 makes beyond the K-line, of whatever implementation makes it (../SPEC.md, The records), the
+same as the TypeScript form's `contracts.ts`: the merged bar, the 分型, the lines (笔, and 线段 and 走势 with a level),
+the 中枢 with a level, and the run that holds them for a series. They cross from one project to another as JSON
+(`Chanlun/Codec.lean`).
 
-Every configuration after 包含 is on merged bars, by their number (a merged bar's `mIndex`). A price is market's
-(`Market.Price`), a decimal held exactly. A configuration still going on, a merged bar still merging, a line not yet
-ended, a 中枢 under construction, has no `confirmEnd` (`none`): one rule for the three, and in a run at most one record
-of a part, or of a level, is going on, the last (`Chanlun/Codec.lean`).
+They are derived from market's K-line (`Market.KLine`, the Lake package `market`), whose units they take: a position
+is a K-line's place in its series, and a price is market's (`Market.Price`), a decimal held exactly. The K-line is
+defined there, once, and none is here: what the algorithm makes that market defines is market's. Every record but the
+merged bar is on merged bars, by their number (a merged bar's `mIndex`). A configuration still going on, a merged bar
+still merging, a line not yet ended, a 中枢 under construction, has no `confirmEnd` (`none`): one rule for the three, and
+in a run at most one record of a part, or of a level, is going on, the last (`Chanlun/Codec.lean`).
 -/
 namespace Chanlun
 
 open Lean (Json ToJson FromJson)
-open Market (Price KLine KLineOf)
+open Market (Price)
 
 /-- 包含's merged bar `mIndex`: from `start` to `end`, its first and last K-lines; `extremes` the K-lines of its extreme,
 of its high when it goes up, of its low when it goes down, at least one, each from `start` to `end`, in ascending order,
@@ -73,10 +75,9 @@ structure Consolidation where
   dd : Price
   deriving Repr, BEq, Inhabited, ToJson, FromJson
 
-/-- A run: its K-lines, market's base K-lines in `Run`, merged bars, 分型, 笔 (strokes), and by level from 0 its 线段
-(segments), 走势 (moves) and 中枢 (consolidations). -/
-structure RunOf (K : Type) where
-  klines : Array K
+/-- A run: the records of a series, its merged bars, 分型, 笔 (strokes), and by level from 0 its 线段 (segments), 走势
+(moves) and 中枢 (consolidations); the series' K-lines are market's, and the run holds none. -/
+structure Run where
   merged : Array MergedBar
   fractals : Array Fractal
   strokes : Array Stroke
@@ -84,12 +85,5 @@ structure RunOf (K : Type) where
   moves : Array (Array Move)
   consolidations : Array (Array Consolidation)
   deriving Repr, BEq, Inhabited, ToJson, FromJson
-
-/-- The run, of the base contract's K-lines. -/
-abbrev Run := RunOf KLine
-
-/-- The time of the K-line at a position: how a position is turned back into a time. -/
-def RunOf.timeAt {K : Type} [KLineOf K] (r : RunOf K) (p : Nat) : Option Nat :=
-  (r.klines[p]?).map fun k => (KLineOf.base k).date
 
 end Chanlun

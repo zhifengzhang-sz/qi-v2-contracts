@@ -16,7 +16,7 @@ breaks it.
 ## Taking it
 
 By the flake, pinned in the taker's `flake.lock` (`inputs.contracts.url =
-"github:zhifengzhang-sz/qi-v2-contracts?ref=market-2.0.0";`):
+"github:zhifengzhang-sz/qi-v2-contracts?ref=market-1.1.0";`):
 
 - `contracts.packages.${system}.market-ts`: `node_modules/@qi/market` and `zod`, as source; `import {
   decodeOngoingKLine, klineSchema } from "@qi/market"`.
@@ -29,7 +29,7 @@ By the flake, pinned in the taker's `flake.lock` (`inputs.contracts.url =
   formats, and says why there are two.
 
 Or by the language's own lock: Lake, `[[require]]` with `name = "market"`, `git =
-"https://github.com/zhifengzhang-sz/qi-v2-contracts"`, `rev = "market-2.0.0"`, `subDir = "market/lean"`.
+"https://github.com/zhifengzhang-sz/qi-v2-contracts"`, `rev = "market-1.1.0"`, `subDir = "market/lean"`.
 
 A Go taker takes the Go form from the flake's package alone, pinned by its own `flake.lock`: never by `go get` (the
 module proxy's copy, which no `flake.lock` pins), and never by a sibling path (a checkout beside it, which moves on its
@@ -79,7 +79,7 @@ A source's output is mapped to the records by the source's reader or by its user
 
 ## Changes
 
-- **2.0.0**: no vendor's record. Massive's K-line and Massive's ongoing K-line (`vw`, `n`) are gone from every form and
+- **1.1.0**: no vendor's record. Massive's K-line and Massive's ongoing K-line (`vw`, `n`) are gone from every form and
   from everything made from them: in TypeScript `massiveKlineSchema`, `massiveOngoingKlineSchema`, `MassiveKLine`,
   `MassiveOngoingKLine` and `decodeMassiveOngoingKLine`; in Lean `MassiveKLine`, its `KLineOf`, `MassiveOngoingKLine`
   and `decodeMassiveOngoingKLine`; in Go `MassiveKLine`, `MassiveOngoingKLine`, `DecodeMassiveOngoingKLine` and their
@@ -97,16 +97,19 @@ A source's output is mapped to the records by the source's reader or by its user
   `positionSchema` and `priceSchema`; Lean `Market.parsed`, `Market.strict`, `Market.record`, `KLineOf` and `OngoingOf`;
   Go `Check`, `KLine.Base`, `Decimal`, `DecimalOf` and `AppendTo`), and held to this contract's vectors for the base.
   The count is no longer a unit of this contract: `n` was its one field, so no record here has a count and no vector
-  here could break its rules; Units, the bound of 2⁵³ − 1 and The JSON no longer name it, and chanlun 4.0.0, whose
+  here could break its rules; Units, the bound of 2⁵³ − 1 and The JSON no longer name it, and chanlun 3.1.0, whose
   `level` is a count, states it. Versions no longer makes a new source's records a minor version. The Avro schemas'
   section, and the Protobuf description's header, say that the vectors break each rule and that a form that checks the
-  rules reads the vectors alike, where they said that every reader must check them itself. Not backward-compatible for
-  a taker of Massive's records, which is why 2.0.0; every base record, rule and canonical text is 1.0.0's:
-  `vectors/ongoing/kline.json` reads and writes the same text, and every reject case kept is refused, as before, and
-  `KLine.avsc`, `OngoingKLine.avsc` and the messages `KLine` and `OngoingKLine` are 1.0.0's, their field numbers too.
-  The counts, 1.0.0 to 2.0.0: the rules of `SPEC.md` 32 to 30, each with a vector here; the conformance 2 ongoing
-  K-lines and 37 reject cases to 1 and 28; the generated cases 400 (58 read, 342 refused) to 200 (24 read, 176
-  refused), 1.0.0's copies of the base's ongoing K-line, byte for byte.
+  rules reads the vectors alike, where they said that every reader must check them itself. A minor version: removing
+  what never belonged to a contract corrects it, and changes nothing of its language. A taker of Massive's records
+  holds them as its own (`SPEC.md`, K-line), by the means above, and every base record, rule and canonical text is
+  1.0.0's: `vectors/ongoing/kline.json` reads and writes the same text, and every reject case kept is refused, as
+  before, and `KLine.avsc`, `OngoingKLine.avsc` and the messages `KLine` and `OngoingKLine` are 1.0.0's, their field
+  numbers too. The counts, 1.0.0 to 1.1.0: the rules of `SPEC.md` 32 to 30, each with a vector here; the conformance 2
+  ongoing K-lines and 37 reject cases to 1 and 28; the generated cases 400 (58 read, 342 refused) to 200 (24 read, 176
+  refused), 1.0.0's copies of the base's ongoing K-line, byte for byte. 2.0.0 was tagged on `da08cac` and withdrawn
+  unreleased, before anything took it: this version is what it was, every record, rule, text, form and vector, under
+  a minor version's number, which is all that differs.
 - **1.0.0**: the market data contract, a product of its own: the K-line records of chanlun 2.3.0, the base K-line and
   Massive's and the ongoing K-line of each, with their rules, their units, the rules of their JSON and their canonical
   texts, and the ongoing K-line's readers and writers, as chanlun 2.3.0 has them. It is 1.0.0 because those records

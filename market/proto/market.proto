@@ -1,4 +1,4 @@
-// The market data contract, market 2.0.0 (../SPEC.md): the records' fields and types, made from the Zod schemas
+// The market data contract, market 1.1.0 (../SPEC.md): the records' fields and types, made from the Zod schemas
 // of ../ts/src by ../ts/bin/proto.ts with the field numbers of fields.json; not edited by hand. The records' rules
 // are not here: they are in SPEC.md (The records), and the vectors (../vectors/) break each of them; a form that
 // checks the rules reads the vectors alike.

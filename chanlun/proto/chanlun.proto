@@ -1,4 +1,4 @@
-// 缠论's contract, chanlun 4.0.0 (../SPEC.md): the records' fields and types, made from the Zod schemas of
+// 缠论's contract, chanlun 3.1.0 (../SPEC.md): the records' fields and types, made from the Zod schemas of
 // ../ts/src by ../ts/bin/proto.ts with the field numbers of fields.json; not edited by hand. The records' rules are
 // not here: they are in SPEC.md (The records and The run), and the vectors (../vectors/) break each of them; a form
 // that checks the rules reads the vectors alike.
@@ -6,8 +6,6 @@
 syntax = "proto3";
 
 package qi.chanlun.v1;
-
-import "market.proto";
 
 message MergedBar {
   uint64 m_index = 2;
@@ -65,15 +63,14 @@ message Consolidation {
 }
 
 message Run {
-  repeated qi.market.v1.KLine klines = 1;
   repeated MergedBar merged = 2;
   repeated Fractal fractals = 3;
   repeated Line strokes = 4;
   repeated ConsolidationList consolidations = 7;
   repeated MoveList moves = 8;
   repeated SegmentList segments = 9;
-  reserved 5, 6;
-  reserved "trends";
+  reserved 1, 5, 6;
+  reserved "klines", "trends";
 }
 
 message SegmentList {

@@ -1,21 +1,12 @@
-// @qi/chanlun: 缠论's contract (../SPEC.md): the algorithm's records as Zod schemas, and a run's records as JSON. Its
-// K-line is market's (@qi/market).
+// @qi/chanlun: 缠论's contract (../SPEC.md): what the algorithm makes beyond the K-line as Zod schemas, and a run's
+// records as JSON. Its units and its JSON are market's (@qi/market), and so is the K-line.
 
-export {
-  type Decoded,
-  decodeRun,
-  encodeRun,
-  type Run,
-  type RunOf,
-  runSchema,
-  timeAt,
-} from "./codec.ts";
+export { type Decoded, decodeRun, encodeRun, type Run, runSchema } from "./codec.ts";
 export {
   type Consolidation,
   consolidationSchema,
   type Fractal,
   fractalSchema,
-  klinesSchema,
   type Line,
   lineSchema,
   type MergedBar,

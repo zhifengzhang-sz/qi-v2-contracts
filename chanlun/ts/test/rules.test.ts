@@ -2,8 +2,8 @@
 // (../../vectors/rules.json, whose `about` says how): SPEC.md's passages that state rules are read from its headings,
 // tables and paragraphs; each is the rules listed for it and the text listed as no rule, and nothing else; each rule
 // has its vectors, and the TypeScript form refuses each of them with one of the rule's refusals. So too every rule of
-// market's, whose K-line and JSON a run holds (../../../market/vectors/rules.json): each has a vector, of market's or a
-// run here, and a run here that breaks one is refused for it.
+// market's, whose units and JSON a run's records take (../../../market/vectors/rules.json): each has a vector, of
+// market's or a run here, and a run here that breaks one is refused for it.
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";

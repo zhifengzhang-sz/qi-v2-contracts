@@ -1,27 +1,18 @@
-// 缠论's records (../SPEC.md, The records): the algorithm's records, of whatever implementation gives them, each a Zod
-// schema. The algorithm is a chain, and so are its records: each step's output is the next step's input.
+// 缠论's records (../SPEC.md, The records): what the algorithm of 缠论 makes beyond the K-line, of whatever
+// implementation makes it, each a Zod schema: the merged bar (mergedBarSchema), the fractal (fractalSchema), the line
+// (lineSchema), the 笔 (strokeSchema, a line), the 线段 and the 走势 (segmentSchema and moveSchema, lines with a level),
+// and the consolidation (consolidationSchema); the run that holds them for a series is codec.ts's (runSchema).
 //
-//   the K-line (market's klineSchema)                                   the input, the bars as read, each complete
-//     → 包含 →  the merged bar (mergedBarSchema)
-//     → 分型 →  the fractal, a top or a bottom at a merged bar (fractalSchema)
-//     → 笔   →  the lowest level line of level 0 (strokeSchema, which is lineSchema)
-//     → 线段 →  a line of level 0 (segmentSchema)
-//     → 中枢 →  a consolidation of level 0 (consolidationSchema)
-//     → 走势 →  the highest level line of level 0 (moveSchema)
-//   the 走势 of level L (moveSchema)                                    the input of level L + 1
-//     → 线段 →  a line of level L + 1 (segmentSchema)
-//     → 中枢 →  a consolidation of level L + 1 (consolidationSchema)
-//     → 走势 →  the highest level line of level L + 1 (moveSchema)
-//
-// The K-line is market's (@qi/market, ../../market/SPEC.md), and so are the units it shares with these records: a
-// position is a K-line's place in the run, and a price is a decimal. Every configuration after 包含 is on merged bars,
-// by their number (a merged bar's `mIndex`): a 分型 its merged bar, a line its start and end merged bars, a 中枢 its
-// start and end merged bars. A configuration still going on, a merged bar still merging, a line not yet ended, a 中枢
-// under construction, has no `confirmEnd`: one rule for the three, and in a run at most one record of a part, or of a
-// level, is going on, the last (codec.ts). Whether an implementation's values are right by the lessons is not these
-// contracts' to test: they say what a value is, not whether it is the lessons'.
+// They are derived from market's K-line (@qi/market, ../../market/SPEC.md), whose units they take: a position is a
+// K-line's place in its series, and a price is a decimal. A K-line is defined there, once, and none is here: what the
+// algorithm makes that market defines is market's. Every record but the merged bar is on merged bars, by their number
+// (a merged bar's `mIndex`): a 分型 its merged bar, a line its start and end merged bars, a 中枢 its start and end merged
+// bars. A configuration still going on, a merged bar still merging, a line not yet ended, a 中枢 under construction, has
+// no `confirmEnd`: one rule for the three, and in a run at most one record of a part, or of a level, is going on, the
+// last (codec.ts). Whether an implementation's values are right by the lessons is not these contracts' to test: they
+// say what a value is, not whether it is the lessons'.
 
-import { klineSchema, positionSchema as position, priceSchema as price } from "@qi/market";
+import { positionSchema as position, priceSchema as price } from "@qi/market";
 import { z } from "zod";
 
 // a merged bar's number (its `mIndex`)
@@ -116,12 +107,6 @@ export const consolidationSchema = z
     (c) => c.start < c.end && c.dd <= c.zd && c.zd <= c.zg && c.zg <= c.gg,
     "a 中枢 from a merged bar to a later one, its band ZD to ZG within its range DD to GG",
   );
-
-// a run's K-lines, market's base K-lines: at least one, their times strictly increasing
-const inOrder = (ks: readonly { readonly date: number }[]): boolean =>
-  ks.every((k, i) => i === 0 || (ks[i - 1]?.date ?? 0) < k.date);
-const inOrderMessage = "a run's K-lines in the order of their times, no time twice";
-export const klinesSchema = z.array(klineSchema).min(1).readonly().refine(inOrder, inOrderMessage);
 
 export type MergedBar = z.output<typeof mergedBarSchema>;
 export type Fractal = z.output<typeof fractalSchema>;

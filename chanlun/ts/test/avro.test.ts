@@ -1,13 +1,12 @@
 // The Avro schemas. First the mapping (bin/avro.ts): what it writes for each kind of field, a record of another
 // contract among them, and what it refuses. Then the schemas of ../avro themselves, read by an Avro implementation:
-// every run vector goes through Avro's binary format and comes back as the same text, and the K-line a run's schema
-// writes out is market's, as its own schema has it.
+// every run vector goes through Avro's binary format and comes back as the same text.
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import avsc from "avsc";
 import { describe, expect, it } from "vitest";
 import { avro } from "../bin/avro.ts";
-import { decodeRun, encodeRun, type RunOf } from "../src/index.ts";
+import { decodeRun, encodeRun, type Run } from "../src/index.ts";
 
 const record = {
   type: "object",
@@ -128,7 +127,7 @@ const typeOf = (s: object) => avsc.Type.forSchema(s as avsc.Schema, { registry: 
 const type = (file: string) => typeOf(schema(file));
 
 describe("the Avro schemas, read by an Avro implementation", () => {
-  it("are one for each record, market's K-line but", () => {
+  it("are one for each record", () => {
     expect([...files].sort()).toEqual(
       ["Consolidation", "Fractal", "Line", "MergedBar", "Move", "Run", "Segment"].map((r) => `${r}.avsc`),
     );
@@ -148,12 +147,6 @@ describe("the Avro schemas, read by an Avro implementation", () => {
     const back = t.fromBuffer(t.toBuffer(r.run));
     // Avro gives a field that is not set as null, where the contract leaves it out
     const plain = JSON.parse(JSON.stringify(back), (_, v) => (v === null ? undefined : v));
-    expect(encodeRun(plain as RunOf<object>)).toBe(text);
-  });
-  it.each([["Run.avsc", "KLine.avsc"]])("writes out in %s market's %s, in its namespace", (run, kline) => {
-    const market = JSON.parse(
-      readFileSync(join(import.meta.dirname, "..", "..", "..", "market", "avro", kline), "utf8"),
-    ) as object;
-    expect(schema(run).fields[0].type.items).toEqual(market);
+    expect(encodeRun(plain as Run)).toBe(text);
   });
 });

@@ -5,7 +5,7 @@
   # chanlun-ts, chanlun-lean, chanlun-go, chanlun-avro and chanlun-proto. Each is for TypeScript, Lean and Go, or its
   # Avro schemas and Protobuf description, made from the TypeScript. The common flake, qi-v2, gives the one nixpkgs of
   # every project and the pure shell.
-  description = "qi-v2-contracts: the contracts shared by the qi-v2 projects (market 2.0.0: the K-lines; chanlun 4.0.0: 缠论's records on them; each for TypeScript, Lean and Go, and as Avro and Protobuf)";
+  description = "qi-v2-contracts: the contracts shared by the qi-v2 projects (market 1.1.0: the K-lines; chanlun 3.1.0: 缠论's records beyond them; each for TypeScript, Lean and Go, and as Avro and Protobuf)";
 
   inputs.qi-v2.url = "github:zhifengzhang-sz/qi-v2-nix?dir=qi-v2";
   inputs.nixpkgs.follows = "qi-v2/nixpkgs";
@@ -60,7 +60,7 @@
         in {
           # The market data contract for TypeScript (market/README.md, how to take it): a node_modules of @qi/market,
           # as source, and zod, its one dependency (npm's, pinned by hash); no tests.
-          market-ts = pkgs.runCommand "market-ts-2.0.0" { } ''
+          market-ts = pkgs.runCommand "market-ts-1.1.0" { } ''
             m=$out/node_modules
             mkdir -p $m/@qi/market $m/zod
             cp -r ${./market/ts/src} $m/@qi/market/src
@@ -71,7 +71,7 @@
           '';
           # The market data contract for Lean (market/README.md): the Lake package `market` as source, for a taker's
           # Lake.
-          market-lean = pkgs.runCommand "market-lean-2.0.0" { } ''
+          market-lean = pkgs.runCommand "market-lean-1.1.0" { } ''
             mkdir -p $out
             cp -r ${./market/lean}/Market $out/Market
             cp ${./market/lean}/Market.lean ${./market/lean}/Main.lean ${./market/lean}/lakefile.toml ${./market/lean}/lean-toolchain $out/
@@ -80,14 +80,14 @@
           '';
           # The market data contract for Go (market/README.md, how to take it): the module of market/go as source,
           # without its tests, for a taker's go.mod to replace its module path with; the standard library only.
-          market-go = pkgs.runCommand "market-go-2.0.0" { } ''
+          market-go = pkgs.runCommand "market-go-1.1.0" { } ''
             ${goModule ./market/go "market"}
             cp ${./market/SPEC.md} $out/SPEC.md
             cp ${./market/README.md} $out/README.md
           '';
           # The market data contract as Avro (market/SPEC.md, The Avro schemas): one .avsc file for each record, for a
           # taker's Avro library or a schema registry
-          market-avro = pkgs.runCommand "market-avro-2.0.0" { } ''
+          market-avro = pkgs.runCommand "market-avro-1.1.0" { } ''
             mkdir -p $out
             cp ${./market/avro}/*.avsc $out/
             cp ${./market/SPEC.md} $out/SPEC.md
@@ -95,7 +95,7 @@
           '';
           # The market data contract as Protobuf (market/SPEC.md, The Protobuf description): market.proto, the
           # records' fields and types, for a taker's protoc
-          market-proto = pkgs.runCommand "market-proto-2.0.0" { } ''
+          market-proto = pkgs.runCommand "market-proto-1.1.0" { } ''
             mkdir -p $out
             cp ${./market/proto/market.proto} $out/market.proto
             cp ${./market/SPEC.md} $out/SPEC.md
@@ -103,8 +103,9 @@
           '';
 
           # 缠论's contract for TypeScript (chanlun/README.md, how to take it): a node_modules of @qi/chanlun, as
-          # source, @qi/market, whose K-line it takes, as market-ts has it, and zod (npm's, pinned by hash); no tests.
-          chanlun-ts = pkgs.runCommand "chanlun-ts-4.0.0" { } ''
+          # source, @qi/market, whose units and JSON it takes, as market-ts has it, and zod (npm's, pinned by hash); no
+          # tests.
+          chanlun-ts = pkgs.runCommand "chanlun-ts-3.1.0" { } ''
             m=$out/node_modules
             mkdir -p $m/@qi/chanlun $m/@qi/market $m/zod
             cp -r ${./chanlun/ts/src} $m/@qi/chanlun/src
@@ -118,7 +119,7 @@
           # 缠论's contract for Lean (chanlun/README.md): the Lake package `chanlun` as source, at chanlun/lean, and
           # the Lake package `market` it requires, at market/lean, where its lakefile names it (../../market/lean),
           # for a taker's Lake.
-          chanlun-lean = pkgs.runCommand "chanlun-lean-4.0.0" { } ''
+          chanlun-lean = pkgs.runCommand "chanlun-lean-3.1.0" { } ''
             mkdir -p $out/chanlun/lean $out/market/lean
             cp -r ${./chanlun/lean}/Chanlun $out/chanlun/lean/Chanlun
             cp ${./chanlun/lean}/Chanlun.lean ${./chanlun/lean}/Main.lean ${./chanlun/lean}/lakefile.toml ${./chanlun/lean}/lake-manifest.json ${./chanlun/lean}/lean-toolchain $out/chanlun/lean/
@@ -130,22 +131,22 @@
           # 缠论's contract for Go (chanlun/README.md, how to take it): the module of chanlun/go as source, without its
           # tests, for a taker's go.mod to replace its module path with, and market's with market-go; the standard
           # library only, and market's module.
-          chanlun-go = pkgs.runCommand "chanlun-go-4.0.0" { } ''
+          chanlun-go = pkgs.runCommand "chanlun-go-3.1.0" { } ''
             ${goModule ./chanlun/go "chanlun"}
             cp ${./chanlun/SPEC.md} $out/SPEC.md
             cp ${./chanlun/README.md} $out/README.md
           '';
-          # 缠论's contract as Avro (chanlun/SPEC.md, The Avro schemas): one .avsc file for each record, market's K-line
-          # written out in a run's, for a taker's Avro library or a schema registry
-          chanlun-avro = pkgs.runCommand "chanlun-avro-4.0.0" { } ''
+          # 缠论's contract as Avro (chanlun/SPEC.md, The Avro schemas): one .avsc file for each record, for a taker's
+          # Avro library or a schema registry
+          chanlun-avro = pkgs.runCommand "chanlun-avro-3.1.0" { } ''
             mkdir -p $out
             cp ${./chanlun/avro}/*.avsc $out/
             cp ${./chanlun/SPEC.md} $out/SPEC.md
             cp ${./chanlun/README.md} $out/README.md
           '';
           # 缠论's contract as Protobuf (chanlun/SPEC.md, The Protobuf description): chanlun.proto, the records' fields
-          # and types, which imports market-proto's market.proto, for a taker's protoc
-          chanlun-proto = pkgs.runCommand "chanlun-proto-4.0.0" { } ''
+          # and types, for a taker's protoc
+          chanlun-proto = pkgs.runCommand "chanlun-proto-3.1.0" { } ''
             mkdir -p $out
             cp ${./chanlun/proto/chanlun.proto} $out/chanlun.proto
             cp ${./chanlun/SPEC.md} $out/SPEC.md

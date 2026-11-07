@@ -1,8 +1,8 @@
 package chanlun
 
 // encoding/json never writes a record, a run, a List or an Optional, nor reads one: each refuses it with
-// ErrEncodingJSON, which says what to use, and a K-line and a Decimal, market's, with market's. Every type of
-// records.go among them.
+// ErrEncodingJSON, which says what to use, and a Decimal, market's, with market's. Every type of records.go among
+// them.
 
 import (
 	"encoding/json"
@@ -25,7 +25,7 @@ func TestNotByEncodingJSON(t *testing.T) {
 	}
 	given := []any{
 		r, r.Merged.At(0), r.Fractals.At(0), r.Strokes.At(0), r.Segments.At(0).At(0), r.Moves.At(0).At(0),
-		r.Consolidations.At(0).At(0), r.Klines, r.Merged.At(0).Extremes, r.Segments, r.Merged.At(0).ConfirmEnd,
+		r.Consolidations.At(0).At(0), r.Merged, r.Merged.At(0).Extremes, r.Segments, r.Merged.At(0).ConfirmEnd,
 		None[uint64](), Optional[market.Decimal]{},
 	}
 	// every type records.go makes is one of them
@@ -58,7 +58,7 @@ func TestNotByEncodingJSON(t *testing.T) {
 			t.Errorf("%s: MarshalJSON gave bytes", name)
 		}
 		p := reflect.New(reflect.TypeOf(v))
-		for _, text := range []string{"{}", "[]", "1", "null", `{"klines": []}`} {
+		for _, text := range []string{"{}", "[]", "1", "null", `{"merged": []}`} {
 			if err := json.Unmarshal([]byte(text), p.Interface()); !errors.Is(err, ErrEncodingJSON) {
 				t.Errorf("%s: json.Unmarshal of %s gave %v", name, text, err)
 			}
@@ -67,8 +67,8 @@ func TestNotByEncodingJSON(t *testing.T) {
 			t.Errorf("%s: json.Unmarshal changed it", name)
 		}
 	}
-	// a run's K-line and its price, market's: refused by market's ErrEncodingJSON, never {}
-	for _, v := range []any{r.Klines.At(0), r.Merged.At(0).High} {
+	// a price, market's: refused by market's ErrEncodingJSON, never {}
+	for _, v := range []any{r.Merged.At(0).High} {
 		if b, err := json.Marshal(v); !errors.Is(err, market.ErrEncodingJSON) || b != nil {
 			t.Errorf("%T: json.Marshal gave %q, %v", v, b, err)
 		}

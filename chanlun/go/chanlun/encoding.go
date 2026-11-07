@@ -9,8 +9,7 @@ import (
 // MarshalJSON gives (it compacts it, and MarshalIndent indents it again), so a run written through it would be a second
 // text of the one run. It knows a record's fields by their Go names (Index, MIndex), not the contract's, and reads a
 // record without its rules or the run's. So every record, the run, and List and Optional have MarshalJSON and
-// UnmarshalJSON, and both give ErrEncodingJSON: what to use instead; a K-line and a Decimal, market's, give
-// market.ErrEncodingJSON.
+// UnmarshalJSON, and both give ErrEncodingJSON: what to use instead; a Decimal, market's, gives market.ErrEncodingJSON.
 
 // ErrEncodingJSON: what MarshalJSON and UnmarshalJSON give, for every type of the package: the contract's JSON is
 // written and read by its own functions, not by encoding/json.
