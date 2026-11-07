@@ -3,7 +3,7 @@
 // give the same answer: all refuse it, or all read it and give back the same text.
 //   bun chanlun/vectors/cases.ts make DIR             the copies, DIR/<group>/<copy>.json, a group a decode mode
 //   bun chanlun/vectors/cases.ts compare DIR FORM...  each form's answers, DIR/<form>/<group>/<copy>.json, compared
-// A group is the mode its copies are decoded in: run, massive (--massive); the ongoing K-lines' copies are market's
+// A group is the mode its copies are decoded in: run; the ongoing K-line's copies are market's
 // (../../market/vectors/cases.ts). An answer is the canonical text, or a line `decode: <message>` for a fault. A
 // copy's name says what was changed: <vector>.<number>.<kind>.<place>.json.
 //
@@ -26,10 +26,8 @@ const vectors: readonly {
   { file: "run.json", name: "run", group: "run", copies: 60 },
   { file: "small.json", name: "small", group: "run", copies: 700 },
   { file: "edge.json", name: "edge", group: "run", copies: 400 },
-  { file: "massive/small.json", name: "massive-small", group: "massive", copies: 500 },
-  { file: "massive/edge.json", name: "massive-edge", group: "massive", copies: 300 },
 ];
-export const groups = ["run", "massive"] as const;
+export const groups = ["run"] as const;
 
 // mulberry32: the same numbers from the same seed
 const random = (s: number) => {

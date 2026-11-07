@@ -3,11 +3,8 @@
 
 export {
   type Decoded,
-  decodeMassiveRun,
   decodeRun,
   encodeRun,
-  type MassiveRun,
-  massiveRunSchema,
   type Run,
   type RunOf,
   runSchema,
@@ -23,7 +20,6 @@ export {
   lineSchema,
   type MergedBar,
   type Move,
-  massiveKlinesSchema,
   mergedBarSchema,
   moveSchema,
   type Segment,

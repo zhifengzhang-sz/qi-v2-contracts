@@ -1,13 +1,12 @@
 // The Avro schemas. First the mapping (bin/avro.ts): what it writes for each kind of field, a record of another
 // contract among them, and what it refuses. Then the schemas of ../avro themselves, read by an Avro implementation:
-// every ongoing K-line vector goes through Avro's binary format and comes back as the same text, and what SPEC.md says
-// about reading Massive's K-line holds.
+// every ongoing K-line vector goes through Avro's binary format and comes back as the same text.
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import avsc from "avsc";
 import { describe, expect, it } from "vitest";
 import { avro } from "../bin/avro.ts";
-import { decodeMassiveOngoingKLine, decodeOngoingKLine, encodeOngoingKLine } from "../src/index.ts";
+import { decodeOngoingKLine, encodeOngoingKLine } from "../src/index.ts";
 
 const record = {
   type: "object",
@@ -127,28 +126,15 @@ const long = avsc.types.LongType.__with({
 const typeOf = (s: object) => avsc.Type.forSchema(s as avsc.Schema, { registry: { long } });
 const type = (file: string) => typeOf(schema(file));
 
-const kline = {
-  index: 0,
-  date: 1767623400,
-  open: 10000,
-  high: 10010,
-  low: 9990,
-  close: 10005,
-  volume: 1000,
-};
-
 describe("the Avro schemas, read by an Avro implementation", () => {
   it("are one for each record", () => {
-    expect([...files].sort()).toEqual(
-      ["KLine", "MassiveKLine", "MassiveOngoingKLine", "OngoingKLine"].map((r) => `${r}.avsc`),
-    );
+    expect([...files].sort()).toEqual(["KLine", "OngoingKLine"].map((r) => `${r}.avsc`));
   });
   it.each(files)("reads %s", (file) => {
     expect(() => type(file)).not.toThrow();
   });
   it.each([
     ["ongoing/kline.json", "OngoingKLine.avsc", decodeOngoingKLine],
-    ["ongoing/massive.json", "MassiveOngoingKLine.avsc", decodeMassiveOngoingKLine],
   ] as const)("gives %s back as the same text through Avro's binary format", (vector, file, decode) => {
     const text = readFileSync(join(vectors, vector), "utf8");
     const r = decode(text);
@@ -156,30 +142,5 @@ describe("the Avro schemas, read by an Avro implementation", () => {
     const t = type(file);
     const back = t.fromBuffer(t.toBuffer(r.kline));
     expect(encodeOngoingKLine({ ...back })).toBe(text);
-  });
-  it("holds the base's fields in Massive's K-line, with only vw and n beyond them", () => {
-    const base = schema("KLine.avsc").fields;
-    const massive = schema("MassiveKLine.avsc").fields;
-    expect(massive.slice(0, base.length)).toEqual(base);
-    expect(massive.slice(base.length)).toEqual([
-      { name: "vw", type: "double" },
-      { name: "n", type: "long" },
-    ]);
-  });
-  it("matches fields by name: a base reader with its fields reversed reads Massive's K-line, given the alias", () => {
-    const writer = type("MassiveKLine.avsc");
-    const base = schema("KLine.avsc");
-    const reader = typeOf({
-      ...base,
-      aliases: ["MassiveKLine"],
-      fields: [...base.fields].reverse(),
-    });
-    const bytes = writer.toBuffer({ ...kline, vw: 10002, n: 120 });
-    expect({ ...reader.fromBuffer(bytes, reader.createResolver(writer)) }).toEqual(kline);
-  });
-  it("refuses Massive's K-line to the published base schema, which has no alias", () => {
-    const base = type("KLine.avsc");
-    const massive = type("MassiveKLine.avsc");
-    expect(() => base.createResolver(massive)).toThrow("no alias found");
   });
 });

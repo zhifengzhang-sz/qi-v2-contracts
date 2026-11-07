@@ -1,6 +1,6 @@
 # 缠论's contract: the algorithm's records
 
-Version 3.0.0. The records the algorithm of 缠论 gives over a run of bars, of whatever implementation gives them, and
+Version 4.0.0. The records the algorithm of 缠论 gives over a run of bars, of whatever implementation gives them, and
 how they cross from one project to another as JSON. It is written in TypeScript (`ts/`, Zod schemas); Lean (`lean/`,
 structures with a JSON codec) is a second form of it, and Go (`go/`, one module of the standard library and market's
 module only, its types made from the Zod schemas, its rules and its JSON written by hand) a third, whose types and
@@ -39,10 +39,10 @@ Whether an implementation's values are right by the lessons is not the contract'
 | position | the position of a K-line in the run, market's (`../market/SPEC.md`, Units): a K-line's `index` and a merged bar's `index`, `start`, `end`, `confirmEnd` and each of its `extremes` |
 | bar | the number of a merged bar (its `mIndex`, a 分型's `mIndex`, a line's `start`, `end` and `confirmEnd`, a consolidation's `start`, `end` and `confirmEnd`), from 0 |
 | price | a decimal, market's: a merged bar's `high` and `low`, and a consolidation's `zg`, `zd`, `gg` and `dd` |
-| count | market's: a 线段's, a 走势's and a consolidation's `level` |
+| count | a 线段's, a 走势's and a consolidation's `level`, from 0 |
 
-A time and a quantity are market's units too, and the rules of a position, a price and a count are market's. A bar is
-a whole number from 0 to 2⁵³ − 1, as a time, a position and a count are, which every JSON reader holds exactly.
+A time and a quantity are market's units too, and the rules of a position and a price are market's. A bar and a count
+are whole numbers from 0 to 2⁵³ − 1, as a time and a position are, which every JSON reader holds exactly.
 
 A field that may be not set (marked ?) is left out when it is not set; it is never `null`. The three records with
 `confirmEnd`, the merged bar, the line and the 中枢, leave it out under one rule: a configuration still going on, a merged
@@ -57,9 +57,9 @@ Each record has exactly its fields: none other, none missing but an optional one
 
 ### K-line
 
-The K-line is market's (`../market/SPEC.md`, K-line): the base's, 7 fields, and each data source's derived from it,
-Massive's among them, each with its rule. A run holds K-lines of one of them (The run); a bar still going on is an
-ongoing K-line, market's too, in no run. This contract defines no K-line of its own.
+The K-line is market's (`../market/SPEC.md`, K-line): the base's, 7 fields, with its rule. A run holds base K-lines
+(The run): a K-line of a source with fields of its own is its taker's, and a run holds its base; a bar still going on
+is an ongoing K-line, market's too, in no run. This contract defines no K-line of its own.
 
 ### Merged bar (包含)
 
@@ -148,10 +148,6 @@ A part by level, `segments`, `moves` or `consolidations`, ends with a level that
 to its highest level with a record, a level below its highest may be empty, and a part with no record is `[]`. So one
 run has one canonical text: `"moves": [[a]]` and `"moves": [[a], []]` would be one run, and the second is refused.
 
-Massive's run is a run whose `klines` are Massive's K-lines, under the same rules: `massiveRunSchema` and
-`decodeMassiveRun` in TypeScript, `MassiveRun` and `decodeMassiveRun` in Lean, `MassiveRun` and `DecodeMassiveRun` in
-Go.
-
 ## Reading the records
 
 A 分型 carries only `mIndex`, and a line only `start`, `end` and `confirmEnd`. Their kind, direction, extent and prices
@@ -173,8 +169,8 @@ algorithm. From the records alone:
 A run crosses as one JSON object, its seven parts its names, each record an object of its fields, under the rules of
 market's JSON (`../market/SPEC.md`, The JSON), how a number is written among them. Decoding refuses anything the
 records do not allow: what market's JSON refuses, a name that is no field or part, a field missing that is not
-optional, `null`, a value of another kind (a negative number or a fraction where a bar is, a number where a boolean
-is), and a broken rule.
+optional, `null`, a value of another kind (a negative number or a fraction where a bar or a count is, a number where
+a boolean is), and a broken rule.
 
 The canonical text, which every form writes and the conformance check compares:
 
@@ -190,9 +186,9 @@ The canonical text, which every form writes and the conformance check compares:
 
 The records are also published as Avro schemas, for other languages and for messages on Kafka and Redpanda topics.
 `avro/` has one file for each record: `MergedBar.avsc`, `Fractal.avsc`, `Line.avsc`, `Segment.avsc`, `Move.avsc`,
-`Consolidation.avsc`, `Run.avsc` and `MassiveRun.avsc`, all in the namespace `qi.chanlun.v1`. 笔 is `Line`. Each file
-is complete, with every record it uses written out inside it: a run's K-line is market's (`../market/avro/`), written
-out as it is there, in its namespace, `qi.market.v1`, which `ts/test/avro.test.ts` checks.
+`Consolidation.avsc` and `Run.avsc`, all in the namespace `qi.chanlun.v1`. 笔 is `Line`. Each file is complete, with
+every record it uses written out inside it: a run's K-line is market's (`../market/avro/`), written out as it is there,
+in its namespace, `qi.market.v1`, which `ts/test/avro.test.ts` checks.
 
 The files are generated from the Zod schemas by `make chanlun-avro`. `make check` fails if they no longer match the Zod
 schemas or an Avro implementation cannot read them, and it runs every run vector through Avro's binary format and back.
@@ -213,19 +209,19 @@ Avro's `long` holds every whole number in the contract, but a library's default 
 refuses the contract's largest number, so a reader there
 needs a long type of its own, as `ts/test/avro.test.ts` shows.
 
-The schemas give the records' fields and types, not their rules. The rules are on this page: a reader in any language
-must check them itself, and must read the vectors alike. Avro's own JSON encoding also differs from the JSON above: it
+The schemas give the records' fields and types, not their rules. The rules are on this page, and the vectors break each
+of them; a form that checks the rules reads the vectors alike. Avro's own JSON encoding also differs from the JSON above: it
 writes a number in a union as `{"long": 3}`, and a field that is not set as `null`. A reader can use the schemas for its
 types alone, and read and write the JSON above.
 
 ## The Protobuf description
 
 `proto/chanlun.proto` (package `qi.chanlun.v1`) describes the same records as Protobuf messages: `MergedBar`,
-`Fractal`, `Line`, `Segment`, `Move`, `Consolidation`, `Run` and `MassiveRun`, with `SegmentList`, `MoveList` and
-`ConsolidationList` for a part by level. A run's K-lines are market's messages, `qi.market.v1.KLine` and
-`qi.market.v1.MassiveKLine`, of `market.proto` (`../market/proto/`), which it imports: `protoc` reads it with both
-folders on its path. It is generated from the Zod schemas and the field numbers in `proto/fields.json` by
-`make chanlun-proto`. `make check` fails if it no longer matches them or `protoc` cannot read it.
+`Fractal`, `Line`, `Segment`, `Move`, `Consolidation` and `Run`, with `SegmentList`, `MoveList` and
+`ConsolidationList` for a part by level. A run's K-line is market's message, `qi.market.v1.KLine`, of `market.proto`
+(`../market/proto/`), which it imports: `protoc` reads it with both folders on its path. It is generated from the Zod
+schemas and the field numbers in `proto/fields.json` by `make chanlun-proto`. `make check` fails if it no longer
+matches them or `protoc` cannot read it.
 
 | In the contract | In Protobuf |
 |---|---|
@@ -258,5 +254,5 @@ same Zod schemas, and `ts/test/protobuf.test.ts` checks that they hold the same 
 
 A change to the records is a new version of this contract, in its forms, its Avro schemas, its Protobuf description and the vectors
 together; an implementation's output changing is not, until the contract does. Market's contract has versions of its
-own (`../market/SPEC.md`, Versions): one that changes what a run holds is a version of this one too, a new source's
-K-line a minor one once a run takes it, a change to the base's K-line a major one.
+own (`../market/SPEC.md`, Versions): one that changes what a run holds is a version of this one too, a change to the
+base's K-line a major one.

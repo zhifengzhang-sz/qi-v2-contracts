@@ -9,7 +9,7 @@ import (
 )
 
 func TestNothingGivenOutChangesTheRecord(t *testing.T) {
-	k, err := DecodeMassiveOngoingKLine(read(t, "ongoing/massive.json"))
+	k, err := DecodeOngoingKLine(read(t, "ongoing/kline.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -19,7 +19,7 @@ func TestNothingGivenOutChangesTheRecord(t *testing.T) {
 	}
 	d, _ := ParseDecimal("-1")
 	taker := k
-	taker.Open, taker.Index, taker.N = d, 99, 99
+	taker.Open, taker.Index, taker.AsOf = d, 99, 99
 	base := k.kline().Base()
 	base.High = d
 	after, err := EncodeOngoingKLine(k)
@@ -38,8 +38,7 @@ func TestNothingGivenOutIsShared(t *testing.T) {
 		return k == reflect.Slice || k == reflect.Map || k == reflect.Pointer || k == reflect.Chan || k == reflect.UnsafePointer
 	}
 	for _, typ := range []reflect.Type{
-		reflect.TypeFor[KLine](), reflect.TypeFor[MassiveKLine](), reflect.TypeFor[OngoingKLine](),
-		reflect.TypeFor[MassiveOngoingKLine](), reflect.TypeFor[Decimal](),
+		reflect.TypeFor[KLine](), reflect.TypeFor[OngoingKLine](), reflect.TypeFor[Decimal](),
 	} {
 		for i := range typ.NumField() {
 			if f := typ.Field(i); f.IsExported() && shared(f.Type.Kind()) {

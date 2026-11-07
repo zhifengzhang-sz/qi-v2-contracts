@@ -3,9 +3,8 @@
 // give the same answer: all refuse it, or all read it and give back the same text.
 //   bun market/vectors/cases.ts make DIR             the copies, DIR/<group>/<copy>.json, a group a decode mode
 //   bun market/vectors/cases.ts compare DIR FORM...  each form's answers, DIR/<form>/<group>/<copy>.json, compared
-// A group is the mode its copies are decoded in: ongoing (--ongoing), massive-ongoing (--massive --ongoing). An answer
-// is the canonical text, or a line `decode: <message>` for a fault. A copy's name says what was changed:
-// <vector>.<number>.<kind>.<place>.json.
+// A group is the mode its copies are decoded in: ongoing (--ongoing). An answer is the canonical text, or a line
+// `decode: <message>` for a fault. A copy's name says what was changed: <vector>.<number>.<kind>.<place>.json.
 //
 // The kinds, those of a record of numbers, as a K-line is: a value changed (a number by one up or down, to 0,
 // negative, with a seventh decimal, with a sixteenth digit, with an exponent; a value as text, `null`, a boolean); a
@@ -22,9 +21,8 @@ const vectors: readonly {
   readonly copies: number;
 }[] = [
   { file: "ongoing/kline.json", name: "ongoing-kline", group: "ongoing", copies: 200 },
-  { file: "ongoing/massive.json", name: "ongoing-massive", group: "massive-ongoing", copies: 200 },
 ];
-export const groups = ["ongoing", "massive-ongoing"] as const;
+export const groups = ["ongoing"] as const;
 
 // mulberry32: the same numbers from the same seed
 const random = (s: number) => {

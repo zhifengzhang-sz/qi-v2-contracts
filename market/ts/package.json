@@ -1,6 +1,6 @@
 {
   "name": "@qi/market",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "description": "The market data contract (../SPEC.md): the K-lines as Zod schemas, and an ongoing K-line's records as JSON",

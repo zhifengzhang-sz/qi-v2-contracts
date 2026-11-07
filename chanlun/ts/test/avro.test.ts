@@ -7,7 +7,7 @@ import { join } from "node:path";
 import avsc from "avsc";
 import { describe, expect, it } from "vitest";
 import { avro } from "../bin/avro.ts";
-import { decodeMassiveRun, decodeRun, encodeRun, type RunOf } from "../src/index.ts";
+import { decodeRun, encodeRun, type RunOf } from "../src/index.ts";
 
 const record = {
   type: "object",
@@ -128,11 +128,9 @@ const typeOf = (s: object) => avsc.Type.forSchema(s as avsc.Schema, { registry: 
 const type = (file: string) => typeOf(schema(file));
 
 describe("the Avro schemas, read by an Avro implementation", () => {
-  it("are one for each record, market's K-lines but", () => {
+  it("are one for each record, market's K-line but", () => {
     expect([...files].sort()).toEqual(
-      ["Consolidation", "Fractal", "Line", "MassiveRun", "MergedBar", "Move", "Run", "Segment"].map(
-        (r) => `${r}.avsc`,
-      ),
+      ["Consolidation", "Fractal", "Line", "MergedBar", "Move", "Run", "Segment"].map((r) => `${r}.avsc`),
     );
   });
   it.each(files)("reads %s", (file) => {
@@ -142,8 +140,6 @@ describe("the Avro schemas, read by an Avro implementation", () => {
     ["run.json", "Run.avsc", decodeRun],
     ["small.json", "Run.avsc", decodeRun],
     ["edge.json", "Run.avsc", decodeRun],
-    ["massive/small.json", "MassiveRun.avsc", decodeMassiveRun],
-    ["massive/edge.json", "MassiveRun.avsc", decodeMassiveRun],
   ] as const)("gives %s back as the same text through Avro's binary format", (vector, file, decode) => {
     const text = readFileSync(join(vectors, vector), "utf8");
     const r = decode(text);
@@ -154,10 +150,7 @@ describe("the Avro schemas, read by an Avro implementation", () => {
     const plain = JSON.parse(JSON.stringify(back), (_, v) => (v === null ? undefined : v));
     expect(encodeRun(plain as RunOf<object>)).toBe(text);
   });
-  it.each([
-    ["Run.avsc", "KLine.avsc"],
-    ["MassiveRun.avsc", "MassiveKLine.avsc"],
-  ])("writes out in %s market's %s, in its namespace", (run, kline) => {
+  it.each([["Run.avsc", "KLine.avsc"]])("writes out in %s market's %s, in its namespace", (run, kline) => {
     const market = JSON.parse(
       readFileSync(join(import.meta.dirname, "..", "..", "..", "market", "avro", kline), "utf8"),
     ) as object;

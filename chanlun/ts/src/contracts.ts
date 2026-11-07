@@ -1,7 +1,7 @@
 // 缠论's records (../SPEC.md, The records): the algorithm's records, of whatever implementation gives them, each a Zod
 // schema. The algorithm is a chain, and so are its records: each step's output is the next step's input.
 //
-//   the K-line (market's klineSchema; a data source's, massiveKlineSchema)  the input, the bars as read, each complete
+//   the K-line (market's klineSchema)                                   the input, the bars as read, each complete
 //     → 包含 →  the merged bar (mergedBarSchema)
 //     → 分型 →  the fractal, a top or a bottom at a merged bar (fractalSchema)
 //     → 笔   →  the lowest level line of level 0 (strokeSchema, which is lineSchema)
@@ -21,12 +21,7 @@
 // level, is going on, the last (codec.ts). Whether an implementation's values are right by the lessons is not these
 // contracts' to test: they say what a value is, not whether it is the lessons'.
 
-import {
-  klineSchema,
-  massiveKlineSchema,
-  positionSchema as position,
-  priceSchema as price,
-} from "@qi/market";
+import { klineSchema, positionSchema as position, priceSchema as price } from "@qi/market";
 import { z } from "zod";
 
 // a merged bar's number (its `mIndex`)
@@ -122,16 +117,11 @@ export const consolidationSchema = z
     "a 中枢 from a merged bar to a later one, its band ZD to ZG within its range DD to GG",
   );
 
-// a run's K-lines, market's: at least one, their times strictly increasing
+// a run's K-lines, market's base K-lines: at least one, their times strictly increasing
 const inOrder = (ks: readonly { readonly date: number }[]): boolean =>
   ks.every((k, i) => i === 0 || (ks[i - 1]?.date ?? 0) < k.date);
 const inOrderMessage = "a run's K-lines in the order of their times, no time twice";
 export const klinesSchema = z.array(klineSchema).min(1).readonly().refine(inOrder, inOrderMessage);
-export const massiveKlinesSchema = z
-  .array(massiveKlineSchema)
-  .min(1)
-  .readonly()
-  .refine(inOrder, inOrderMessage);
 
 export type MergedBar = z.output<typeof mergedBarSchema>;
 export type Fractal = z.output<typeof fractalSchema>;

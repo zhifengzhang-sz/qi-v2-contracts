@@ -1,14 +1,14 @@
 // Command decode: an ongoing K-line's JSON decoded and written again as its canonical JSON (the conformance check's Go
-// side), of the base or with --massive Massive's:
+// side):
 //
-//	decode [--massive] --ongoing FILE
+//	decode --ongoing FILE
 //
 // The canonical text to stdout; a fault to stderr as `decode: ` and its message, exit 1. With --batch, every .json
 // file of the folder IN, in the order of their names, decoded so in one process (the generated cases,
 // ../../../vectors/cases.ts), each one's answer written to OUT under its name: its canonical text, or the line
 // `decode: ` and its fault:
 //
-//	decode [--massive] --ongoing --batch IN OUT
+//	decode --ongoing --batch IN OUT
 package main
 
 import (
@@ -21,17 +21,10 @@ import (
 	"github.com/zhifengzhang-sz/qi-v2-contracts/market/go/market"
 )
 
-const usage = "usage: decode [--massive] --ongoing FILE | [--massive] --ongoing --batch IN OUT"
+const usage = "usage: decode --ongoing FILE | --ongoing --batch IN OUT"
 
 // answer: a file's bytes as its canonical text, or its fault
-func answer(massive bool, data []byte) (string, error) {
-	if massive {
-		k, err := market.DecodeMassiveOngoingKLine(data)
-		if err != nil {
-			return "", err
-		}
-		return market.EncodeOngoingKLine(k)
-	}
+func answer(data []byte) (string, error) {
 	k, err := market.DecodeOngoingKLine(data)
 	if err != nil {
 		return "", err
@@ -45,12 +38,10 @@ func fail(message string) {
 }
 
 func main() {
-	var massive, ongoing, batch bool
+	var ongoing, batch bool
 	var files []string
 	for _, a := range os.Args[1:] {
 		switch a {
-		case "--massive":
-			massive = true
 		case "--ongoing":
 			ongoing = true
 		case "--batch":
@@ -77,7 +68,7 @@ func main() {
 			if err != nil {
 				fail("cannot read " + n)
 			}
-			out, err := answer(massive, data)
+			out, err := answer(data)
 			if err != nil {
 				out = "decode: " + err.Error() + "\n"
 			}
@@ -90,7 +81,7 @@ func main() {
 		if err != nil {
 			fail("cannot read " + files[0])
 		}
-		out, err := answer(massive, data)
+		out, err := answer(data)
 		if err != nil {
 			fail(err.Error())
 		}

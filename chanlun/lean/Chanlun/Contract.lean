@@ -16,7 +16,7 @@ of a part, or of a level, is going on, the last (`Chanlun/Codec.lean`).
 namespace Chanlun
 
 open Lean (Json ToJson FromJson)
-open Market (Price KLine MassiveKLine KLineOf)
+open Market (Price KLine KLineOf)
 
 /-- 包含's merged bar `mIndex`: from `start` to `end`, its first and last K-lines; `extremes` the K-lines of its extreme,
 of its high when it goes up, of its low when it goes down, at least one, each from `start` to `end`, in ascending order,
@@ -73,8 +73,8 @@ structure Consolidation where
   dd : Price
   deriving Repr, BEq, Inhabited, ToJson, FromJson
 
-/-- A run: its K-lines, market's, of the base contract or of a data source's, merged bars, 分型, 笔 (strokes), and by level from 0
-its 线段 (segments), 走势 (moves) and 中枢 (consolidations). -/
+/-- A run: its K-lines, market's base K-lines in `Run`, merged bars, 分型, 笔 (strokes), and by level from 0 its 线段
+(segments), 走势 (moves) and 中枢 (consolidations). -/
 structure RunOf (K : Type) where
   klines : Array K
   merged : Array MergedBar
@@ -85,11 +85,8 @@ structure RunOf (K : Type) where
   consolidations : Array (Array Consolidation)
   deriving Repr, BEq, Inhabited, ToJson, FromJson
 
-/-- The run of the base contract's K-lines. -/
+/-- The run, of the base contract's K-lines. -/
 abbrev Run := RunOf KLine
-
-/-- The run of Massive's K-lines. -/
-abbrev MassiveRun := RunOf MassiveKLine
 
 /-- The time of the K-line at a position: how a position is turned back into a time. -/
 def RunOf.timeAt {K : Type} [KLineOf K] (r : RunOf K) (p : Nat) : Option Nat :=

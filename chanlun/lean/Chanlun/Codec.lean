@@ -14,7 +14,7 @@ fields in the order of their names, a field not set left out.
 namespace Chanlun
 
 open Lean (Json ToJson FromJson toJson fromJson?)
-open Market (KLine MassiveKLine KLineOf parsed strict record)
+open Market (KLine KLineOf parsed strict record)
 
 /-- Each record's fields (../SPEC.md, The records), the K-line's those of the run's. -/
 def fieldsOf (klines : List String) : String → List String
@@ -192,9 +192,6 @@ def decodeOf (K : Type) [KLineOf K] [FromJson K] (text : String) : Except String
 
 /-- A run of the base contract's K-lines as its records. -/
 def decodeRun (text : String) : Except String Run := decodeOf KLine text
-
-/-- A run of Massive's K-lines as its records. -/
-def decodeMassiveRun (text : String) : Except String MassiveRun := decodeOf MassiveKLine text
 
 private def records {α : Type} [ToJson α] (xs : Array α) : String :=
   if xs.isEmpty then "[]"

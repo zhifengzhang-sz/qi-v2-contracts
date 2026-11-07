@@ -1,14 +1,14 @@
-// Command decode: a run's JSON decoded and written again as its canonical JSON (the conformance check's Go side), with
-// --massive a run of Massive's K-lines (an ongoing K-line is market's, ../../../../market/go/cmd/decode):
+// Command decode: a run's JSON decoded and written again as its canonical JSON (the conformance check's Go side; an
+// ongoing K-line is market's, ../../../../market/go/cmd/decode):
 //
-//	decode [--massive] FILE
+//	decode FILE
 //
 // The canonical text to stdout; a fault to stderr as `decode: ` and its message, exit 1. With --batch, every .json
 // file of the folder IN, in the order of their names, decoded so in one process (the generated cases,
 // ../../../vectors/cases.ts), each one's answer written to OUT under its name: its canonical text, or the line
 // `decode: ` and its fault:
 //
-//	decode [--massive] --batch IN OUT
+//	decode --batch IN OUT
 package main
 
 import (
@@ -21,17 +21,10 @@ import (
 	"github.com/zhifengzhang-sz/qi-v2-contracts/chanlun/go/chanlun"
 )
 
-const usage = "usage: decode [--massive] FILE | [--massive] --batch IN OUT"
+const usage = "usage: decode FILE | --batch IN OUT"
 
 // answer: a file's bytes as its canonical text, or its fault
-func answer(massive bool, data []byte) (string, error) {
-	if massive {
-		r, err := chanlun.DecodeMassiveRun(data)
-		if err != nil {
-			return "", err
-		}
-		return chanlun.EncodeRun(r)
-	}
+func answer(data []byte) (string, error) {
 	r, err := chanlun.DecodeRun(data)
 	if err != nil {
 		return "", err
@@ -45,12 +38,10 @@ func fail(message string) {
 }
 
 func main() {
-	var massive, batch bool
+	var batch bool
 	var files []string
 	for _, a := range os.Args[1:] {
 		switch a {
-		case "--massive":
-			massive = true
 		case "--batch":
 			batch = true
 		default:
@@ -75,7 +66,7 @@ func main() {
 			if err != nil {
 				fail("cannot read " + n)
 			}
-			out, err := answer(massive, data)
+			out, err := answer(data)
 			if err != nil {
 				out = "decode: " + err.Error() + "\n"
 			}
@@ -88,7 +79,7 @@ func main() {
 		if err != nil {
 			fail("cannot read " + files[0])
 		}
-		out, err := answer(massive, data)
+		out, err := answer(data)
 		if err != nil {
 			fail(err.Error())
 		}

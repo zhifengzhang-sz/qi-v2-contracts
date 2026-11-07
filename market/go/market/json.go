@@ -233,10 +233,10 @@ func (d *decoder) number() ([]byte, error) {
 }
 
 // Bound: the largest whole number of the contract, either way (SPEC.md, Units): 2⁵³ − 1, which every JSON reader holds
-// exactly. A time, a position and a count are whole numbers from 0 to Bound.
+// exactly. A time and a position are whole numbers from 0 to Bound.
 const Bound = 1<<53 - 1
 
-// whole: a whole number from 0 to Bound, as a time, a position and a count are (-0 is 0)
+// whole: a whole number from 0 to Bound, as a time and a position are (-0 is 0)
 func (d *decoder) whole() (uint64, error) {
 	c, err := d.begin()
 	if err != nil {

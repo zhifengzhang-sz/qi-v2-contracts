@@ -7,8 +7,7 @@
     "a meaning, what is allowed, a rule's scope or reason), and nothing else but `,;:.()` and `and`: a rule added to SPEC.md",
     "and not listed here fails the check. Every rule has a vector, every reject vector here is named by a rule, and the",
     "TypeScript form refuses each vector of a rule with one of the rule's `refused`. A reject vector is an ongoing K-line",
-    "with one thing wrong: of the base in ongoing/reject, read as the base's; of Massive's in ongoing/massive/reject, read",
-    "as Massive's."
+    "with one thing wrong, in ongoing/reject."
   ],
   "passages": {
     "Units, time": {
@@ -72,25 +71,10 @@
       ],
       "no rule": []
     },
-    "Units, count": {
-      "rules": [
-        {
-          "rule": "a whole number",
-          "refused": ["expected int, received number"],
-          "vectors": ["ongoing/massive/reject/n-with-a-fraction.json"]
-        },
-        {
-          "rule": "not negative",
-          "refused": ["Too small: expected number to be >=0"],
-          "vectors": ["ongoing/massive/reject/n-negative.json"]
-        }
-      ],
-      "no rule": []
-    },
     "Units, paragraph 1": {
       "rules": [
         {
-          "rule": "A time, a position and a count are whole numbers from 0 to 2⁵³ − 1",
+          "rule": "A time and a position are whole numbers from 0 to 2⁵³ − 1",
           "refused": ["Too big: expected int", "a number in digits"],
           "vectors": ["ongoing/reject/as-of-past-2-53.json", "ongoing/reject/as-of-of-17-digits.json"]
         }
@@ -123,22 +107,12 @@
         {
           "rule": "none other",
           "refused": ["Unrecognized key"],
-          "vectors": [
-            "ongoing/reject/unknown-field.json",
-            "ongoing/reject/vw-and-n-of-massive.json",
-            "ongoing/massive/reject/unknown-field.json"
-          ]
+          "vectors": ["ongoing/reject/unknown-field.json"]
         },
         {
           "rule": "none missing",
           "refused": ["received undefined"],
-          "vectors": [
-            "ongoing/reject/as-of-missing.json",
-            "ongoing/reject/index-missing.json",
-            "ongoing/massive/reject/vw-missing.json",
-            "ongoing/massive/reject/n-missing.json",
-            "ongoing/massive/reject/vw-and-n-missing.json"
-          ]
+          "vectors": ["ongoing/reject/as-of-missing.json", "ongoing/reject/index-missing.json"]
         }
       ],
       "no rule": ["Each record has exactly its fields"]
@@ -153,11 +127,7 @@
         {
           "rule": "`max(open, close) ≤ high`",
           "refused": ["a K-line's open and close within its low and high"],
-          "vectors": [
-            "ongoing/reject/open-above-high.json",
-            "ongoing/reject/close-above-high.json",
-            "ongoing/massive/reject/close-above-high.json"
-          ]
+          "vectors": ["ongoing/reject/open-above-high.json", "ongoing/reject/close-above-high.json"]
         }
       ],
       "no rule": []
@@ -187,11 +157,7 @@
         {
           "rule": "for a price or a quantity, optionally `.` and digits",
           "refused": ["expected int, received number"],
-          "vectors": [
-            "ongoing/reject/date-with-a-fraction.json",
-            "ongoing/reject/index-with-a-fraction.json",
-            "ongoing/massive/reject/n-with-a-fraction.json"
-          ]
+          "vectors": ["ongoing/reject/date-with-a-fraction.json", "ongoing/reject/index-with-a-fraction.json"]
         },
         {
           "rule": "the last not `0`",
@@ -220,7 +186,7 @@
         {
           "rule": "a name that is no field",
           "refused": ["Unrecognized key"],
-          "vectors": ["ongoing/reject/unknown-field.json", "ongoing/massive/reject/unknown-field.json"]
+          "vectors": ["ongoing/reject/unknown-field.json"]
         },
         {
           "rule": "a name twice in one object",
@@ -235,11 +201,7 @@
         {
           "rule": "a field missing",
           "refused": ["received undefined"],
-          "vectors": [
-            "ongoing/reject/as-of-missing.json",
-            "ongoing/reject/index-missing.json",
-            "ongoing/massive/reject/vw-missing.json"
-          ]
+          "vectors": ["ongoing/reject/as-of-missing.json", "ongoing/reject/index-missing.json"]
         },
         {
           "rule": "`null`",
@@ -249,26 +211,21 @@
         {
           "rule": "a value of another kind",
           "refused": ["received string"],
-          "vectors": ["ongoing/reject/close-as-text.json", "ongoing/massive/reject/vw-as-text.json"]
+          "vectors": ["ongoing/reject/close-as-text.json"]
         },
         {
-          "rule": "a negative number where a time, a position, a count or a quantity is",
+          "rule": "a negative number where a time, a position or a quantity is",
           "refused": ["Too small: expected number to be >=0"],
           "vectors": [
             "ongoing/reject/date-negative.json",
             "ongoing/reject/index-negative.json",
-            "ongoing/massive/reject/n-negative.json",
             "ongoing/reject/volume-negative.json"
           ]
         },
         {
-          "rule": "a fraction where a time, a position or a count is",
+          "rule": "a fraction where a time or a position is",
           "refused": ["expected int, received number"],
-          "vectors": [
-            "ongoing/reject/date-with-a-fraction.json",
-            "ongoing/reject/index-with-a-fraction.json",
-            "ongoing/massive/reject/n-with-a-fraction.json"
-          ]
+          "vectors": ["ongoing/reject/date-with-a-fraction.json", "ongoing/reject/index-with-a-fraction.json"]
         }
       ],
       "no rule": [

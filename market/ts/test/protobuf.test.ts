@@ -123,9 +123,7 @@ describe("the field numbers", () => {
   const file = join(import.meta.dirname, "..", "..", "proto", "fields.json");
   const { messages } = JSON.parse(readFileSync(file, "utf8")) as Numbers;
   it.each([
-    ["MassiveKLine", "KLine"],
     ["OngoingKLine", "KLine"],
-    ["MassiveOngoingKLine", "MassiveKLine"],
   ])("gives %s the numbers of %s, for the fields they share", (derived, base) => {
     expect(messages[derived]?.fields).toMatchObject(messages[base]?.fields ?? { none: 1 });
   });

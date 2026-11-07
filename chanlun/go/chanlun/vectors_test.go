@@ -23,19 +23,8 @@ func read(t *testing.T, name string) []byte {
 	return data
 }
 
-type mode struct {
-	massive bool
-}
-
-// giveBack: the text a vector is decoded and encoded to, in its mode
-func giveBack(m mode, data []byte) (string, error) {
-	if m.massive {
-		r, err := DecodeMassiveRun(data)
-		if err != nil {
-			return "", err
-		}
-		return EncodeRun(r)
-	}
+// giveBack: the text a vector is decoded and encoded to
+func giveBack(data []byte) (string, error) {
 	r, err := DecodeRun(data)
 	if err != nil {
 		return "", err
@@ -44,19 +33,10 @@ func giveBack(m mode, data []byte) (string, error) {
 }
 
 func TestVectorsGivenBack(t *testing.T) {
-	for _, c := range []struct {
-		file string
-		mode mode
-	}{
-		{"run.json", mode{}},
-		{"small.json", mode{}},
-		{"edge.json", mode{}},
-		{"massive/small.json", mode{massive: true}},
-		{"massive/edge.json", mode{massive: true}},
-	} {
-		t.Run(c.file, func(t *testing.T) {
-			data := read(t, c.file)
-			text, err := giveBack(c.mode, data)
+	for _, file := range []string{"run.json", "small.json", "edge.json"} {
+		t.Run(file, func(t *testing.T) {
+			data := read(t, file)
+			text, err := giveBack(data)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -68,28 +48,20 @@ func TestVectorsGivenBack(t *testing.T) {
 }
 
 func TestVectorsRefused(t *testing.T) {
-	for _, c := range []struct {
-		dir  string
-		mode mode
-	}{
-		{"reject", mode{}},
-		{"massive/reject", mode{massive: true}},
-	} {
-		names, err := filepath.Glob(filepath.Join(vectors, c.dir, "*.json"))
-		if err != nil || len(names) == 0 {
-			t.Fatalf("%s: no reject case", c.dir)
-		}
-		for _, n := range names {
-			t.Run(filepath.Join(c.dir, filepath.Base(n)), func(t *testing.T) {
-				data, err := os.ReadFile(n)
-				if err != nil {
-					t.Fatal(err)
-				}
-				if _, err := giveBack(c.mode, data); err == nil {
-					t.Fatal("not refused")
-				}
-			})
-		}
+	names, err := filepath.Glob(filepath.Join(vectors, "reject", "*.json"))
+	if err != nil || len(names) == 0 {
+		t.Fatal("reject: no reject case")
+	}
+	for _, n := range names {
+		t.Run(filepath.Join("reject", filepath.Base(n)), func(t *testing.T) {
+			data, err := os.ReadFile(n)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := giveBack(data); err == nil {
+				t.Fatal("not refused")
+			}
+		})
 	}
 }
 

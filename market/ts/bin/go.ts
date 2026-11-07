@@ -5,12 +5,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { z } from "zod";
-import {
-  klineSchema,
-  massiveKlineSchema,
-  massiveOngoingKlineSchema,
-  ongoingKlineSchema,
-} from "../src/index.ts";
+import { klineSchema, ongoingKlineSchema } from "../src/index.ts";
 import { golang, type Schema } from "./golang.ts";
 
 const home = join(import.meta.dirname, "..", "..", "go");
@@ -18,17 +13,12 @@ const file = join("market", "records.go");
 const records = z
   .registry<{ id: string }>()
   .add(klineSchema, { id: "KLine" })
-  .add(massiveKlineSchema, { id: "MassiveKLine" })
-  .add(ongoingKlineSchema, { id: "OngoingKLine" })
-  .add(massiveOngoingKlineSchema, { id: "MassiveOngoingKLine" });
+  .add(ongoingKlineSchema, { id: "OngoingKLine" });
 // each record's line, after its name (SPEC.md, The records)
 const docs = {
   KLine: "a K-line, the base contract, a complete bar (SPEC.md, K-line). Its rule: KLine.Check.",
-  MassiveKLine:
-    "Massive's K-line: the base's fields, and vw and n of Massive's row (SPEC.md, Massive's K-line).",
   OngoingKLine:
     "the ongoing K-line of the base, a bar still going on, in no series yet (SPEC.md, The ongoing K-line).",
-  MassiveOngoingKLine: "Massive's ongoing K-line (SPEC.md, The ongoing K-line).",
 };
 const fail = (error: string): never => {
   process.stderr.write(`go: ${error}\n`);

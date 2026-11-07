@@ -33,30 +33,13 @@ func (k KLine) Check() error {
 	return nil
 }
 
-// Base: the K-line of the base contract a data source's K-line derives from: the K-line itself (SPEC.md, K-line).
+// Base: the base contract's K-line, the base's fields of a K-line (SPEC.md, K-line): of a K-line, the K-line itself.
+// What a contract built on this one reads of a K-line, its index and its date; a taker's own K-line, the base's fields
+// and its own, gives its base by a Base of its own.
 func (k KLine) Base() KLine { return k }
-
-// Base: the K-line of the base contract Massive's K-line derives from, its fields but vw and n (SPEC.md, Massive's
-// K-line): what a contract built on this one reads of any source's K-line, its index and its date.
-func (k MassiveKLine) Base() KLine {
-	return KLine{Index: k.Index, Date: k.Date, Open: k.Open, High: k.High, Low: k.Low, Close: k.Close, Volume: k.Volume}
-}
-
-// Check: Massive's K-line's rules: the base's, and n within Bound (vw is a price, any decimal).
-func (k MassiveKLine) Check() error {
-	if err := k.Base().Check(); err != nil {
-		return err
-	}
-	return bounded("n", k.N)
-}
 
 func (k OngoingKLine) kline() KLine {
 	return KLine{Index: k.Index, Date: k.Date, Open: k.Open, High: k.High, Low: k.Low, Close: k.Close, Volume: k.Volume}
-}
-
-func (k MassiveOngoingKLine) kline() MassiveKLine {
-	return MassiveKLine{Index: k.Index, Date: k.Date, Open: k.Open, High: k.High, Low: k.Low, Close: k.Close,
-		Volume: k.Volume, Vw: k.Vw, N: k.N}
 }
 
 func ongoing(kline error, date, asOf uint64) error {
@@ -74,6 +57,3 @@ func ongoing(kline error, date, asOf uint64) error {
 
 // Check: the ongoing K-line's rules: its K-line's, and date ≤ asOf.
 func (k OngoingKLine) Check() error { return ongoing(k.kline().Check(), k.Date, k.AsOf) }
-
-// Check: Massive's ongoing K-line's rules: Massive's K-line's, and date ≤ asOf.
-func (k MassiveOngoingKLine) Check() error { return ongoing(k.kline().Check(), k.Date, k.AsOf) }

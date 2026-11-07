@@ -4,7 +4,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { decodeMassiveRun, decodeRun, encodeRun } from "../src/codec.ts";
+import { decodeRun, encodeRun } from "../src/codec.ts";
 
 const V = join(import.meta.dirname, "..", "..", "vectors");
 // A vector as bin/decode.ts reads it: its bytes as UTF-8, a byte that is not UTF-8 refused, not replaced
@@ -57,16 +57,5 @@ describe("the vectors", () => {
   });
   it.each(readdirSync(join(V, "reject")))("reject/%s is refused", (n) => {
     expect(fault(join("reject", n), decodeRun)).not.toBe("");
-  });
-});
-
-describe("Massive's vectors", () => {
-  it.each(["massive/small.json", "massive/edge.json"])("%s decodes, and encodes to the same text", (n) => {
-    const r = decodeMassiveRun(text(n));
-    if (!r.ok) expect.fail(r.error);
-    expect(encodeRun(r.run)).toBe(text(n));
-  });
-  it.each(readdirSync(join(V, "massive", "reject")))("massive/reject/%s is refused", (n) => {
-    expect(fault(join("massive", "reject", n), decodeMassiveRun)).not.toBe("");
   });
 });

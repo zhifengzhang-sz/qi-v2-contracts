@@ -8,14 +8,13 @@ import (
 // run has one canonical text, which EncodeRun writes and DecodeRun reads with every rule; encoding/json rewrites what a
 // MarshalJSON gives (it compacts it, and MarshalIndent indents it again), so a run written through it would be a second
 // text of the one run. It knows a record's fields by their Go names (Index, MIndex), not the contract's, and reads a
-// record without its rules or the run's. So every record, both runs, and List and Optional have MarshalJSON and
+// record without its rules or the run's. So every record, the run, and List and Optional have MarshalJSON and
 // UnmarshalJSON, and both give ErrEncodingJSON: what to use instead; a K-line and a Decimal, market's, give
 // market.ErrEncodingJSON.
 
 // ErrEncodingJSON: what MarshalJSON and UnmarshalJSON give, for every type of the package: the contract's JSON is
 // written and read by its own functions, not by encoding/json.
-var ErrEncodingJSON = errors.New("chanlun: not by encoding/json: a run is written by EncodeRun and read by DecodeRun " +
-	"or DecodeMassiveRun")
+var ErrEncodingJSON = errors.New("chanlun: not by encoding/json: a run is written by EncodeRun and read by DecodeRun")
 
 // MarshalJSON: refused, ErrEncodingJSON: a List is written in its run by EncodeRun.
 func (List[T]) MarshalJSON() ([]byte, error) { return nil, ErrEncodingJSON }
@@ -35,12 +34,6 @@ func (Run) MarshalJSON() ([]byte, error) { return nil, ErrEncodingJSON }
 
 // UnmarshalJSON: refused, ErrEncodingJSON: a run is read by DecodeRun.
 func (*Run) UnmarshalJSON([]byte) error { return ErrEncodingJSON }
-
-// MarshalJSON: refused, ErrEncodingJSON: Massive's run is written by EncodeRun.
-func (MassiveRun) MarshalJSON() ([]byte, error) { return nil, ErrEncodingJSON }
-
-// UnmarshalJSON: refused, ErrEncodingJSON: Massive's run is read by DecodeMassiveRun.
-func (*MassiveRun) UnmarshalJSON([]byte) error { return ErrEncodingJSON }
 
 // MarshalJSON: refused, ErrEncodingJSON: a merged bar is written in its run by EncodeRun.
 func (MergedBar) MarshalJSON() ([]byte, error) { return nil, ErrEncodingJSON }

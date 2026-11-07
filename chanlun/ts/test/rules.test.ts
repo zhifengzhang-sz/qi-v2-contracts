@@ -7,7 +7,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { decodeMassiveRun, decodeRun } from "../src/codec.ts";
+import { decodeRun } from "../src/codec.ts";
 
 const V = join(import.meta.dirname, "..", "..", "vectors");
 type Rule = {
@@ -70,7 +70,7 @@ const passagesOf = (md: string): Map<string, string> => {
 };
 const spec = passagesOf(readFileSync(join(V, "..", "SPEC.md"), "utf8"));
 
-// A reject vector's fault in the TypeScript form, by its folder's mode, as bin/decode.ts reads it
+// A reject vector's fault in the TypeScript form, as bin/decode.ts reads it
 const fault = (vector: string): string => {
   const bytes = readFileSync(join(V, vector));
   let text: string;
@@ -79,11 +79,11 @@ const fault = (vector: string): string => {
   } catch {
     return "text not UTF-8";
   }
-  const r = vector.startsWith("massive/") ? decodeMassiveRun(text) : decodeRun(text);
+  const r = decodeRun(text);
   return r.ok ? "" : r.error;
 };
 
-const rejects = ["reject", "massive/reject"].flatMap((d) =>
+const rejects = ["reject"].flatMap((d) =>
   readdirSync(join(V, d))
     .filter((f) => f.endsWith(".json"))
     .map((f) => `${d}/${f}`),
@@ -91,7 +91,7 @@ const rejects = ["reject", "massive/reject"].flatMap((d) =>
 
 describe("every rule of SPEC.md has a reject vector", () => {
   it("SPEC.md's passages are found", () => {
-    expect(spec.size).toBeGreaterThan(20);
+    expect(spec.size).toBeGreaterThan(19);
   });
   it.each([...spec.keys()])("SPEC.md, %s: its rules listed, nothing else in it", (name) => {
     const passage = listed[name];

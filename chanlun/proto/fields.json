@@ -128,18 +128,6 @@
         "trends": 6
       },
       "reservedNumbers": [5]
-    },
-    "MassiveRun": {
-      "fields": {
-        "klines": 1,
-        "merged": 2,
-        "fractals": 3,
-        "strokes": 4,
-        "segments": 9,
-        "consolidations": 7,
-        "moves": 8
-      },
-      "reserved": {}
     }
   }
 }

@@ -4,11 +4,12 @@ import Lean.Data.Json
 # The market data's records
 
 The K-lines, of whatever source gives them (../SPEC.md, The records), the same as the TypeScript form's
-`contracts.ts`: the K-line of the base, each data source's derived from it, and the ongoing K-line of each. They cross
-from one project to another as JSON (`Market/Codec.lean`).
+`contracts.ts`: the K-line of the base, and its ongoing K-line. They cross from one project to another as JSON
+(`Market/Codec.lean`).
 
 A K-line's `date` is its begin time, milliseconds since 1970, UTC. A price and a quantity are decimals, held exactly. A
-contract built on this one takes its K-line and its units for records of its own.
+contract built on this one takes its K-line and its units for records of its own; so does a taker of a record of its
+own, a source's K-line with fields of its own among them (`KLineOf`, `OngoingOf`).
 -/
 namespace Market
 
@@ -68,14 +69,8 @@ structure KLine where
   volume : Quantity
   deriving Repr, BEq, Inhabited, ToJson, FromJson
 
-/-- Massive's K-line, 9 fields: the base, and `vw` and `n` of Massive's row; its `date` the row's `t`. -/
-structure MassiveKLine extends KLine where
-  vw : Price
-  n : Nat
-  deriving Repr, BEq, Inhabited, ToJson, FromJson
-
-/-- What a contract built on this one needs of a K-line, of the base contract or of a data source's: the base's fields,
-and the names of its own. -/
+/-- What a contract built on this one needs of a K-line, the base contract's or a taker's own with fields of its own
+(../SPEC.md, K-line): the base's fields, and the names of its fields. -/
 class KLineOf (K : Type) where
   base : K → KLine
   fields : List String
@@ -84,13 +79,9 @@ instance : KLineOf KLine where
   base := id
   fields := ["index", "date", "open", "high", "low", "close", "volume"]
 
-instance : KLineOf MassiveKLine where
-  base := MassiveKLine.toKLine
-  fields := ["index", "date", "open", "high", "low", "close", "volume", "vw", "n"]
-
-/-- The ongoing K-line of a data source, defined once over the source's K-line `K`: its K-line's fields and rule, `index`
-the place it will take when complete, and `asOf`, when its values were last updated, not before its `date`. A bar still
-going on, in no series yet. Its JSON is one object: the K-line's fields and `asOf`. -/
+/-- The ongoing K-line, made over a K-line `K`: its K-line's fields and rule, `index` the place it will take when
+complete, and `asOf`, when its values were last updated, not before its `date`. A bar still going on, in no series yet.
+Its JSON is one object: the K-line's fields and `asOf`. -/
 structure OngoingOf (K : Type) where
   kline : K
   asOf : Nat
@@ -106,8 +97,5 @@ instance {K : Type} [FromJson K] : FromJson (OngoingOf K) :=
 
 /-- The ongoing K-line of the base contract. -/
 abbrev OngoingKLine := OngoingOf KLine
-
-/-- Massive's ongoing K-line. -/
-abbrev MassiveOngoingKLine := OngoingOf MassiveKLine
 
 end Market

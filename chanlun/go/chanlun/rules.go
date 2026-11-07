@@ -111,13 +111,6 @@ type levelled interface {
 	span() (start, end uint64, confirmEnd Optional[uint64], level uint64)
 }
 
-// klineOf: a run's K-line, market's, of the base or of Massive's: its rules, and its base's index and date
-type klineOf interface {
-	market.KLine | market.MassiveKLine
-	Check() error
-	Base() market.KLine
-}
-
 // where: a part, or a level of a part by level, made its place's text (segments.2) only for a fault, so that a run of
 // many levels is checked with no text made for each
 type where struct {
@@ -173,7 +166,7 @@ func (s stroke) span() (uint64, uint64, Optional[uint64], uint64) {
 	return s.Start, s.End, s.ConfirmEnd, 0
 }
 
-func checkRun[K klineOf](klines List[K], merged List[MergedBar], fractals List[Fractal], strokes List[Line],
+func checkRun(klines List[market.KLine], merged List[MergedBar], fractals List[Fractal], strokes List[Line],
 	segments List[List[Segment]], moves List[List[Move]], consolidations List[List[Consolidation]]) error {
 	n, b := uint64(klines.Len()), uint64(merged.Len())
 	// klines: at least one, in the order of their times, no time twice, each one's index its place
@@ -184,10 +177,10 @@ func checkRun[K klineOf](klines List[K], merged List[MergedBar], fractals List[F
 		if err := k.Check(); err != nil {
 			return fmt.Errorf("klines.%d: %w", i, err)
 		}
-		switch base := k.Base(); {
-		case base.Index != uint64(i):
+		switch {
+		case k.Index != uint64(i):
 			return fmt.Errorf("klines.%d.index: a K-line's index its place in the run", i)
-		case i > 0 && klines.items[i-1].Base().Date >= base.Date:
+		case i > 0 && klines.items[i-1].Date >= k.Date:
 			return fmt.Errorf("klines.%d: a run's K-lines in the order of their times, no time twice", i)
 		}
 	}
@@ -262,21 +255,11 @@ func (r Run) Check() error {
 	return checkRun(r.Klines, r.Merged, r.Fractals, r.Strokes, r.Segments, r.Moves, r.Consolidations)
 }
 
-// Check: Massive's run's rules, the run's (SPEC.md, The run).
-func (r MassiveRun) Check() error {
-	return checkRun(r.Klines, r.Merged, r.Fractals, r.Strokes, r.Segments, r.Moves, r.Consolidations)
-}
-
 // TimeAt: the time of the K-line at the position p, and false past the run's K-lines (SPEC.md, Units): how a position
 // is turned back into a time.
-func (r Run) TimeAt(p uint64) (uint64, bool) { return timeAt(r.Klines, p) }
-
-// TimeAt: the time of the K-line at the position p, and false past the run's K-lines.
-func (r MassiveRun) TimeAt(p uint64) (uint64, bool) { return timeAt(r.Klines, p) }
-
-func timeAt[K klineOf](klines List[K], p uint64) (uint64, bool) {
-	if p >= uint64(klines.Len()) {
+func (r Run) TimeAt(p uint64) (uint64, bool) {
+	if p >= uint64(r.Klines.Len()) {
 		return 0, false
 	}
-	return klines.items[p].Base().Date, true
+	return r.Klines.items[p].Date, true
 }

@@ -7,8 +7,8 @@ none of those records of its own.
 
 | Contract | What it states | Built on | Forms | Version | Tags |
 |---|---|---|---|---|---|
-| [`market/`](market/README.md) | the market data: the K-line, the base's and Massive's, and the ongoing K-line of each | | TypeScript (Zod), Lean, Go; Avro and Protobuf, made from the TypeScript | 1.0.0 | `market-<version>` |
-| [`chanlun/`](chanlun/README.md) | 缠论's records: the merged bar, 分型, the lines, 中枢, and the run that holds them with its K-lines | `market` | TypeScript (Zod), Lean, Go; Avro and Protobuf, made from the TypeScript | 3.0.0 | `chanlun-<version>` |
+| [`market/`](market/README.md) | the market data: the base K-line and its ongoing K-line | | TypeScript (Zod), Lean, Go; Avro and Protobuf, made from the TypeScript | 2.0.0 | `market-<version>` |
+| [`chanlun/`](chanlun/README.md) | 缠论's records: the merged bar, 分型, the lines, 中枢, and the run that holds them with its K-lines | `market` | TypeScript (Zod), Lean, Go; Avro and Protobuf, made from the TypeScript | 4.0.0 | `chanlun-<version>` |
 
 A narrower contract changes less often, and so does whatever takes it: the K-lines, released alone, stay put while 缠论's
 structure moves. A new version of `chanlun` that takes the same K-lines leaves `market` as it is.

@@ -2,18 +2,17 @@
 // With --check, it instead compares what it would make with the files of a folder, ../avro if none is named, and has
 // an Avro implementation read each of them:
 //   bun bin/avsc.ts [--check [DIR]]
-// The K-lines are market's (../../../market/avro), written out in its namespace in the run's schemas, and have no file
+// The K-line is market's (../../../market/avro), written out in its namespace in the run's schema, and has no file
 // here. A fault goes to stderr, with exit 1.
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import { klineSchema, massiveKlineSchema } from "@qi/market";
+import { klineSchema } from "@qi/market";
 import avsc from "avsc";
 import { z } from "zod";
 import {
   consolidationSchema,
   fractalSchema,
   lineSchema,
-  massiveRunSchema,
   mergedBarSchema,
   moveSchema,
   runSchema,
@@ -24,19 +23,17 @@ import { avro, type Schema } from "./avro.ts";
 const home = join(import.meta.dirname, "..", "..", "avro");
 const namespace = "qi.chanlun.v1";
 // market's records, by their namespace
-const market = { KLine: "qi.market.v1", MassiveKLine: "qi.market.v1" };
+const market = { KLine: "qi.market.v1" };
 const records = z
   .registry<{ id: string }>()
   .add(klineSchema, { id: "KLine" })
-  .add(massiveKlineSchema, { id: "MassiveKLine" })
   .add(mergedBarSchema, { id: "MergedBar" })
   .add(fractalSchema, { id: "Fractal" })
   .add(lineSchema, { id: "Line" })
   .add(segmentSchema, { id: "Segment" })
   .add(moveSchema, { id: "Move" })
   .add(consolidationSchema, { id: "Consolidation" })
-  .add(runSchema, { id: "Run" })
-  .add(massiveRunSchema, { id: "MassiveRun" });
+  .add(runSchema, { id: "Run" });
 const fail = (error: string): never => {
   process.stderr.write(`avsc: ${error}\n`);
   return process.exit(1);

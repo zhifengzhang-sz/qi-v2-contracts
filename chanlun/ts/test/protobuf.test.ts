@@ -123,7 +123,6 @@ describe("the field numbers", () => {
   const file = join(import.meta.dirname, "..", "..", "proto", "fields.json");
   const { messages } = JSON.parse(readFileSync(file, "utf8")) as Numbers;
   it.each([
-    ["MassiveRun", "Run"],
     ["Segment", "Line"],
     ["Move", "Line"],
   ])("gives %s the numbers of %s, for the fields they share", (derived, base) => {

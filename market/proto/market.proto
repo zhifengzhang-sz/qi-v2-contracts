@@ -1,4 +1,4 @@
-// The market data contract, market 1.0.0 (../SPEC.md): the records' fields and types, made from the Zod schemas
+// The market data contract, market 2.0.0 (../SPEC.md): the records' fields and types, made from the Zod schemas
 // of ../ts/src by ../ts/bin/proto.ts with the field numbers of fields.json; not edited by hand. The records' rules
 // are not here (SPEC.md, The records): every reader checks them, and reads the vectors (../vectors/) alike.
 
@@ -18,19 +18,6 @@ message KLine {
   reserved "up", "confirm_rno", "confirm_date", "stored";
 }
 
-message MassiveKLine {
-  uint64 index = 1;
-  uint64 n = 13;
-  uint64 date = 14;
-  double open = 15;
-  double high = 16;
-  double low = 17;
-  double close = 18;
-  double volume = 19;
-  double vw = 20;
-  reserved 2, 4, 5, 6, 7, 8, 12;
-}
-
 message OngoingKLine {
   uint64 index = 1;
   uint64 date = 14;
@@ -39,18 +26,5 @@ message OngoingKLine {
   double low = 17;
   double close = 18;
   double volume = 19;
-  uint64 as_of = 21;
-}
-
-message MassiveOngoingKLine {
-  uint64 index = 1;
-  uint64 n = 13;
-  uint64 date = 14;
-  double open = 15;
-  double high = 16;
-  double low = 17;
-  double close = 18;
-  double volume = 19;
-  double vw = 20;
   uint64 as_of = 21;
 }

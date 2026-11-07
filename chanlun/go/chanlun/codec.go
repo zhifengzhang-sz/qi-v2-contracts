@@ -24,9 +24,6 @@ func decodeAs[T interface{ Check() error }](data []byte) (T, error) {
 // DecodeRun: a run's JSON, its bytes UTF-8, as its records; a fault, with its place, as an error, and the zero Run.
 func DecodeRun(data []byte) (Run, error) { return decodeAs[Run](data) }
 
-// DecodeMassiveRun: a run of Massive's K-lines, its JSON, as its records; a fault as an error, and the zero MassiveRun.
-func DecodeMassiveRun(data []byte) (MassiveRun, error) { return decodeAs[MassiveRun](data) }
-
 // records: a part's records, a record a line
 func records[T any](e *encoder, l *List[T]) {
 	if l.Len() == 0 {
@@ -61,26 +58,16 @@ func levels[T any](e *encoder, l *List[List[T]]) {
 	e.str("\n]")
 }
 
-// EncodeRun: a run's canonical JSON, of a run or of Massive's run, once its rules are checked: a run that breaks one is
-// not written, and its fault is the error.
-func EncodeRun[R Run | MassiveRun](run R) (string, error) {
-	e := &encoder{}
-	switch r := any(&run).(type) {
-	case *Run:
-		if err := r.Check(); err != nil {
-			return "", err
-		}
-		e.str("{\n\"klines\": ")
-		records(e, &r.Klines)
-		writeParts(e, &r.Merged, &r.Fractals, &r.Strokes, &r.Segments, &r.Moves, &r.Consolidations)
-	case *MassiveRun:
-		if err := r.Check(); err != nil {
-			return "", err
-		}
-		e.str("{\n\"klines\": ")
-		records(e, &r.Klines)
-		writeParts(e, &r.Merged, &r.Fractals, &r.Strokes, &r.Segments, &r.Moves, &r.Consolidations)
+// EncodeRun: a run's canonical JSON, once its rules are checked: a run that breaks one is not written, and its fault is
+// the error.
+func EncodeRun(run Run) (string, error) {
+	if err := run.Check(); err != nil {
+		return "", err
 	}
+	e := &encoder{}
+	e.str("{\n\"klines\": ")
+	records(e, &run.Klines)
+	writeParts(e, &run.Merged, &run.Fractals, &run.Strokes, &run.Segments, &run.Moves, &run.Consolidations)
 	e.str("\n}\n")
 	return e.text(), nil
 }

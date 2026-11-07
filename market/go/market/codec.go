@@ -25,20 +25,13 @@ func DecodeOngoingKLine(data []byte) (OngoingKLine, error) {
 	return decodeAs[OngoingKLine](data)
 }
 
-// DecodeMassiveOngoingKLine: Massive's ongoing K-line's JSON as its record; a fault as an error, and the zero
-// MassiveOngoingKLine.
-func DecodeMassiveOngoingKLine(data []byte) (MassiveOngoingKLine, error) {
-	return decodeAs[MassiveOngoingKLine](data)
-}
-
-// EncodeOngoingKLine: an ongoing K-line's canonical JSON, of the base's or of Massive's, once its rules are checked: its
-// record, and a line break.
-func EncodeOngoingKLine[K OngoingKLine | MassiveOngoingKLine](kline K) (string, error) {
-	if err := any(kline).(interface{ Check() error }).Check(); err != nil {
+// EncodeOngoingKLine: an ongoing K-line's canonical JSON, once its rules are checked: its record, and a line break.
+func EncodeOngoingKLine(kline OngoingKLine) (string, error) {
+	if err := kline.Check(); err != nil {
 		return "", err
 	}
 	e := &encoder{}
-	e.write(reflect.ValueOf(&kline).Elem(), shapeOf(reflect.TypeFor[K]()))
+	e.write(reflect.ValueOf(&kline).Elem(), shapeOf(reflect.TypeFor[OngoingKLine]()))
 	e.str("\n")
 	return e.text(), nil
 }

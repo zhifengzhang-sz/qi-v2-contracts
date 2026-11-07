@@ -7,12 +7,7 @@ import { readdir, readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import avsc from "avsc";
 import { z } from "zod";
-import {
-  klineSchema,
-  massiveKlineSchema,
-  massiveOngoingKlineSchema,
-  ongoingKlineSchema,
-} from "../src/index.ts";
+import { klineSchema, ongoingKlineSchema } from "../src/index.ts";
 import { avro, type Schema } from "./avro.ts";
 
 const home = join(import.meta.dirname, "..", "..", "avro");
@@ -20,9 +15,7 @@ const namespace = "qi.market.v1";
 const records = z
   .registry<{ id: string }>()
   .add(klineSchema, { id: "KLine" })
-  .add(massiveKlineSchema, { id: "MassiveKLine" })
-  .add(ongoingKlineSchema, { id: "OngoingKLine" })
-  .add(massiveOngoingKlineSchema, { id: "MassiveOngoingKLine" });
+  .add(ongoingKlineSchema, { id: "OngoingKLine" });
 const fail = (error: string): never => {
   process.stderr.write(`avsc: ${error}\n`);
   return process.exit(1);

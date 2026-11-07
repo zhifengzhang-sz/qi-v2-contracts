@@ -1,6 +1,6 @@
 # The market data contract: the K-lines
 
-Version 1.0.0. The records of the market data, the K-lines, of whatever source gives them, and how they cross from one
+Version 2.0.0. The records of the market data, the K-lines, of whatever source gives them, and how they cross from one
 project to another as JSON. It is written in TypeScript (`ts/`, Zod schemas); Lean (`lean/`, structures with a JSON
 codec) is a second form of it, and Go (`go/`, one module of the standard library only, its types made from the Zod
 schemas, its rules and its JSON written by hand) a third, whose types and functions have the TypeScript's names,
@@ -20,10 +20,9 @@ what it holds of them.
 | position | the position of a K-line in its series, from 0: a K-line's `index` |
 | price | a decimal: at most 6 digits after the point, and at most 15 digits from the first that is not 0 |
 | quantity | a decimal as a price is, not negative |
-| count | a whole number, not negative |
 
-A time, a position and a count are whole numbers from 0 to 2⁵³ − 1, which every JSON reader holds exactly; a price and
-a quantity are decimals as above, which every JSON reader gives back as the same digits.
+A time and a position are whole numbers from 0 to 2⁵³ − 1, which every JSON reader holds exactly; a price and a
+quantity are decimals as above, which every JSON reader gives back as the same digits.
 
 The six digits after the point bound a quantity as they bound a price. Some venues give a volume with more digits;
 such a volume is refused, and the producer must bring it within the bound before it crosses.
@@ -45,26 +44,14 @@ Rule: `low ≤ min(open, close)` and `max(open, close) ≤ high`.
 
 A K-line is a complete bar. A bar still going on is an ongoing K-line, a record of its own, in no series yet.
 
-This is the base contract, 7 fields. Each data source has a contract of its own, derived from the base: the base's
-fields and its rule, and the source's own fields, in every form, which a contract built on this one takes as it takes
-the base's.
-
-#### Massive's K-line
-
-`massiveKlineSchema` and `MassiveKLine` in TypeScript, `MassiveKLine` in Lean, `MassiveKLine` in Go, 9 fields: the
-base's, and from Massive's row:
-
-| Field | Kind | Meaning |
-|---|---|---|
-| `vw` | price | its volume-weighted average price |
-| `n` | count | its number of trades |
-
-Its `date` is the row's `t`.
+This is the base contract, 7 fields. A K-line of a source with fields of its own is not this contract's: such a
+record is its taker's, the base's fields and rule and its own, written under the rules of The JSON, read and written
+by the means each form gives for a record of a taker's own (The JSON), and held to this contract's vectors for the
+base.
 
 #### The ongoing K-line
 
-The ongoing K-line of a data source has its K-line's fields and rule, `index` the place it will take when complete,
-and:
+The ongoing K-line has its K-line's fields and rule, `index` the place it will take when complete, and:
 
 | Field | Kind | Meaning |
 |---|---|---|
@@ -72,12 +59,11 @@ and:
 
 Rule: `date ≤ asOf`.
 
-It is defined once over any source's K-line, so that a source's own fields are defined only in its K-line:
-`OngoingKLine` of the base and `MassiveOngoingKLine` of Massive's. In TypeScript they are `ongoingKlineSchema` and
-`massiveOngoingKlineSchema`; in Lean, `OngoingOf K`; in Go, `OngoingKLine` and `MassiveOngoingKLine`. It crosses as one
-JSON object of its fields, under the rules of The JSON, and its canonical text is its record, as there, then a line
-break. Each form decodes it with `decodeOngoingKLine` and `decodeMassiveOngoingKLine`, and writes it with
-`encodeOngoingKLine` (in Go, `DecodeOngoingKLine`, `DecodeMassiveOngoingKLine` and `EncodeOngoingKLine`).
+It is the base's: `OngoingKLine`, in TypeScript `ongoingKlineSchema`, in Lean `OngoingOf KLine`, the ongoing K-line
+made over a K-line (`OngoingOf K`, which a taker's own K-line takes too), in Go `OngoingKLine`. It crosses as one JSON
+object of its fields, under the rules of The JSON, and its canonical text is its record, as there, then a line break.
+Each form decodes it with `decodeOngoingKLine`, and writes it with `encodeOngoingKLine` (in Go, `DecodeOngoingKLine`
+and `EncodeOngoingKLine`).
 
 ## The JSON
 
@@ -85,25 +71,26 @@ A record crosses as one JSON object of its fields. A number is written in digits
 not `0` and more digits, then, for a price or a quantity, optionally `.` and digits, the last not `0`; no exponent, so
 that every form reads the same number from the same text. Decoding refuses anything the records do not allow: a number
 written otherwise or past the bound, a name that is no field, a name twice in one object, text not UTF-8, a field
-missing, `null`, a value of another kind (a negative number where a time, a position, a count or a quantity is, a
-fraction where a time, a position or a count is), and a broken rule.
+missing, `null`, a value of another kind (a negative number where a time, a position or a quantity is, a fraction where
+a time or a position is), and a broken rule.
 
 The canonical text, which every form writes and the conformance check compares:
 
 - a record: its fields in the order of their names (ASCII), no spaces; a number in its digits.
 
-A contract built on this one writes its own records under these rules, and its own text around them; each form gives
-it the reading and the writing of a record for that: in TypeScript `decodeAs(schema, text)` and `encodeRecord(r)`, in
-Lean `Market.parsed`, `Market.strict` and `Market.record`. The Go form gives its records' types, their rules (`Check`)
-and a K-line's base (`Base`), and `Decimal` with `DecimalOf` and `AppendTo`, by which such a contract reads and writes
-its own text of them.
+A contract built on this one writes its own records under these rules, and its own text around them, and so does a
+taker of a record of its own, a source's K-line with fields of its own among them (K-line); each form gives it the
+reading and the writing of a record for that: in TypeScript `decodeAs(schema, text)` and `encodeRecord(r)`, with the
+schemas of the units (`positionSchema`, `priceSchema`), in Lean `Market.parsed`, `Market.strict` and `Market.record`,
+with `KLineOf` and `OngoingOf` for a K-line of its own and its ongoing K-line. The Go form gives its records' types,
+their rules (`Check`) and a K-line's base (`Base`), and `Decimal` with `DecimalOf` and `AppendTo`, by which such a
+contract or taker reads and writes its own text of them.
 
 ## The Avro schemas
 
 The records are also published as Avro schemas, for other languages and for messages on Kafka and Redpanda topics.
-`avro/` has one file for each record: `KLine.avsc`, `MassiveKLine.avsc`, `OngoingKLine.avsc` and
-`MassiveOngoingKLine.avsc`, all in the namespace `qi.market.v1`. Each file is complete, with every record it uses
-written out inside it.
+`avro/` has one file for each record: `KLine.avsc` and `OngoingKLine.avsc`, both in the namespace `qi.market.v1`. Each
+file is complete, with every record it uses written out inside it.
 
 The files are generated from the Zod schemas by `make market-avro`. `make check` fails if they no longer match the Zod
 schemas or an Avro implementation cannot read them, and it runs each ongoing K-line vector through Avro's binary format
@@ -124,16 +111,16 @@ Avro's `long` holds every whole number in the contract, but a library's default 
 refuses the contract's largest number, so a reader there
 needs a long type of its own, as `ts/test/avro.test.ts` shows.
 
-The schemas give the records' fields and types, not their rules. The rules are on this page: a reader in any language
-must check them itself, and must read the vectors alike. Avro's own JSON encoding also differs from the JSON above: it
+The schemas give the records' fields and types, not their rules. The rules are on this page, and the vectors break each
+of them; a form that checks the rules reads the vectors alike. Avro's own JSON encoding also differs from the JSON above: it
 writes a number in a union as `{"long": 3}`, and a field that is not set as `null`. A reader can use the schemas for its
 types alone, and read and write the JSON above.
 
 ## The Protobuf description
 
-`proto/market.proto` (package `qi.market.v1`) describes the same records as Protobuf messages: `KLine`, `MassiveKLine`,
-`OngoingKLine` and `MassiveOngoingKLine`. It is generated from the Zod schemas and the field numbers in
-`proto/fields.json` by `make market-proto`. `make check` fails if it no longer matches them or `protoc` cannot read it.
+`proto/market.proto` (package `qi.market.v1`) describes the same records as Protobuf messages: `KLine` and
+`OngoingKLine`. It is generated from the Zod schemas and the field numbers in `proto/fields.json` by
+`make market-proto`. `make check` fails if it no longer matches them or `protoc` cannot read it.
 
 | In the contract | In Protobuf |
 |---|---|
@@ -178,6 +165,5 @@ that skips the serializer leaves Avro readers without the schema.
 ## Versions
 
 A change to the records is a new version of this contract, in its forms, its Avro schemas, its Protobuf description and the vectors
-together; a source's output changing is not, until the contract does. A new source's records, its K-line derived from
-the base and its ongoing K-line, are a minor version; a change to the base's records is a major one, and a change to
-every contract built on it.
+together; a source's output changing is not, until the contract does. A change to the base's records is a major one,
+and a change to every contract built on it.

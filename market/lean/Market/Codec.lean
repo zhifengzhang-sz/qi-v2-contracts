@@ -6,8 +6,8 @@ import Market.Contract
 How records cross from one project to another (../SPEC.md, The JSON), the same as the TypeScript form's `codec.ts`.
 Decoding takes an ongoing K-line's JSON: the object only the fields of its record, each field of its kind, then its
 rules (`OngoingOf.check`). Encoding writes the canonical text every form writes, so that the conformance check compares
-them as texts: a record's fields in the order of their names, a field not set left out. A contract built on this one
-reads and writes its own records by the same (`parsed`, `strict`, `record`).
+them as texts: a record's fields in the order of their names, a field not set left out. A contract built on this one,
+or a taker of a record of its own, reads and writes its records by the same (`parsed`, `strict`, `record`).
 -/
 
 namespace Market
@@ -135,9 +135,6 @@ def decodeOngoingOf (K : Type) [KLineOf K] [FromJson K] (text : String) : Except
 
 /-- An ongoing K-line of the base contract as its record. -/
 def decodeOngoingKLine (text : String) : Except String OngoingKLine := decodeOngoingOf KLine text
-
-/-- Massive's ongoing K-line as its record. -/
-def decodeMassiveOngoingKLine (text : String) : Except String MassiveOngoingKLine := decodeOngoingOf MassiveKLine text
 
 /-- A record's JSON, a field not set left out (the derived `ToJson` writes it `null`). -/
 def record {α : Type} [ToJson α] (x : α) : String :=

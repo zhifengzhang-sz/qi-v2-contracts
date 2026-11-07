@@ -1,6 +1,6 @@
 package market
 
-// The contract's vectors (../../vectors/), each read as the program decode reads it: the ongoing K-lines decoded and
+// The contract's vectors (../../vectors/), each read as the program decode reads it: the ongoing K-line decoded and
 // encoded again to the same text, every reject case refused; the conformance check (make check) compares the
 // TypeScript and Lean forms' text with the same files.
 
@@ -23,15 +23,8 @@ func read(t *testing.T, name string) []byte {
 	return data
 }
 
-// giveBack: the text an ongoing K-line is decoded and encoded to, of the base or of Massive's
-func giveBack(massive bool, data []byte) (string, error) {
-	if massive {
-		k, err := DecodeMassiveOngoingKLine(data)
-		if err != nil {
-			return "", err
-		}
-		return EncodeOngoingKLine(k)
-	}
+// giveBack: the text an ongoing K-line is decoded and encoded to
+func giveBack(data []byte) (string, error) {
 	k, err := DecodeOngoingKLine(data)
 	if err != nil {
 		return "", err
@@ -40,16 +33,10 @@ func giveBack(massive bool, data []byte) (string, error) {
 }
 
 func TestVectorsGivenBack(t *testing.T) {
-	for _, c := range []struct {
-		file    string
-		massive bool
-	}{
-		{"ongoing/kline.json", false},
-		{"ongoing/massive.json", true},
-	} {
-		t.Run(c.file, func(t *testing.T) {
-			data := read(t, c.file)
-			text, err := giveBack(c.massive, data)
+	for _, file := range []string{"ongoing/kline.json"} {
+		t.Run(file, func(t *testing.T) {
+			data := read(t, file)
+			text, err := giveBack(data)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -60,43 +47,25 @@ func TestVectorsGivenBack(t *testing.T) {
 	}
 }
 
-// rejectCase: a reject case's file, and whether it is read as Massive's ongoing K-line (ongoing/massive/reject) or as
-// the base's (ongoing/reject)
-type rejectCase struct {
-	file    string
-	massive bool
-}
-
-// rejectCases: every reject case, of the base and of Massive's
-func rejectCases(t *testing.T) []rejectCase {
+// rejectCases: every reject case's file (ongoing/reject)
+func rejectCases(t *testing.T) []string {
 	t.Helper()
-	var cases []rejectCase
-	for _, d := range []struct {
-		dir     string
-		massive bool
-	}{
-		{filepath.Join("ongoing", "reject"), false},
-		{filepath.Join("ongoing", "massive", "reject"), true},
-	} {
-		names, err := filepath.Glob(filepath.Join(vectors, d.dir, "*.json"))
-		if err != nil || len(names) == 0 {
-			t.Fatalf("%s: no reject case", d.dir)
-		}
-		for _, n := range names {
-			cases = append(cases, rejectCase{n, d.massive})
-		}
+	dir := filepath.Join("ongoing", "reject")
+	names, err := filepath.Glob(filepath.Join(vectors, dir, "*.json"))
+	if err != nil || len(names) == 0 {
+		t.Fatalf("%s: no reject case", dir)
 	}
-	return cases
+	return names
 }
 
 func TestVectorsRefused(t *testing.T) {
-	for _, c := range rejectCases(t) {
-		t.Run(c.file, func(t *testing.T) {
-			data, err := os.ReadFile(c.file)
+	for _, file := range rejectCases(t) {
+		t.Run(file, func(t *testing.T) {
+			data, err := os.ReadFile(file)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if _, err := giveBack(c.massive, data); err == nil {
+			if _, err := giveBack(data); err == nil {
 				t.Fatal("not refused")
 			}
 		})

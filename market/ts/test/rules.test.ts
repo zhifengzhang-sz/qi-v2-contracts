@@ -6,7 +6,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { decodeMassiveOngoingKLine, decodeOngoingKLine } from "../src/codec.ts";
+import { decodeOngoingKLine } from "../src/codec.ts";
 
 const V = join(import.meta.dirname, "..", "..", "vectors");
 type Rule = {
@@ -81,8 +81,7 @@ const unlisted = (name: string, text: string, passage: Passage | undefined): str
 
 const spec = passagesOf(readFileSync(join(V, "..", "SPEC.md"), "utf8"), new Set(["Units", "The records"]));
 
-// A reject vector's fault in the TypeScript form, by its folder's mode, as bin/decode.ts reads it: an ongoing K-line of
-// the base, or with --massive of Massive's (ongoing/massive/reject)
+// A reject vector's fault in the TypeScript form, as bin/decode.ts reads it: an ongoing K-line
 const fault = (vector: string): string => {
   const bytes = readFileSync(join(V, vector));
   let text: string;
@@ -91,13 +90,11 @@ const fault = (vector: string): string => {
   } catch {
     return "text not UTF-8";
   }
-  const r = vector.startsWith("ongoing/massive/")
-    ? decodeMassiveOngoingKLine(text)
-    : decodeOngoingKLine(text);
+  const r = decodeOngoingKLine(text);
   return r.ok ? "" : r.error;
 };
 
-const rejects = ["ongoing/reject", "ongoing/massive/reject"].flatMap((d) =>
+const rejects = ["ongoing/reject"].flatMap((d) =>
   readdirSync(join(V, d))
     .filter((f) => f.endsWith(".json"))
     .map((f) => `${d}/${f}`),
@@ -105,7 +102,7 @@ const rejects = ["ongoing/reject", "ongoing/massive/reject"].flatMap((d) =>
 
 describe("every rule of SPEC.md has a reject vector here", () => {
   it("SPEC.md's passages are found", () => {
-    expect(spec.size).toBeGreaterThan(10);
+    expect(spec.size).toBeGreaterThan(9);
   });
   it.each([...spec.keys()])("SPEC.md, %s: its rules listed, nothing else in it", (name) => {
     const fault = unlisted(name, spec.get(name) ?? "", listed[name]);

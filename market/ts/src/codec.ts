@@ -1,16 +1,11 @@
 // The records as JSON (../SPEC.md, The JSON): how records cross from one project to another. Decoding is a record's
 // schema over the parsed text, its rules with it; encoding is the canonical text every form writes, so that the
 // conformance check compares them as texts: a record's fields in the order of their names, a field not set left out.
-// A contract built on this one reads and writes its own records by the same two (decodeAs, encodeRecord).
+// A contract built on this one, or a taker of a record of its own, reads and writes its records by the same two
+// (decodeAs, encodeRecord).
 
 import type { z } from "zod";
-import {
-  decimal,
-  type MassiveOngoingKLine,
-  massiveOngoingKlineSchema,
-  type OngoingKLine,
-  ongoingKlineSchema,
-} from "./contracts.ts";
+import { decimal, type OngoingKLine, ongoingKlineSchema } from "./contracts.ts";
 
 export type DecodedOngoing<K = OngoingKLine> =
   | { readonly ok: true; readonly kline: K }
@@ -87,7 +82,6 @@ const ongoingDecoder =
     return r.ok ? { ok: true, kline: r.value } : r;
   };
 export const decodeOngoingKLine = ongoingDecoder<OngoingKLine>(ongoingKlineSchema);
-export const decodeMassiveOngoingKLine = ongoingDecoder<MassiveOngoingKLine>(massiveOngoingKlineSchema);
 
 // A record's canonical JSON, of a record the contract allows: its fields in the order of their names, a field not set
 // left out, no spaces.

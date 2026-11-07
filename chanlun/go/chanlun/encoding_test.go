@@ -23,12 +23,8 @@ func TestNotByEncodingJSON(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m, err := DecodeMassiveRun(read(t, "massive/small.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
 	given := []any{
-		r, m, r.Merged.At(0), r.Fractals.At(0), r.Strokes.At(0), r.Segments.At(0).At(0), r.Moves.At(0).At(0),
+		r, r.Merged.At(0), r.Fractals.At(0), r.Strokes.At(0), r.Segments.At(0).At(0), r.Moves.At(0).At(0),
 		r.Consolidations.At(0).At(0), r.Klines, r.Merged.At(0).Extremes, r.Segments, r.Merged.At(0).ConfirmEnd,
 		None[uint64](), Optional[market.Decimal]{},
 	}
@@ -72,7 +68,7 @@ func TestNotByEncodingJSON(t *testing.T) {
 		}
 	}
 	// a run's K-line and its price, market's: refused by market's ErrEncodingJSON, never {}
-	for _, v := range []any{r.Klines.At(0), m.Klines.At(0), r.Merged.At(0).High} {
+	for _, v := range []any{r.Klines.At(0), r.Merged.At(0).High} {
 		if b, err := json.Marshal(v); !errors.Is(err, market.ErrEncodingJSON) || b != nil {
 			t.Errorf("%T: json.Marshal gave %q, %v", v, b, err)
 		}

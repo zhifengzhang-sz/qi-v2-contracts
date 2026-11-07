@@ -80,13 +80,8 @@ func TestRulesOfARecordMadeInGo(t *testing.T) {
 			t.Errorf("%s: not refused", name)
 		}
 	}
-	m := MassiveKLine{Index: 0, Date: 1, Open: d("10"), High: d("11"), Low: d("9"), Close: d("10.5"), Volume: d("1"),
-		Vw: d("10.2"), N: Bound + 1}
-	if m.Check() == nil {
-		t.Error("Massive's K-line of an n past the bound: not refused")
-	}
-	if m.Base() != k || k.Base() != k {
-		t.Error("a K-line's base is not its fields but vw and n")
+	if k.Base() != k {
+		t.Error("a K-line's base is not the K-line")
 	}
 	// an ongoing K-line made in Go is checked before it is written
 	if _, err := EncodeOngoingKLine(OngoingKLine{Date: 2, AsOf: 1}); err == nil {
@@ -103,26 +98,22 @@ func TestRulesOfARecordMadeInGo(t *testing.T) {
 }
 
 // A decode that fails gives the zero value: never a record half read, nor one that breaks a rule. Each reject case is
-// refused as the record it is read as, and read as either ongoing K-line it gives the zero value where it is refused.
+// refused, and gives the zero value.
 func TestRefusedIsZero(t *testing.T) {
-	for _, c := range rejectCases(t) {
-		data, err := os.ReadFile(c.file)
+	for _, file := range rejectCases(t) {
+		data, err := os.ReadFile(file)
 		if err != nil {
 			t.Fatal(err)
 		}
 		got, err := DecodeOngoingKLine(data)
-		if (err == nil && !c.massive) || (err != nil && !reflect.ValueOf(got).IsZero()) {
-			t.Errorf("%s: %v, and not the zero value", c.file, err)
-		}
-		m, err := DecodeMassiveOngoingKLine(data)
-		if (err == nil && c.massive) || (err != nil && !reflect.ValueOf(m).IsZero()) {
-			t.Errorf("%s as Massive's: %v, and not the zero value", c.file, err)
+		if err == nil || !reflect.ValueOf(got).IsZero() {
+			t.Errorf("%s: %v, and not the zero value", file, err)
 		}
 	}
 }
 
 func FuzzDecodeOngoingKLine(f *testing.F) {
-	for _, n := range []string{"ongoing/kline.json", "ongoing/massive.json", "ongoing/reject/as-of-before-date.json",
+	for _, n := range []string{"ongoing/kline.json", "ongoing/reject/as-of-before-date.json",
 		"ongoing/reject/as-of-missing.json"} {
 		data, err := readVector(n)
 		if err != nil {
@@ -131,15 +122,13 @@ func FuzzDecodeOngoingKLine(f *testing.F) {
 		f.Add(data)
 	}
 	f.Fuzz(func(t *testing.T, data []byte) {
-		for _, massive := range []bool{false, true} {
-			text, err := giveBack(massive, data)
-			if err != nil {
-				continue
-			}
-			again, err := giveBack(massive, []byte(text))
-			if err != nil || again != text {
-				t.Fatalf("read, but its text does not read to itself: %v", err)
-			}
+		text, err := giveBack(data)
+		if err != nil {
+			return
+		}
+		again, err := giveBack([]byte(text))
+		if err != nil || again != text {
+			t.Fatalf("read, but its text does not read to itself: %v", err)
 		}
 	})
 }

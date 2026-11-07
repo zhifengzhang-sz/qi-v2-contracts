@@ -102,7 +102,7 @@ func TestNothingGivenOutIsShared(t *testing.T) {
 	}
 	for _, typ := range []reflect.Type{
 		reflect.TypeFor[MergedBar](), reflect.TypeFor[Fractal](), reflect.TypeFor[Line](), reflect.TypeFor[Segment](),
-		reflect.TypeFor[Move](), reflect.TypeFor[Consolidation](), reflect.TypeFor[Run](), reflect.TypeFor[MassiveRun](),
+		reflect.TypeFor[Move](), reflect.TypeFor[Consolidation](), reflect.TypeFor[Run](),
 		reflect.TypeFor[List[MergedBar]](), reflect.TypeFor[List[List[Segment]]](), reflect.TypeFor[Optional[uint64]](),
 	} {
 		for i := range typ.NumField() {

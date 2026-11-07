@@ -126,10 +126,10 @@ market-go: ## market's Go form, market/go: every file as gofmt writes it, go vet
 chanlun-go: ## chanlun's Go form, chanlun/go, on market's module by its replace: every file as gofmt writes it, go vet, its tests over the vectors; nothing fetched (a check of the flake)
 	@$(call nix-checks,$@,chanlun market)
 
-market-conformance: ## market's three forms on every vector, each form's part reading its decode and the vectors alone: each ongoing K-line decoded and written to the same text by each, every reject case refused by each, as a fault of the contract (exit 1, `decode: ` and its message), not a crash; Massive's by each form's --massive (a check of the flake)
+market-conformance: ## market's three forms on every vector, each form's part reading its decode and the vectors alone: each ongoing K-line decoded and written to the same text by each, every reject case refused by each, as a fault of the contract (exit 1, `decode: ` and its message), not a crash (a check of the flake)
 	@$(call nix-checks,$@,market)
 
-chanlun-conformance: ## chanlun's three forms on every vector, each form's part reading its decode and the vectors alone: each run decoded and written to the same text by each, every reject case refused by each, as a fault of the contract (exit 1, `decode: ` and its message), not a crash; Massive's by each form's --massive (a check of the flake)
+chanlun-conformance: ## chanlun's three forms on every vector, each form's part reading its decode and the vectors alone: each run decoded and written to the same text by each, every reject case refused by each, as a fault of the contract (exit 1, `decode: ` and its message), not a crash (a check of the flake)
 	@$(call nix-checks,$@,chanlun market)
 
 market-cases: ## market's generated cases: from each valid vector, changed copies by a fixed seed (market/vectors/cases.ts), each answered alike by the three forms, all refusing it or all giving back the same text; each form's decode reads them in one process (--batch) and writes nothing to stderr (a check of the flake)
@@ -138,55 +138,49 @@ market-cases: ## market's generated cases: from each valid vector, changed copie
 chanlun-cases: ## chanlun's generated cases: the same, of its runs (chanlun/vectors/cases.ts) (a check of the flake)
 	@$(call nix-checks,$@,chanlun market)
 
-packages: ## the flake's packages built, and each taken as a taker takes it: the TypeScript ones imported by Bun, the Lean ones built by Lake, chanlun's beside market's where its lakefile names it, the Go ones built by Go in a module of its own by a replace to each one's store path, chanlun's and market's both, nothing fetched; each decoding market's ongoing K-lines, or chanlun's small run and Massive's, to the same text; the Avro ones what the schemas make, read by an Avro implementation; the Protobuf ones read by protoc, chanlun's with market's beside it
+packages: ## the flake's packages built, and each taken as a taker takes it: the TypeScript ones imported by Bun, the Lean ones built by Lake, chanlun's beside market's where its lakefile names it, the Go ones built by Go in a module of its own by a replace to each one's store path, chanlun's and market's both, nothing fetched; each decoding market's ongoing K-line, or chanlun's small run, to the same text; the Avro ones what the schemas make, read by an Avro implementation; the Protobuf ones read by protoc, chanlun's with market's beside it
 	@t=$$(mktemp -d) && trap 'rm -rf $$t' EXIT && \
-	k=$$PWD/market/vectors/ongoing/kline.json && mk=$$PWD/market/vectors/ongoing/massive.json && \
-	v=$$PWD/chanlun/vectors/small.json && m=$$PWD/chanlun/vectors/massive/small.json && mkdir $$t/market $$t/chanlun && \
+	k=$$PWD/market/vectors/ongoing/kline.json && \
+	v=$$PWD/chanlun/vectors/small.json && mkdir $$t/market $$t/chanlun && \
 	ts=$$(nix build .#market-ts --no-link --print-out-paths) && ln -s $$ts/node_modules $$t/market/node_modules && \
 	printf '%s\n' 'import { readFileSync } from "node:fs";' \
-	  'import { decodeMassiveOngoingKLine, decodeOngoingKLine, encodeOngoingKLine } from "@qi/market";' \
-	  'const text = readFileSync(process.argv.at(-1) ?? "", "utf8");' \
-	  'const r = process.argv[2] === "--massive" ? decodeMassiveOngoingKLine(text) : decodeOngoingKLine(text);' \
+	  'import { decodeOngoingKLine, encodeOngoingKLine } from "@qi/market";' \
+	  'const r = decodeOngoingKLine(readFileSync(process.argv.at(-1) ?? "", "utf8"));' \
 	  'if (!r.ok) process.exit(1);' 'process.stdout.write(encodeOngoingKLine(r.kline));' > $$t/market/take.ts && \
-	(cd $$t/market && bun take.ts $$k) | cmp -s - $$k && (cd $$t/market && bun take.ts --massive $$mk) | cmp -s - $$mk && \
+	(cd $$t/market && bun take.ts $$k) | cmp -s - $$k && \
 	echo "packages: $$ts taken by Bun: PASS" && \
 	ts=$$(nix build .#chanlun-ts --no-link --print-out-paths) && ln -s $$ts/node_modules $$t/chanlun/node_modules && \
-	printf '%s\n' 'import { readFileSync } from "node:fs";' 'import { decodeMassiveRun, decodeRun, encodeRun } from "@qi/chanlun";' \
-	  'const text = readFileSync(process.argv.at(-1) ?? "", "utf8");' \
-	  'const r = process.argv[2] === "--massive" ? decodeMassiveRun(text) : decodeRun(text);' 'if (!r.ok) process.exit(1);' \
+	printf '%s\n' 'import { readFileSync } from "node:fs";' 'import { decodeRun, encodeRun } from "@qi/chanlun";' \
+	  'const r = decodeRun(readFileSync(process.argv.at(-1) ?? "", "utf8"));' 'if (!r.ok) process.exit(1);' \
 	  'process.stdout.write(encodeRun(r.run));' > $$t/chanlun/take.ts && \
-	(cd $$t/chanlun && bun take.ts $$v) | cmp -s - $$v && (cd $$t/chanlun && bun take.ts --massive $$m) | cmp -s - $$m && \
+	(cd $$t/chanlun && bun take.ts $$v) | cmp -s - $$v && \
 	echo "packages: $$ts taken by Bun: PASS" && \
 	lean=$$(nix build .#market-lean --no-link --print-out-paths) && \
 	cp -r $$lean $$t/market/lean && chmod -R u+w $$t/market/lean && (cd $$t/market/lean && lake build -q) && \
-	$$t/market/lean/.lake/build/bin/decode --ongoing $$k | cmp -s - $$k && \
-	$$t/market/lean/.lake/build/bin/decode --massive --ongoing $$mk | cmp -s - $$mk && echo "packages: $$lean built by Lake: PASS" && \
+	$$t/market/lean/.lake/build/bin/decode --ongoing $$k | cmp -s - $$k && echo "packages: $$lean built by Lake: PASS" && \
 	lean=$$(nix build .#chanlun-lean --no-link --print-out-paths) && \
 	cp -r $$lean $$t/chanlun/lean && chmod -R u+w $$t/chanlun/lean && (cd $$t/chanlun/lean/chanlun/lean && lake build -q) && \
-	$$t/chanlun/lean/chanlun/lean/.lake/build/bin/decode $$v | cmp -s - $$v && \
-	$$t/chanlun/lean/chanlun/lean/.lake/build/bin/decode --massive $$m | cmp -s - $$m && echo "packages: $$lean built by Lake: PASS" && \
+	$$t/chanlun/lean/chanlun/lean/.lake/build/bin/decode $$v | cmp -s - $$v && echo "packages: $$lean built by Lake: PASS" && \
 	mgo=$$(nix build .#market-go --no-link --print-out-paths) && go=$$(nix build .#chanlun-go --no-link --print-out-paths) && \
 	mkdir $$t/market/go $$t/chanlun/go && \
 	printf '%s\n' 'module take' '' 'go 1.23' '' 'require github.com/zhifengzhang-sz/qi-v2-contracts/market/go v0.0.0' '' \
 	  "replace github.com/zhifengzhang-sz/qi-v2-contracts/market/go => $$mgo" > $$t/market/go/go.mod && \
 	printf '%s\n' 'package main' 'import (' '"os"' '"github.com/zhifengzhang-sz/qi-v2-contracts/market/go/market"' ')' \
-	  'func main() {' 'data, _ := os.ReadFile(os.Args[len(os.Args)-1])' 'text, err := "", error(nil)' \
-	  'if os.Args[1] == "--massive" {' 'k, e := market.DecodeMassiveOngoingKLine(data)' 'if err = e; e == nil { text, err = market.EncodeOngoingKLine(k) }' \
-	  '} else {' 'k, e := market.DecodeOngoingKLine(data)' 'if err = e; e == nil { text, err = market.EncodeOngoingKLine(k) }' '}' \
+	  'func main() {' 'data, _ := os.ReadFile(os.Args[len(os.Args)-1])' 'text := ""' \
+	  'k, err := market.DecodeOngoingKLine(data)' 'if err == nil { text, err = market.EncodeOngoingKLine(k) }' \
 	  'if err != nil { os.Exit(1) }' 'os.Stdout.WriteString(text)' '}' > $$t/market/go/take.go && \
 	(cd $$t/market/go && GOPROXY=off GOFLAGS=-mod=readonly go build -o take .) && \
-	$$t/market/go/take $$k | cmp -s - $$k && $$t/market/go/take --massive $$mk | cmp -s - $$mk && echo "packages: $$mgo taken by Go: PASS" && \
+	$$t/market/go/take $$k | cmp -s - $$k && echo "packages: $$mgo taken by Go: PASS" && \
 	printf '%s\n' 'module take' '' 'go 1.23' '' 'require (' 'github.com/zhifengzhang-sz/qi-v2-contracts/chanlun/go v0.0.0' \
 	  'github.com/zhifengzhang-sz/qi-v2-contracts/market/go v0.0.0' ')' '' \
 	  "replace github.com/zhifengzhang-sz/qi-v2-contracts/chanlun/go => $$go" \
 	  "replace github.com/zhifengzhang-sz/qi-v2-contracts/market/go => $$mgo" > $$t/chanlun/go/go.mod && \
 	printf '%s\n' 'package main' 'import (' '"os"' '"github.com/zhifengzhang-sz/qi-v2-contracts/chanlun/go/chanlun"' ')' \
-	  'func main() {' 'data, _ := os.ReadFile(os.Args[len(os.Args)-1])' 'text, err := "", error(nil)' \
-	  'if os.Args[1] == "--massive" {' 'r, e := chanlun.DecodeMassiveRun(data)' 'if err = e; e == nil { text, err = chanlun.EncodeRun(r) }' \
-	  '} else {' 'r, e := chanlun.DecodeRun(data)' 'if err = e; e == nil { text, err = chanlun.EncodeRun(r) }' '}' \
+	  'func main() {' 'data, _ := os.ReadFile(os.Args[len(os.Args)-1])' 'text := ""' \
+	  'r, err := chanlun.DecodeRun(data)' 'if err == nil { text, err = chanlun.EncodeRun(r) }' \
 	  'if err != nil { os.Exit(1) }' 'os.Stdout.WriteString(text)' '}' > $$t/chanlun/go/take.go && \
 	(cd $$t/chanlun/go && GOPROXY=off GOFLAGS=-mod=readonly go build -o take .) && \
-	$$t/chanlun/go/take $$v | cmp -s - $$v && $$t/chanlun/go/take --massive $$m | cmp -s - $$m && echo "packages: $$go taken by Go: PASS" && \
+	$$t/chanlun/go/take $$v | cmp -s - $$v && echo "packages: $$go taken by Go: PASS" && \
 	avro=$$(nix build .#market-avro --no-link --print-out-paths) && \
 	(cd market/ts && bun install --frozen-lockfile && bun bin/avsc.ts --check $$avro) && echo "packages: $$avro read by avsc: PASS" && \
 	avro=$$(nix build .#chanlun-avro --no-link --print-out-paths) && \

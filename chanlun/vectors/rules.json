@@ -42,20 +42,30 @@
       ]
     },
     "Units, count": {
-      "rules": [],
-      "no rule": ["market's", "a 线段's, a 走势's and a consolidation's `level`"]
+      "rules": [
+        {
+          "rule": "from 0",
+          "refused": ["Too small: expected number to be >=0"],
+          "vectors": ["reject/consolidation-level-negative.json"]
+        }
+      ],
+      "no rule": ["a 线段's, a 走势's and a consolidation's `level`"]
     },
     "Units, paragraph 1": {
       "rules": [
         {
-          "rule": "A bar is a whole number from 0 to 2⁵³ − 1",
+          "rule": "A bar and a count are whole numbers from 0 to 2⁵³ − 1",
           "refused": ["expected int, received number", "Too small: expected number to be >=0"],
-          "vectors": ["reject/bar-with-a-fraction.json", "reject/fractal-index-negative.json"]
+          "vectors": [
+            "reject/bar-with-a-fraction.json",
+            "reject/fractal-index-negative.json",
+            "reject/consolidation-level-negative.json"
+          ]
         }
       ],
       "no rule": [
-        "A time and a quantity are market's units too, and the rules of a position, a price and a count are market's",
-        "as a time, a position and a count are",
+        "A time and a quantity are market's units too, and the rules of a position and a price are market's",
+        "as a time and a position are",
         "which every JSON reader holds exactly"
       ]
     },
@@ -155,30 +165,27 @@
         {
           "rule": "`extremes` holds at least one K-line",
           "refused": ["expected array to have >=1 items"],
-          "vectors": ["reject/merged-extremes-empty.json", "massive/reject/merged-extremes-empty.json"]
+          "vectors": ["reject/merged-extremes-empty.json"]
         },
         {
           "rule": "every entry of `extremes` is from `start` to `end`",
           "refused": ["a merged bar's extremes from its start to its end"],
-          "vectors": [
-            "reject/merged-extremes-outside-start-end.json",
-            "massive/reject/merged-extremes-outside-start-end.json"
-          ]
+          "vectors": ["reject/merged-extremes-outside-start-end.json"]
         },
         {
           "rule": "in ascending order",
           "refused": ["a merged bar's extremes in ascending order, none twice"],
-          "vectors": ["reject/merged-extremes-out-of-order.json", "massive/reject/merged-extremes-out-of-order.json"]
+          "vectors": ["reject/merged-extremes-out-of-order.json"]
         },
         {
           "rule": "with none twice",
           "refused": ["a merged bar's extremes in ascending order, none twice"],
-          "vectors": ["reject/merged-extremes-twice.json", "massive/reject/merged-extremes-twice.json"]
+          "vectors": ["reject/merged-extremes-twice.json"]
         },
         {
           "rule": "`index` is in `extremes`",
           "refused": ["a merged bar's index one of its extremes"],
-          "vectors": ["reject/merged-index-not-in-extremes.json", "massive/reject/merged-index-not-in-extremes.json"]
+          "vectors": ["reject/merged-index-not-in-extremes.json"]
         }
       ],
       "no rule": []
@@ -221,22 +228,22 @@
         {
           "rule": "at least one",
           "refused": ["expected array to have >=1 items"],
-          "vectors": ["reject/klines-none.json", "massive/reject/klines-none.json"]
+          "vectors": ["reject/klines-none.json"]
         },
         {
           "rule": "in the order of their times",
           "refused": ["a run's K-lines in the order of their times"],
-          "vectors": ["reject/klines-out-of-order.json", "massive/reject/klines-out-of-order.json"]
+          "vectors": ["reject/klines-out-of-order.json"]
         },
         {
           "rule": "no time twice",
           "refused": ["a run's K-lines in the order of their times, no time twice"],
-          "vectors": ["reject/klines-time-twice.json", "massive/reject/klines-time-twice.json"]
+          "vectors": ["reject/klines-time-twice.json"]
         },
         {
           "rule": "each one's `index` its place among them, from 0",
           "refused": ["a K-line's index its place in the run"],
-          "vectors": ["reject/kline-index-not-its-place.json", "massive/reject/kline-index-not-its-place.json"]
+          "vectors": ["reject/kline-index-not-its-place.json"]
         }
       ],
       "no rule": ["its K-lines, market's"]
@@ -246,7 +253,7 @@
         {
           "rule": "each one's `mIndex` its place among them, from 0",
           "refused": ["a merged bar's number its place among the merged bars"],
-          "vectors": ["reject/merged-number-not-its-place.json", "massive/reject/merged-number-not-its-place.json"]
+          "vectors": ["reject/merged-number-not-its-place.json"]
         }
       ],
       "no rule": ["its merged bars"]
@@ -375,8 +382,7 @@
             "reject/segments-last-level-empty.json",
             "reject/moves-last-level-empty.json",
             "reject/consolidations-last-level-empty.json",
-            "reject/segments-only-an-empty-level.json",
-            "massive/reject/moves-last-level-empty.json"
+            "reject/segments-only-an-empty-level.json"
           ]
         },
         {
@@ -390,37 +396,6 @@
         "the levels it holds are 0 to its highest level with a record",
         "a level below its highest may be empty",
         "So one run has one canonical text: `\"moves\": [[a]]` and `\"moves\": [[a], []]` would be one run, and the second is refused"
-      ]
-    },
-    "The run, paragraph 3": {
-      "rules": [
-        {
-          "rule": "a run whose `klines` are Massive's K-lines",
-          "refused": ["received undefined"],
-          "vectors": ["massive/reject/klines-of-the-base.json"]
-        },
-        {
-          "rule": "under the same rules",
-          "refused": [
-            "a K-line's index its place in the run",
-            "a run's K-lines in the order of their times",
-            "expected array to have >=1 items",
-            "a merged bar's number its place among the merged bars",
-            "a part by level's last level not empty"
-          ],
-          "vectors": [
-            "massive/reject/kline-index-not-its-place.json",
-            "massive/reject/klines-out-of-order.json",
-            "massive/reject/klines-time-twice.json",
-            "massive/reject/klines-none.json",
-            "massive/reject/merged-number-not-its-place.json",
-            "massive/reject/moves-last-level-empty.json"
-          ]
-        }
-      ],
-      "no rule": [
-        "Massive's run is",
-        "`massiveRunSchema` and `decodeMassiveRun` in TypeScript, `MassiveRun` and `decodeMassiveRun` in Lean, `MassiveRun` and `DecodeMassiveRun` in Go"
       ]
     },
     "The JSON, paragraph 1": {
@@ -479,9 +454,13 @@
           ]
         },
         {
-          "rule": "a negative number or a fraction where a bar is",
+          "rule": "a negative number or a fraction where a bar or a count is",
           "refused": ["Too small: expected number to be >=0", "expected int, received number"],
-          "vectors": ["reject/fractal-index-negative.json", "reject/bar-with-a-fraction.json"]
+          "vectors": [
+            "reject/fractal-index-negative.json",
+            "reject/bar-with-a-fraction.json",
+            "reject/consolidation-level-negative.json"
+          ]
         },
         {
           "rule": "a number where a boolean is",
@@ -549,21 +528,9 @@
         "vectors": ["reject/kline-volume-negative.json"]
       }
     ],
-    "Units, count": [
-      {
-        "rule": "a whole number",
-        "refused": ["expected int, received number"],
-        "vectors": ["massive/reject/n-with-a-fraction.json"]
-      },
-      {
-        "rule": "not negative",
-        "refused": ["Too small: expected number to be >=0"],
-        "vectors": ["massive/reject/n-negative.json", "reject/consolidation-level-negative.json"]
-      }
-    ],
     "Units, paragraph 1": [
       {
-        "rule": "A time, a position and a count are whole numbers from 0 to 2⁵³ − 1",
+        "rule": "A time and a position are whole numbers from 0 to 2⁵³ − 1",
         "refused": ["Too big: expected int", "a number in digits"],
         "vectors": ["reject/number-past-2-53.json", "reject/number-of-17-digits.json"]
       }
@@ -584,21 +551,12 @@
       {
         "rule": "none other",
         "refused": ["Unrecognized key"],
-        "vectors": [
-          "reject/kline-unknown-field.json",
-          "reject/klines-of-massive.json",
-          "massive/reject/kline-unknown-field.json"
-        ]
+        "vectors": ["reject/kline-unknown-field.json"]
       },
       {
         "rule": "none missing",
         "refused": ["received undefined"],
-        "vectors": [
-          "reject/kline-field-missing.json",
-          "massive/reject/vw-missing.json",
-          "massive/reject/n-missing.json",
-          "massive/reject/klines-of-the-base.json"
-        ]
+        "vectors": ["reject/kline-field-missing.json"]
       }
     ],
     "K-line, Rule": [
@@ -610,11 +568,7 @@
       {
         "rule": "`max(open, close) ≤ high`",
         "refused": ["a K-line's open and close within its low and high"],
-        "vectors": [
-          "reject/kline-open-above-high.json",
-          "reject/kline-close-above-high.json",
-          "massive/reject/kline-close-above-high.json"
-        ]
+        "vectors": ["reject/kline-open-above-high.json", "reject/kline-close-above-high.json"]
       }
     ],
     "The JSON, paragraph 1": [
@@ -634,8 +588,7 @@
         "vectors": [
           "reject/number-with-fraction.json",
           "reject/position-with-a-fraction.json",
-          "reject/bar-with-a-fraction.json",
-          "massive/reject/n-with-a-fraction.json"
+          "reject/bar-with-a-fraction.json"
         ]
       },
       {
@@ -680,36 +633,26 @@
       {
         "rule": "a name that is no field",
         "refused": ["Unrecognized key"],
-        "vectors": ["reject/kline-unknown-field.json", "massive/reject/kline-unknown-field.json"]
+        "vectors": ["reject/kline-unknown-field.json"]
       },
       {
         "rule": "a field missing",
         "refused": ["received undefined"],
-        "vectors": ["reject/kline-field-missing.json", "massive/reject/vw-missing.json"]
+        "vectors": ["reject/kline-field-missing.json"]
       },
       {
-        "rule": "a value of another kind",
-        "refused": ["received string"],
-        "vectors": ["massive/reject/vw-as-text.json"]
-      },
-      {
-        "rule": "a negative number where a time, a position, a count or a quantity is",
+        "rule": "a negative number where a time, a position or a quantity is",
         "refused": ["Too small: expected number to be >=0"],
         "vectors": [
           "reject/kline-time-negative.json",
           "reject/position-negative.json",
-          "massive/reject/n-negative.json",
           "reject/kline-volume-negative.json"
         ]
       },
       {
-        "rule": "a fraction where a time, a position or a count is",
+        "rule": "a fraction where a time or a position is",
         "refused": ["expected int, received number"],
-        "vectors": [
-          "reject/number-with-fraction.json",
-          "reject/position-with-a-fraction.json",
-          "massive/reject/n-with-a-fraction.json"
-        ]
+        "vectors": ["reject/number-with-fraction.json", "reject/position-with-a-fraction.json"]
       }
     ]
   }

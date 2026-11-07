@@ -8,14 +8,15 @@ the standard library only, its types made from the Zod schemas, its rules and JS
 rule of `SPEC.md` with a reject vector here that breaks it and every reject vector with the rule it breaks
 (`vectors/rules.json`), and changed copies of the vectors made by a fixed seed (`vectors/cases.ts`).
 
-A contract built on it takes its K-line, and defines none of its own. The vectors here are its own: the two ongoing
-K-lines, of the base and of Massive's, and for every rule of `SPEC.md` at least one of them with one thing wrong that
+A contract built on it takes its K-line, and defines none of its own. A K-line of a source with fields of its own is
+its taker's, not this contract's, held to its vectors for the base (`SPEC.md`, K-line). The vectors here are its own:
+the ongoing K-line of the base, and for every rule of `SPEC.md` at least one ongoing K-line with one thing wrong that
 breaks it.
 
 ## Taking it
 
 By the flake, pinned in the taker's `flake.lock` (`inputs.contracts.url =
-"github:zhifengzhang-sz/qi-v2-contracts?ref=market-1.0.0";`):
+"github:zhifengzhang-sz/qi-v2-contracts?ref=market-2.0.0";`):
 
 - `contracts.packages.${system}.market-ts`: `node_modules/@qi/market` and `zod`, as source; `import {
   decodeOngoingKLine, klineSchema } from "@qi/market"`.
@@ -28,7 +29,7 @@ By the flake, pinned in the taker's `flake.lock` (`inputs.contracts.url =
   formats, and says why there are two.
 
 Or by the language's own lock: Lake, `[[require]]` with `name = "market"`, `git =
-"https://github.com/zhifengzhang-sz/qi-v2-contracts"`, `rev = "market-1.0.0"`, `subDir = "market/lean"`.
+"https://github.com/zhifengzhang-sz/qi-v2-contracts"`, `rev = "market-2.0.0"`, `subDir = "market/lean"`.
 
 A Go taker takes the Go form from the flake's package alone, pinned by its own `flake.lock`: never by `go get` (the
 module proxy's copy, which no `flake.lock` pins), and never by a sibling path (a checkout beside it, which moves on its
@@ -41,31 +42,29 @@ go mod edit -require=github.com/zhifengzhang-sz/qi-v2-contracts/market/go@v0.0.0
 ```
 
 The module needs nothing else, so Go fetches nothing (`GOPROXY=off` holds), and `go.sum` has no line for it. `make
-packages` takes it so: a module of its own, the `replace`, `GOPROXY=off`, the ongoing K-lines decoded back to the same
+packages` takes it so: a module of its own, the `replace`, `GOPROXY=off`, the ongoing K-line decoded back to the same
 text.
 
 ## Using it
 
-TypeScript: `decodeOngoingKLine(text)` gives `{ ok: true, kline }` (an `OngoingKLine`) or `{ ok: false, error }`,
-`decodeMassiveOngoingKLine(text)` the same of Massive's ongoing K-line (a `MassiveOngoingKLine`);
-`encodeOngoingKLine(kline)` the canonical JSON of either; each record's schema (`klineSchema`, `massiveKlineSchema`,
-`ongoingKlineSchema`, `massiveOngoingKlineSchema`) for one record. For a contract built on it: `positionSchema` and
-`priceSchema`, the units its records share with the K-line; `decodeAs(schema, text)`, a JSON text read as a value of a
-Zod schema under the rules of The JSON (`{ ok: true, value }` or `{ ok: false, error }`), and `encodeRecord(r)`, a
-record's canonical text.
+TypeScript: `decodeOngoingKLine(text)` gives `{ ok: true, kline }` (an `OngoingKLine`) or `{ ok: false, error }`;
+`encodeOngoingKLine(kline)` its canonical JSON; each record's schema (`klineSchema`, `ongoingKlineSchema`) for one
+record. For a contract built on it, or a taker's record of its own: `positionSchema` and `priceSchema`, the units its
+records share with the K-line; `decodeAs(schema, text)`, a JSON text read as a value of a Zod schema under the rules of
+The JSON (`{ ok: true, value }` or `{ ok: false, error }`), and `encodeRecord(r)`, a record's canonical text.
 
-Lean: `Market.decodeOngoingKLine text : Except String OngoingKLine`, `Market.decodeMassiveOngoingKLine text : Except
-String MassiveOngoingKLine`, `Market.encodeOngoingKLine k : String`; the structures `KLine`, `MassiveKLine`, `Price` and
-`Quantity`, and `OngoingOf K`, of which `OngoingKLine` and `MassiveOngoingKLine` are the two ongoing K-lines, with
-`ToJson` and `FromJson`; `KLineOf K`, what a contract built on it needs of a source's K-line; `Market.KLine.rule`. For
-a contract built on it: `Market.parsed text`, a JSON text under the rules of The JSON, `Market.strict`, an object of
-only its fields and no `null`, and `Market.record`, a record's canonical text.
+Lean: `Market.decodeOngoingKLine text : Except String OngoingKLine`, `Market.encodeOngoingKLine k : String`; the
+structures `KLine`, `Price` and `Quantity`, and `OngoingOf K`, the ongoing K-line made over a K-line, of which
+`OngoingKLine` is the base's, with `ToJson` and `FromJson`; `KLineOf K`, what a contract built on it needs of a K-line,
+the base's or a taker's own; `Market.KLine.rule`. For a contract built on it, or a taker's record of its own:
+`Market.parsed text`, a JSON text under the rules of The JSON, `Market.strict`, an object of only its fields and no
+`null`, and `Market.record`, a record's canonical text.
 
-Go: `market.DecodeOngoingKLine(data) (OngoingKLine, error)` and `market.DecodeMassiveOngoingKLine(data)`, of the
-text's bytes, UTF-8, each the zero value with its fault; `market.EncodeOngoingKLine(k) (string, error)` the canonical
-JSON of either ongoing K-line, once the rules are checked; each record's `Check() error`, and a K-line's `Base()`, the
-base's fields of any source's K-line; the types `KLine`, `MassiveKLine`, `OngoingKLine` and `MassiveOngoingKLine`, made
-from the Zod schemas (`go/market/records.go`, `make market-go-types`). Decoding reads the text straight into the
+Go: `market.DecodeOngoingKLine(data) (OngoingKLine, error)`, of the text's bytes, UTF-8, the zero value with its
+fault; `market.EncodeOngoingKLine(k) (string, error)` its canonical JSON, once the rules are checked; each record's
+`Check() error`, and a K-line's `Base()`, the base's fields of a K-line, which a taker's own K-line gives by a `Base` of
+its own; the types `KLine` and `OngoingKLine`, made from the Zod schemas (`go/market/records.go`, `make
+market-go-types`). Decoding reads the text straight into the
 record. A price and a quantity are a `Decimal`, 16 bytes, never a `float64`: `ParseDecimal` reads it from its digits,
 `DecimalOf(units, decimals)` from a whole number of units (millionths with 6, cents with 2), refusing a value past the
 bounds, never rounding it; `String` writes its digits and `AppendTo` appends them to a slice, `Neg` gives its negation,
@@ -80,6 +79,34 @@ A source's output is mapped to the records by the source's reader or by its user
 
 ## Changes
 
+- **2.0.0**: no vendor's record. Massive's K-line and Massive's ongoing K-line (`vw`, `n`) are gone from every form and
+  from everything made from them: in TypeScript `massiveKlineSchema`, `massiveOngoingKlineSchema`, `MassiveKLine`,
+  `MassiveOngoingKLine` and `decodeMassiveOngoingKLine`; in Lean `MassiveKLine`, its `KLineOf`, `MassiveOngoingKLine`
+  and `decodeMassiveOngoingKLine`; in Go `MassiveKLine`, `MassiveOngoingKLine`, `DecodeMassiveOngoingKLine` and their
+  methods, and `EncodeOngoingKLine` is of an `OngoingKLine`, no longer generic; the Avro schemas `MassiveKLine.avsc` and
+  `MassiveOngoingKLine.avsc`; the Protobuf messages `MassiveKLine` and `MassiveOngoingKLine`, and their field numbers in
+  `proto/fields.json`; each form's `decode --massive`; the vectors `vectors/ongoing/massive.json` and its 8 reject cases
+  (`vectors/ongoing/massive/reject/`), and `vectors/ongoing/reject/vw-and-n-of-massive.json`, the base's ongoing K-line
+  with Massive's two fields, refused for a name that is no field as `unknown-field.json` is; the generated cases of
+  Massive's ongoing K-line; the checks of them (the conformance's `--massive`, the cases' group `massive-ongoing`, the
+  Avro tests of Massive's K-line against the base's). Why: a contract is the language of the data, and a vendor's own
+  fields are used only by whoever reads that vendor, so they are the reader's; held here, each new vendor would be a new
+  version of this contract and of everything that takes it. A K-line of a source with fields of its own is its taker's
+  (`SPEC.md`, K-line): the base's fields and rule and its own, written under The JSON's rules, read and written by what
+  each form gives for a record of its own, which stays, naming no source (TypeScript `decodeAs`, `encodeRecord`,
+  `positionSchema` and `priceSchema`; Lean `Market.parsed`, `Market.strict`, `Market.record`, `KLineOf` and `OngoingOf`;
+  Go `Check`, `KLine.Base`, `Decimal`, `DecimalOf` and `AppendTo`), and held to this contract's vectors for the base.
+  The count is no longer a unit of this contract: `n` was its one field, so no record here has a count and no vector
+  here could break its rules; Units, the bound of 2⁵³ − 1 and The JSON no longer name it, and chanlun 4.0.0, whose
+  `level` is a count, states it. Versions no longer makes a new source's records a minor version. The Avro schemas'
+  section says that the vectors break each rule and that a form that checks the rules reads the vectors alike, where it
+  said that a reader in any language must check them itself. Not backward-compatible for a taker of Massive's records,
+  which is why 2.0.0; every base record, rule and canonical text is 1.0.0's: `vectors/ongoing/kline.json` reads and
+  writes the same text, and every reject case kept is refused, as before, and `KLine.avsc`, `OngoingKLine.avsc` and the
+  messages `KLine` and `OngoingKLine` are 1.0.0's, their field numbers too. The counts, 1.0.0 to 2.0.0: the rules of
+  `SPEC.md` 32 to 30, each with a vector here; the conformance 2 ongoing K-lines and 37 reject cases to 1 and 28; the
+  generated cases 400 (58 read, 342 refused) to 200 (24 read, 176 refused), 1.0.0's copies of the base's ongoing
+  K-line, byte for byte.
 - **1.0.0**: the market data contract, a product of its own: the K-line records of chanlun 2.3.0, the base K-line and
   Massive's and the ongoing K-line of each, with their rules, their units, the rules of their JSON and their canonical
   texts, and the ongoing K-line's readers and writers, as chanlun 2.3.0 has them. It is 1.0.0 because those records

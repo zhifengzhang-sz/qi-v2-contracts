@@ -1,17 +1,16 @@
 // 缠论's contract in Go (../../SPEC.md; ../../go/): the records' types, ../go/chanlun/records.go, made from the Zod
 // schemas of ../src, or, with --check, compared with the file, or with the file of a module named:
 //   bun bin/go.ts [--check [DIR]]
-// The rules and the JSON are the Go form's own, written by hand beside it. The K-lines, and a price's Decimal, are
+// The rules and the JSON are the Go form's own, written by hand beside it. The K-line, and a price's Decimal, are
 // market's Go form's (../../../market/go/market): named here, made there. A fault to stderr, exit 1.
 import { readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import { klineSchema, massiveKlineSchema } from "@qi/market";
+import { klineSchema } from "@qi/market";
 import { z } from "zod";
 import {
   consolidationSchema,
   fractalSchema,
   lineSchema,
-  massiveRunSchema,
   mergedBarSchema,
   moveSchema,
   runSchema,
@@ -24,19 +23,17 @@ const file = join("chanlun", "records.go");
 const records = z
   .registry<{ id: string }>()
   .add(klineSchema, { id: "KLine" })
-  .add(massiveKlineSchema, { id: "MassiveKLine" })
   .add(mergedBarSchema, { id: "MergedBar" })
   .add(fractalSchema, { id: "Fractal" })
   .add(lineSchema, { id: "Line" })
   .add(segmentSchema, { id: "Segment" })
   .add(moveSchema, { id: "Move" })
   .add(consolidationSchema, { id: "Consolidation" })
-  .add(runSchema, { id: "Run" })
-  .add(massiveRunSchema, { id: "MassiveRun" });
-// market's types: its K-lines, and its Decimal for a price
+  .add(runSchema, { id: "Run" });
+// market's types: its K-line, and its Decimal for a price
 const market = "github.com/zhifengzhang-sz/qi-v2-contracts/market/go/market";
 const uses = {
-  types: { KLine: "market.KLine", MassiveKLine: "market.MassiveKLine", Decimal: "market.Decimal" },
+  types: { KLine: "market.KLine", Decimal: "market.Decimal" },
   imports: [market],
 };
 // each record's line, after its name (SPEC.md, The records and The run)
@@ -49,7 +46,6 @@ const docs = {
   Consolidation:
     "中枢 of level Level; ConfirmEnd not set while it is under construction (SPEC.md, Consolidation).",
   Run: "a run of the base's K-lines: its seven parts, Segments, Moves and Consolidations by level (SPEC.md, The run).",
-  MassiveRun: "a run whose K-lines are Massive's, under the same rules (SPEC.md, The run).",
 };
 const fail = (error: string): never => {
   process.stderr.write(`go: ${error}\n`);

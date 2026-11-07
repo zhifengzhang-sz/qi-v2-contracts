@@ -5,12 +5,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { z } from "zod";
-import {
-  klineSchema,
-  massiveKlineSchema,
-  massiveOngoingKlineSchema,
-  ongoingKlineSchema,
-} from "../src/index.ts";
+import { klineSchema, ongoingKlineSchema } from "../src/index.ts";
 import { type Numbers, protobuf, type Schema } from "./protobuf.ts";
 
 const dir = join(import.meta.dirname, "..", "..", "proto");
@@ -18,9 +13,7 @@ const out = join(dir, "market.proto");
 const records = z
   .registry<{ id: string }>()
   .add(klineSchema, { id: "KLine" })
-  .add(massiveKlineSchema, { id: "MassiveKLine" })
-  .add(ongoingKlineSchema, { id: "OngoingKLine" })
-  .add(massiveOngoingKlineSchema, { id: "MassiveOngoingKLine" });
+  .add(ongoingKlineSchema, { id: "OngoingKLine" });
 const fail = (error: string): never => {
   process.stderr.write(`proto: ${error}\n`);
   return process.exit(1);

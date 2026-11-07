@@ -4,7 +4,7 @@
 // that the conformance check compares them as texts: the run's parts in their order, a record a line, its fields in
 // the order of their names, a field not set left out.
 
-import { decodeAs, encodeRecord, type KLine, type MassiveKLine } from "@qi/market";
+import { decodeAs, encodeRecord, type KLine } from "@qi/market";
 import { z } from "zod";
 import {
   type Consolidation,
@@ -15,7 +15,6 @@ import {
   type Line,
   type MergedBar,
   type Move,
-  massiveKlinesSchema,
   mergedBarSchema,
   moveSchema,
   type Segment,
@@ -24,8 +23,8 @@ import {
   strokeSchema,
 } from "./contracts.ts";
 
-// The run: its K-lines, market's, of the base contract or of a data source's, merged bars, 分型, 笔 (strokes), and by level from
-// 0 its 线段 (segments), 走势 (moves) and 中枢 (consolidations).
+// The run: its K-lines, market's base K-lines, merged bars, 分型, 笔 (strokes), and by level from 0 its 线段 (segments),
+// 走势 (moves) and 中枢 (consolidations).
 // The run's own rules (SPEC.md, The run): the K-lines and merged bars numbered by their place; the 分型 strictly
 // increasing by `mIndex`; the 笔 and each level's 线段, 走势 and 中枢 strictly increasing by `start`; every position a
 // K-line's, every bar a merged bar's; each level's 线段, 走势 and 中枢 of that level; in `merged`, in `strokes` and in each
@@ -147,9 +146,8 @@ const runOf = <K extends { readonly index: number }>(klines: z.ZodType<readonly 
       });
     });
 
-// The run of the base contract's K-lines, and Massive's
+// The run, of the base contract's K-lines
 export const runSchema = runOf(klinesSchema);
-export const massiveRunSchema = runOf(massiveKlinesSchema);
 
 export type RunOf<K> = {
   readonly klines: readonly K[];
@@ -161,7 +159,6 @@ export type RunOf<K> = {
   readonly consolidations: readonly (readonly Consolidation[])[];
 };
 export type Run = RunOf<KLine>;
-export type MassiveRun = RunOf<MassiveKLine>;
 
 // The time of the K-line at a position: how a position is turned back into a time.
 export const timeAt = (run: RunOf<{ readonly date: number }>, p: number): number | undefined =>
@@ -179,7 +176,6 @@ const decoder =
     return r.ok ? { ok: true, run: r.value } : r;
   };
 export const decodeRun = decoder<Run>(runSchema);
-export const decodeMassiveRun = decoder<MassiveRun>(massiveRunSchema);
 
 const list = (lines: readonly string[]): string => (lines.length === 0 ? "[]" : `[\n${lines.join(",\n")}\n]`);
 const records = (rs: readonly object[]): string => list(rs.map(encodeRecord));

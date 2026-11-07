@@ -92,29 +92,18 @@ func TestRulesOfARecordMadeInGo(t *testing.T) {
 
 // A decode that fails gives the zero value: never a record half read, nor a run that breaks a rule
 func TestRefusedIsZero(t *testing.T) {
-	for _, c := range []struct {
-		dir  string
-		mode mode
-	}{{"reject", mode{}}, {"massive/reject", mode{massive: true}}} {
-		names, err := filepath.Glob(filepath.Join(vectors, c.dir, "*.json"))
-		if err != nil || len(names) == 0 {
-			t.Fatalf("%s: no reject case", c.dir)
+	names, err := filepath.Glob(filepath.Join(vectors, "reject", "*.json"))
+	if err != nil || len(names) == 0 {
+		t.Fatal("reject: no reject case")
+	}
+	for _, n := range names {
+		data, err := os.ReadFile(n)
+		if err != nil {
+			t.Fatal(err)
 		}
-		for _, n := range names {
-			data, err := os.ReadFile(n)
-			if err != nil {
-				t.Fatal(err)
-			}
-			var got any
-			switch {
-			case c.mode.massive:
-				got, err = DecodeMassiveRun(data)
-			default:
-				got, err = DecodeRun(data)
-			}
-			if err == nil || !reflect.ValueOf(got).IsZero() {
-				t.Errorf("%s: %v, and not the zero value", n, err)
-			}
+		got, err := DecodeRun(data)
+		if err == nil || !reflect.ValueOf(got).IsZero() {
+			t.Errorf("%s: %v, and not the zero value", n, err)
 		}
 	}
 }
@@ -163,7 +152,7 @@ func TestLastLevelNotEmpty(t *testing.T) {
 }
 
 func FuzzDecodeRun(f *testing.F) {
-	for _, n := range []string{"small.json", "edge.json", "massive/small.json", "reject/merged-ongoing-twice.json",
+	for _, n := range []string{"small.json", "edge.json", "reject/merged-ongoing-twice.json",
 		"reject/number-with-exponent.json", "reject/kline-high-twice.json"} {
 		data, err := readVector(n)
 		if err != nil {
@@ -172,15 +161,13 @@ func FuzzDecodeRun(f *testing.F) {
 		f.Add(data)
 	}
 	f.Fuzz(func(t *testing.T, data []byte) {
-		for _, m := range []mode{{}, {massive: true}} {
-			text, err := giveBack(m, data)
-			if err != nil {
-				continue
-			}
-			again, err := giveBack(m, []byte(text))
-			if err != nil || again != text {
-				t.Fatalf("read, but its text does not read to itself: %v", err)
-			}
+		text, err := giveBack(data)
+		if err != nil {
+			return
+		}
+		again, err := giveBack([]byte(text))
+		if err != nil || again != text {
+			t.Fatalf("read, but its text does not read to itself: %v", err)
 		}
 	})
 }

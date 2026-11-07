@@ -20,11 +20,7 @@ func TestNotByEncodingJSON(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	mk, err := DecodeMassiveOngoingKLine(read(t, "ongoing/massive.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	given := []any{k, mk, k.kline(), mk.kline(), k.High}
+	given := []any{k, k.kline(), k.High}
 	// every type records.go makes is one of them
 	file, err := parser.ParseFile(token.NewFileSet(), "records.go", nil, 0)
 	if err != nil {
