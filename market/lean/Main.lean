@@ -1,36 +1,28 @@
 import Market
 
-/-- A file's bytes as its answer: its canonical text, or its fault. -/
-def answer (bytes : ByteArray) : Except String String :=
-  match String.fromUTF8? bytes with
-  | none => .error "text not UTF-8"
-  | some text => Market.encodeOngoingKLine <$> Market.decodeOngoingKLine text
+/-! The examples (../examples.json) checked against the rules: each record breaks exactly the rules it names. -/
 
-def usage : String :=
-  "usage: lake exe decode --ongoing FILE | --ongoing --batch IN OUT"
+open Lean
 
-/-- An ongoing K-line's JSON decoded and written again as its canonical JSON (the conformance check's Lean side):
-`lake exe decode --ongoing FILE`. The file's bytes are read as UTF-8, a byte that is not UTF-8 refused. A fault to
-stderr, exit 1. With `--batch IN OUT`, every `.json` file of the folder `IN`, in the order of their names, decoded so in
-one process (the generated cases, ../vectors/cases.ts), each one's answer written to `OUT` under its name: its
-canonical text, or the line `decode: ` and its fault. -/
+def brokenBy {α : Type} [FromJson α] (rules : List (Market.Rule α)) (value : Json) : Except String (List String) :=
+  Market.broken rules <$> fromJson? value
+
+def check (record : String) : Json → Except String (List String) :=
+  match record with
+  | "KLine" => brokenBy Market.KLine.rules
+  | "OngoingKLine" => brokenBy Market.OngoingKLine.rules
+  | _ => fun _ => throw s!"{record}: no such record"
+
 def main (args : List String) : IO UInt32 := do
-  let ongoing := args.contains "--ongoing"
-  let batch := args.contains "--batch"
-  match ongoing, batch, args.filter (fun a => a != "--ongoing" && a != "--batch") with
-  | true, false, [file] =>
-    if file.startsWith "--" then
-      IO.eprintln s!"decode: {usage}"; return 1
-    match answer (← IO.FS.readBinFile file) with
-    | .ok text => IO.print text; return 0
-    | .error e => IO.eprintln s!"decode: {e}"; return 1
-  | true, true, [inDir, outDir] =>
-    let entries ← System.FilePath.readDir inDir
-    let names := (entries.map (·.fileName)).filter (·.endsWith ".json") |>.qsort (· < ·)
-    for n in names do
-      let out := match answer (← IO.FS.readBinFile (System.FilePath.mk inDir / n)) with
-        | .ok text => text
-        | .error e => s!"decode: {e}\n"
-      IO.FS.writeFile (System.FilePath.mk outDir / n) out
-    return 0
-  | _, _, _ => IO.eprintln s!"decode: {usage}"; return 1
+  let [path] := args | IO.eprintln "usage: examples <examples.json>"; return 2
+  let examples ← IO.ofExcept ((Json.parse (← IO.FS.readFile path)) >>= Json.getArr?)
+  let mut wrong := 0
+  for e in examples do
+    let record ← IO.ofExcept (e.getObjValAs? String "record")
+    let breaks ← IO.ofExcept (e.getObjValAs? (List String) "breaks")
+    let got ← IO.ofExcept (check record (e.getObjValD "value"))
+    if got != breaks then
+      IO.eprintln s!"{e.compress}: breaks {got}"
+      wrong := wrong + 1
+  IO.println s!"examples: {examples.size - wrong} of {examples.size} break the rules they name"
+  return if wrong == 0 then 0 else 1

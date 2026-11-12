@@ -1,25 +1,17 @@
 {
   "name": "@qi/chanlun",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "private": true,
   "type": "module",
-  "description": "缠论's contract (../SPEC.md): what the algorithm makes beyond the K-line as Zod schemas, and a run's records as JSON; its units and its JSON market's",
+  "description": "缠论's contract (../README.md): its records generated from ../proto/chanlun.proto, and its rules",
   "exports": {
     ".": "./src/index.ts"
   },
-  "scripts": {
-    "check": "biome check src test bin package.json tsconfig.json biome.json",
-    "typecheck": "tsc --noEmit -p .",
-    "test": "vitest run"
-  },
   "dependencies": {
-    "@qi/market": "file:../../market/ts",
-    "zod": "4.1.12"
+    "@bufbuild/protobuf": "2.11.0"
   },
   "devDependencies": {
-    "@types/node": "24.3.0",
-    "avsc": "5.7.9",
-    "typescript": "5.9.3",
-    "vitest": "3.2.4"
+    "@types/bun": "1.3.13",
+    "typescript": "5.9.3"
   }
 }

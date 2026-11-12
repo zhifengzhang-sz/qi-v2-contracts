@@ -1,0 +1,9 @@
+# The contracts' .proto files (README.md): `buf lint` checks them, `buf breaking` each against its last release.
+version: v2
+modules:
+  - path: market/proto
+  - path: chanlun/proto
+lint:
+  use: [STANDARD]
+  # a contract's .proto is in its own folder, not in one named by its package
+  except: [PACKAGE_DIRECTORY_MATCH]

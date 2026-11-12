@@ -1,0 +1,17 @@
+# market's Go and TypeScript code, made from proto/market.proto by `make generate`; the Go package's path is given here, so
+# that the .proto holds nothing of any one language.
+version: v2
+managed:
+  enabled: true
+  override:
+    - file_option: go_package
+      value: github.com/zhifengzhang-sz/qi-v2-contracts/market/go/market
+plugins:
+  - local: protoc-gen-go
+    out: market/go/market
+    opt: paths=source_relative
+  - local: protoc-gen-es
+    out: market/ts/src
+    opt: target=ts
+inputs:
+  - directory: market/proto

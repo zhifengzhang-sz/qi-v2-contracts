@@ -1,14 +1,6 @@
 {"version": "1.3.0",
  "packagesDir": ".lake/packages",
- "packages":
- [{"type": "path",
-   "scope": "",
-   "name": "market",
-   "manifestFile": "lake-manifest.json",
-   "inherited": false,
-   "dir": "../../market/lean",
-   "copy": false,
-   "configFile": "lakefile.toml"}],
+ "packages": [],
  "name": "chanlun",
  "lakeDir": ".lake",
  "fixedToolchain": false}

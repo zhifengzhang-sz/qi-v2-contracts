@@ -1,14 +1,17 @@
-// The market data contract, market 1.1.0 (../SPEC.md): the records' fields and types, made from the Zod schemas
-// of ../ts/src by ../ts/bin/proto.ts with the field numbers of fields.json; not edited by hand. The records' rules
-// are not here: they are in SPEC.md (The records), and the vectors (../vectors/) break each of them; a form that
-// checks the rules reads the vectors alike.
+// The market data contract (../README.md): the K-line and the ongoing K-line.
+//
+// A time is milliseconds since 1970-01-01 00:00:00 UTC. A position is a K-line's place in its series, from 0. A price
+// and a volume have at most 6 decimal places. The rules are in ../lean/Market.lean.
 
 syntax = "proto3";
 
 package qi.market.v1;
 
+// A complete bar.
 message KLine {
+  // its place in its series
   uint64 index = 1;
+  // its begin time
   uint64 date = 14;
   double open = 15;
   double high = 16;
@@ -19,13 +22,17 @@ message KLine {
   reserved "up", "confirm_rno", "confirm_date", "stored";
 }
 
+// A bar still going on: a K-line's fields, and when they were last updated.
 message OngoingKLine {
+  // the place it will take in its series when complete
   uint64 index = 1;
+  // its begin time
   uint64 date = 14;
   double open = 15;
   double high = 16;
   double low = 17;
   double close = 18;
   double volume = 19;
+  // when its values were last updated
   uint64 as_of = 21;
 }

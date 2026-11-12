@@ -1,45 +1,29 @@
 # qi-v2-contracts
 
-The contracts shared by the qi-v2 projects, each defined once: a folder a contract, each with its spec (`SPEC.md`),
-its forms, its vectors, and its own version, released on its own and tagged `<contract>-<version>`. A contract may be
-built on another, and take what that one defines, its records, its units or its JSON: each of its forms takes the
-other's form of the same language, and defines none of it again.
+The contracts shared by the qi-v2 projects. A contract states records and their rules, and nothing of how they are
+used. Each is a folder, released on its own and tagged `<contract>-<version>`.
 
-| Contract | What it states | Built on | Forms | Version | Tags |
-|---|---|---|---|---|---|
-| [`market/`](market/README.md) | the market data: the base K-line and its ongoing K-line | | TypeScript (Zod), Lean, Go; Avro and Protobuf, made from the TypeScript | 1.1.0 | `market-<version>` |
-| [`chanlun/`](chanlun/README.md) | 缠论's records beyond the K-line: the merged bar, 分型, the lines, 中枢, and the run that holds them for a series | `market` | TypeScript (Zod), Lean, Go; Avro and Protobuf, made from the TypeScript | 3.1.0 | `chanlun-<version>` |
+| Contract | What it states | Version |
+|---|---|---|
+| [`market/`](market/README.md) | the K-line and the ongoing K-line | 2.0.0 |
+| [`chanlun/`](chanlun/README.md) | 缠论's merged bar, 分型, lines and 中枢 | 4.0.0 |
 
-A narrower contract changes less often, and so does whatever takes it: the K-lines, released alone, stay put while 缠论's
-structure moves. A new version of `chanlun` on the same K-line leaves `market` as it is.
+## A contract
 
-## How a contract is written
+| Part | What it is |
+|---|---|
+| `proto/<contract>.proto` | the records |
+| `lean/` | the rules, defined formally: each a name, and what holds of a record that keeps it |
+| `examples.json` | records, each with the rules it breaks |
+| `go/`, `ts/` | Go and TypeScript: the records' code generated from the `.proto` by `buf generate` (`make generate`), and the rules by the same names |
 
-A contract is written in TypeScript as Zod schemas, which state its records, their fields and their rules. Its Avro schemas,
-its Protobuf description and the types of its Go form are generated from them, and `make check` compares them. They give other languages,
-and schema registries, the records' fields and types. `<contract>/ts/bin/avro.ts`, `<contract>/ts/bin/protobuf.ts` and
-`<contract>/ts/bin/golang.ts` map the output of `z.toJSONSchema`, and hold nothing specific to one contract: each
-contract has the same copy, which also maps a record of the contract it is built on (a namespace, a message imported, a
-Go type of the other package). Protobuf's field numbers are kept in a file of their own. The rules reach none of them:
-the contract's spec states them, a form writes them by hand (the Lean, and the Go beside its types), and the vectors
-are what every reader in every language must read alike.
-
-We publish both formats because each has what the other lacks. Avro needs no field numbers, but a reader must have the
-schema the data was written with. A Protobuf reader needs no such schema, but its field numbers are kept by hand.
-[`market/SPEC.md`](market/SPEC.md#why-both) has the comparison.
+A language implements the rules when, on every example, it gives the names of exactly the rules the example names.
 
 ## Checks and releases
 
-Each contract's forms decode its vectors to the same values: the conformance check, `make check`, run on every
-change (`nix develop`, then `make check`; `make market` or `make chanlun` for one). A change runs again each check that
-reads what it changed; every other check keeps its result, kept by what it reads: by Nix for those that read only the
-repository's files and the flake's inputs, the flake's checks (`nix flake check` runs them all), and by its key in
-`.stamps` for each TypeScript form's, whose packages npm gives. Each contract's checks read its own files; one built on
-another reads too the other's forms it takes, so a change to `chanlun` runs no check of `market`'s. `make check FULL=1`
-runs every part.
+In the shell (`nix develop`), `make check`: `buf lint` and Biome; for each contract, its generated code what its
+`.proto` makes, and its examples checked by Lean, Go and TypeScript; `PRODUCTS.md` against the project (`kit`).
 
-A contract is published as the flake's packages, one a contract and form (`market-ts`, `market-lean`, `market-go`,
-`market-avro`, `market-proto`; `chanlun-ts`, `chanlun-lean`, `chanlun-go`, `chanlun-avro`, `chanlun-proto`); a release
-of one is its version in its spec, its forms and its packages, an entry under Changes in its README, the checks passed,
-then its tag, `market-<version>` or `chanlun-<version>`. A taker pins the tag of the contract it takes. The repository
-holds no data and no implementation of what a contract describes.
+A release of a contract: its version in `ts/package.json`, `lean/lakefile.toml` and its README, an entry under
+Changes; `make check`; `make breaking`, the `.proto` against the contract's last release, where a break is a new major
+version; `make packages`, the flake's packages built; then the tag. A taker pins the tag.

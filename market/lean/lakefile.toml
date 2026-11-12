@@ -1,18 +1,15 @@
 name = "market"
-version = "1.1.0"
-defaultTargets = ["Market", "decode"]
+version = "2.0.0"
+defaultTargets = ["Market", "examples"]
 
 [leanOptions]
 autoImplicit = false
-relaxedAutoImplicit = false
 
-# The market data contract (../SPEC.md): the K-lines as structures (Market/Contract.lean), and an ongoing K-line's
-# records as JSON, decoded with every rule and encoded as the canonical text (Market/Codec.lean); for a contract built
-# on it, its units and its JSON. No Mathlib.
+# The rules (Market.lean)
 [[lean_lib]]
 name = "Market"
 
-# An ongoing K-line's JSON decoded and written again as its canonical JSON: the conformance check's Lean side.
+# The examples checked against the rules (Main.lean)
 [[lean_exe]]
-name = "decode"
+name = "examples"
 root = "Main"

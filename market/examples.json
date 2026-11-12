@@ -1,0 +1,15 @@
+[
+  {"record": "KLine", "breaks": [], "value": {"index": 6, "date": 1767623760000, "open": 100.45, "high": 100.6, "low": 100.4, "close": 100.55, "volume": 0.25}},
+  {"record": "KLine", "breaks": [], "value": {"index": 0, "date": 0, "open": 100, "high": 100, "low": 100, "close": 100, "volume": 0}},
+  {"record": "KLine", "breaks": [], "value": {"index": 7, "date": 1767623820000, "open": 0.000001, "high": 999999999.999999, "low": 0.000001, "close": 999999999.999999, "volume": 999999999.999999}},
+  {"record": "KLine", "breaks": ["range"], "value": {"index": 6, "date": 1767623760000, "open": 100.45, "high": 100.6, "low": 100.5, "close": 100.55, "volume": 0.25}},
+  {"record": "KLine", "breaks": ["range"], "value": {"index": 6, "date": 1767623760000, "open": 100.45, "high": 100.6, "low": 100.4, "close": 100.65, "volume": 0.25}},
+  {"record": "KLine", "breaks": ["volumeNotNegative"], "value": {"index": 6, "date": 1767623760000, "open": 100.45, "high": 100.6, "low": 100.4, "close": 100.55, "volume": -0.25}},
+  {"record": "KLine", "breaks": ["finite"], "value": {"index": 6, "date": 1767623760000, "open": 100.45, "high": "Infinity", "low": 100.4, "close": 100.55, "volume": 0.25}},
+  {"record": "KLine", "breaks": ["finite", "range"], "value": {"index": 6, "date": 1767623760000, "open": "NaN", "high": 100.6, "low": 100.4, "close": 100.55, "volume": 0.25}},
+  {"record": "OngoingKLine", "breaks": [], "value": {"index": 6, "date": 1767623760000, "open": 100.45, "high": 100.6, "low": 100.4, "close": 100.55, "volume": 0.25, "asOf": 1767623790000}},
+  {"record": "OngoingKLine", "breaks": [], "value": {"index": 6, "date": 1767623760000, "open": 100.45, "high": 100.45, "low": 100.45, "close": 100.45, "volume": 0, "asOf": 1767623760000}},
+  {"record": "OngoingKLine", "breaks": ["asOfNotBeforeDate"], "value": {"index": 6, "date": 1767623760000, "open": 100.45, "high": 100.6, "low": 100.4, "close": 100.55, "volume": 0.25, "asOf": 1767623759999}},
+  {"record": "OngoingKLine", "breaks": ["range"], "value": {"index": 6, "date": 1767623760000, "open": 100.7, "high": 100.6, "low": 100.4, "close": 100.55, "volume": 0.25, "asOf": 1767623790000}},
+  {"record": "OngoingKLine", "breaks": ["volumeNotNegative"], "value": {"index": 6, "date": 1767623760000, "open": 100.45, "high": 100.6, "low": 100.4, "close": 100.55, "volume": -1, "asOf": 1767623790000}}
+]
